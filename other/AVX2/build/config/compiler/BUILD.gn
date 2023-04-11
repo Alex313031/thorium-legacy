@@ -70,6 +70,9 @@ declare_args() {
   # This is initialized below, after use_gold might have been overridden.
   gold_path = ""
 
+  # Whether to enable LLVM's Polly optimizations. See https://polly.llvm.org/
+  use_polly = false
+
   # Enable fatal linker warnings. Building Chromium with certain versions
   # of binutils can cause linker warning.
   fatal_linker_warnings = true
@@ -551,6 +554,13 @@ config("compiler") {
         ldflags += [ "-Wl,-mllvm,-instcombine-lower-dbg-declare=0" ]
       }
     }
+
+    # TODO(crbug.com/1235145): Investigate why/if this should be needed.
+    if (is_win) {
+      cflags += [ "/clang:-ffp-contract=fast" ]
+    } else {
+      cflags += [ "-ffp-contract=fast" ]
+    }
   }
 
   # Rust compiler setup (for either clang or rustc).
@@ -947,10 +957,9 @@ config("compiler_cpu_abi") {
         "-O3",
         "-march=haswell",
         "-mtune=generic",
-        "-mvaes",
         "-ffp-contract=fast",
       ]
-      ldflags += [ "-m64", "-Wl,-O3", "-Wl,-mllvm,-march=haswell", "-mvaes", "-Wl,-mllvm,-fp-contract=fast", "-Wl,-mllvm,-import-instr-limit=30", "-Wl,-mllvm,-import-hot-multiplier=15", "-Wl,-mllvm,-import-cold-multiplier=4", ]
+      ldflags += [ "-m64", "-Wl,-O3", "-Wl,-mllvm,-march=haswell", "-Wl,-mllvm,-fp-contract=fast", "-Wl,-mllvm,-import-instr-limit=30", "-Wl,-mllvm,-import-hot-multiplier=15", "-Wl,-mllvm,-import-cold-multiplier=4", ]
     } else if (current_cpu == "x86") {
       cflags += [ "-m32" ]
       ldflags += [ "-m32", "-Wl,-O3", "-msse3", ]
@@ -2029,6 +2038,11 @@ if (is_win) {
     "-mllvm", "-extra-vectorizer-passes",
     "-mllvm", "-enable-cond-stores-vec",
     "-mllvm", "-slp-vectorize-hor-store",
+    "-mllvm", "-adce-remove-loops",
+    "-mllvm", "-enable-cse-in-irtranslator",
+    "-mllvm", "-enable-cse-in-legalizer",
+    "-mllvm", "-scalar-evolution-use-expensive-range-sharpening",
+    "-mllvm", "-loop-rotate-multi",
     "-mllvm", "-enable-loopinterchange",
     "-mllvm", "-enable-loop-distribute",
     "-mllvm", "-enable-unroll-and-jam",
@@ -2037,12 +2051,13 @@ if (is_win) {
     "-mllvm", "-unroll-runtime-multi-exit",
     "-mllvm", "-aggressive-ext-opt",
     "-mllvm", "-enable-interleaved-mem-accesses",
-    "/O3",
+    "-mllvm", "-enable-masked-interleaved-mem-accesses",
+    "-mllvm", "-enable-gvn-hoist",
+    "/O2",
     "/clang:-O3",
     "/clang:-mavx",
     "/clang:-mavx2",
     "/clang:-maes",
-    "/clang:-mvaes",
     "/clang:-mpclmul",
     "-Xclang", "-O3",
   ]
@@ -2051,6 +2066,11 @@ if (is_win) {
     "-mllvm:-extra-vectorizer-passes",
     "-mllvm:-enable-cond-stores-vec",
     "-mllvm:-slp-vectorize-hor-store",
+    "-mllvm:-adce-remove-loops",
+    "-mllvm:-enable-cse-in-irtranslator",
+    "-mllvm:-enable-cse-in-legalizer",
+    "-mllvm:-scalar-evolution-use-expensive-range-sharpening",
+    "-mllvm:-loop-rotate-multi",
     "-mllvm:-enable-loopinterchange",
     "-mllvm:-enable-loop-distribute",
     "-mllvm:-enable-unroll-and-jam",
@@ -2059,8 +2079,19 @@ if (is_win) {
     "-mllvm:-unroll-runtime-multi-exit",
     "-mllvm:-aggressive-ext-opt",
     "-mllvm:-enable-interleaved-mem-accesses",
+    "-mllvm:-enable-masked-interleaved-mem-accesses",
+    "-mllvm:-enable-gvn-hoist",
   ]
-  
+
+  if (use_polly == true) {
+    common_optimize_on_ldflags += [
+    "-mllvm:-polly",
+    "-mllvm:-polly-detect-profitability-min-per-loop-insts=40",
+    "-mllvm:-polly-invariant-load-hoisting",
+    "-mllvm:-polly-vectorizer=stripmine",
+    ]
+  }
+
   # /OPT:ICF is not desirable in Debug builds, since code-folding can result in
   # misleading symbols in stack traces.
   if (!is_debug && !is_component_build) {
@@ -2081,6 +2112,11 @@ if (is_win) {
     "-mllvm", "-extra-vectorizer-passes",
     "-mllvm", "-enable-cond-stores-vec",
     "-mllvm", "-slp-vectorize-hor-store",
+    "-mllvm", "-adce-remove-loops",
+    "-mllvm", "-enable-cse-in-irtranslator",
+    "-mllvm", "-enable-cse-in-legalizer",
+    "-mllvm", "-scalar-evolution-use-expensive-range-sharpening",
+    "-mllvm", "-loop-rotate-multi",
     "-mllvm", "-enable-loopinterchange",
     "-mllvm", "-enable-loop-distribute",
     "-mllvm", "-enable-unroll-and-jam",
@@ -2089,6 +2125,8 @@ if (is_win) {
     "-mllvm", "-unroll-runtime-multi-exit",
     "-mllvm", "-aggressive-ext-opt",
     "-mllvm", "-enable-interleaved-mem-accesses",
+    "-mllvm", "-enable-masked-interleaved-mem-accesses",
+    "-mllvm", "-enable-gvn-hoist",
     "-O3",
   ]
 
@@ -2096,6 +2134,11 @@ if (is_win) {
     "-Wl,-mllvm,-extra-vectorizer-passes",
     "-Wl,-mllvm,-enable-cond-stores-vec",
     "-Wl,-mllvm,-slp-vectorize-hor-store",
+    "-Wl,-mllvm,-adce-remove-loops",
+    "-Wl,-mllvm,-enable-cse-in-irtranslator",
+    "-Wl,-mllvm,-enable-cse-in-legalizer",
+    "-Wl,-mllvm,-scalar-evolution-use-expensive-range-sharpening",
+    "-Wl,-mllvm,-loop-rotate-multi",
     "-Wl,-mllvm,-enable-loopinterchange",
     "-Wl,-mllvm,-enable-loop-distribute",
     "-Wl,-mllvm,-enable-unroll-and-jam",
@@ -2104,8 +2147,19 @@ if (is_win) {
     "-Wl,-mllvm,-unroll-runtime-multi-exit",
     "-Wl,-mllvm,-aggressive-ext-opt",
     "-Wl,-mllvm,-enable-interleaved-mem-accesses",
+    "-Wl,-mllvm,-enable-masked-interleaved-mem-accesses",
+    "-Wl,-mllvm,-enable-gvn-hoist",
     "-Wl,-O3",
   ]
+
+  if (use_polly == true) {
+    common_optimize_on_ldflags += [
+    "-Wl,-mllvm,-polly",
+    "-Wl,-mllvm,-polly-detect-profitability-min-per-loop-insts=40",
+    "-Wl,-mllvm,-polly-invariant-load-hoisting",
+    "-Wl,-mllvm,-polly-vectorizer=stripmine",
+    ]
+  }
 
   if (is_android) {
     # TODO(jdduke) Re-enable on mips after resolving linking
