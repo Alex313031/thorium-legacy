@@ -122,8 +122,9 @@ esac
 copyAVX2 () {
 	printf "\n" &&
 	printf "${YEL}Copying AVX2 build files...${c0}\n" &&
-	cp -r -v other/AVX2/build/config/* $HOME/chromium/src/build/config/ &&
-	cp -r -v other/AVX2/third_party/opus/src/* $HOME/chromium/src/third_party/opus/src/ &&
+	cp -r -v other/AVX2/build/* $HOME/chromium/src/build/ &&
+	cp -r -v other/AVX2/third_party/* $HOME/chromium/src/third_party/ &&
+	cp -r -v other/AVX2/v8/* $HOME/chromium/src/v8/ &&
 	printf "\n"
 }
 
@@ -135,12 +136,26 @@ esac
 copySSE3 () {
 	printf "\n" &&
 	printf "${YEL}Copying SSE3 build files...${c0}\n" &&
-	cp -r -v other/SSE3/build/config/* $HOME/chromium/src/build/config/ &&
+	cp -r -v other/SSE3/build/* $HOME/chromium/src/build/ &&
+	cp -r -v other/SSE3/third_party/* $HOME/chromium/src/third_party/ &&
+	cp -r -v other/SSE3/v8/* $HOME/chromium/src/v8/ &&
 	printf "\n"
 }
 
 case $1 in
 	--sse3) copySSE3;
+esac
+
+# Copy SSE2 files
+copySSE2 () {
+	printf "\n" &&
+	printf "${YEL}Copying SSE2 (32 bit) build files...${c0}\n" &&
+	cp -r -v other/SSE2/* $HOME/chromium/src/ &&
+	printf "\n"
+}
+
+case $1 in
+	--sse2) copySSE3;
 esac
 
 printf "${GRE}Done!\n" &&

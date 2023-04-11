@@ -44,11 +44,15 @@ git checkout -f tags/$THOR_VER &&
 
 git clean -ffd &&
 
+cd ~/Thorium-Win7 &&
+
+cp -v ./src/build/vs_toolchain.py ~/chromium/src/build/ &&
+
 gclient sync --with_branch_heads --with_tags -f -R -D &&
 
 gclient runhooks &&
 
-cd ~/thorium &&
+cd ~/Thorium-Win7 &&
 
 printf "\n"
 printf "${GRE}Chromium tree is checked out at tag: ${c0}$THOR_VER\n"
