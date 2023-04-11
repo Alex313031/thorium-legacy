@@ -1,4 +1,4 @@
-// Copyright 2022 The Chromium Authors and Alex313031. All rights reserved.
+// Copyright 2023 The Chromium Authors and Alex313031. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -981,6 +981,7 @@ bool FlagsState::IsSupportedFeature(const FlagsStorage* storage,
     if (!entry.InternalNameMatches(name))
       continue;
     if (delegate_ && delegate_->ShouldExcludeFlag(storage, entry))
+      if (!flags::IsFlagExpired(storage, entry.internal_name))
       continue;
     return true;
   }

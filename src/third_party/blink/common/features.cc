@@ -1547,7 +1547,7 @@ BASE_FEATURE(kPrefetchFontLookupTables,
 
 BASE_FEATURE(kPrecompileInlineScripts,
              "PrecompileInlineScripts",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kPretokenizeCSS,
              "PretokenizeCSS",
@@ -1577,7 +1577,7 @@ BASE_FEATURE(kWebSQLNonSecureContextAccess,
 
 BASE_FEATURE(kFileSystemUrlNavigation,
              "FileSystemUrlNavigation",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kFileSystemUrlNavigationForChromeAppsOnly,
              "FileSystemUrlNavigationForChromeAppsOnly",
