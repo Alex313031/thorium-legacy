@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2022 Alex313031.
+# Copyright (c) 2023 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 CYA='\033[1;96m' # Cyan
@@ -22,7 +22,6 @@ displayHelp () {
 	printf "${underline}${YEL}Usage: ${c0}build.sh # (where # is number of jobs)${c0}\n" &&
 	printf "\n"
 }
-
 case $1 in
 	--help) displayHelp; exit 0;;
 esac
@@ -38,7 +37,7 @@ export NINJA_SUMMARIZE_BUILD=1 &&
 
 cat logos/thorium_logo_ascii_art.txt &&
 
-printf "${GRE}${bold}Build Completed. ${YEL}${bold}You can now run ./thordeb.sh to build an installation package.\n" &&
+printf "${GRE}${bold}Build Completed. ${YEL}${bold}You can now run `./thordeb.sh` to build an installation package.\n" &&
 tput sgr0 &&
 
 exit 0

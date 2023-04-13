@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2022 Alex313031.
+# Copyright (c) 2023 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 CYA='\033[1;96m' # Cyan
@@ -88,6 +88,8 @@ sudo chmod -v +x src/build/vs_toolchain.py &&
 sudo chmod -v +x src/tools/gn/bootstrap/bootstrap.py &&
 
 sudo chmod -v +x src/tools/clang/scripts/build.py &&
+
+sudo chmod -v +x other/Polly/setup_polly.sh &&
 
 printf "${GRE}${bold}Scripts are ready!\n" &&
 tput sgr0

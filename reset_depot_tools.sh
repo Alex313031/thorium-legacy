@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2022 Alex313031 and Midzer.
+# Copyright (c) 2023 Alex313031 and Midzer.
 
 YEL='\033[1;33m' # Yellow
 CYA='\033[1;96m' # Cyan
@@ -24,7 +24,6 @@ displayHelp () {
 	printf "${bold}${YEL}from your home directory, and then re-clone depot_tools in \$HOME.${c0}\n" &&
 	printf "\n"
 }
-
 case $1 in
 	--help) displayHelp; exit 0;;
 esac
@@ -59,7 +58,7 @@ source ~/.bashrc &&
 
 printf "\n" &&
 
-printf "${GRE}Completed. ${YEL}You can now run ./trunk.sh\n"
+printf "${GRE}Completed. ${YEL}You can now run \'./trunk.sh\'\n"
 tput sgr0 &&
 
 exit 0

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2022 Alex313031.
+# Copyright (c) 2023 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 CYA='\033[1;96m' # Cyan
@@ -22,7 +22,6 @@ displayHelp () {
 	printf "${underline}${YEL}Usage: ${c0}build_win.sh # (where # is number of jobs)${c0}\n" &&
 	printf "\n"
 }
-
 case $1 in
 	--help) displayHelp; exit 0;;
 esac
@@ -40,7 +39,7 @@ mv -v -f ~/chromium/src/out/thorium/mini_installer.exe ~/chromium/src/out/thoriu
 
 cat logos/thorium_logo_ascii_art.txt &&
 
-printf "${GRE}${bold}Build Completed. ${YEL}${bold}Installer at //out/thorium/thorium_mini_installer.exe\n" &&
+printf "${GRE}${bold}Build Completed. ${YEL}${bold}Installer at \'//out/thorium/thorium_mini_installer.exe\'\n" &&
 tput sgr0 &&
 
 exit 0

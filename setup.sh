@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2022 Alex313031.
+# Copyright (c) 2023 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 CYA='\033[1;96m' # Cyan
@@ -24,11 +24,11 @@ displayHelp () {
 	printf "${bold}${YEL}Use the --woa flag for Windows on ARM builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --avx2 flag for AVX2 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse3 flag for SSE3 Builds.${c0}\n" &&
+	printf "${bold}${YEL}Use the --android flag for Android Builds.${c0}\n" &&
 	printf "${bold}${YEL}IMPORTANT: For Polly builds, first run build_polly.sh in Thorium/infra, then use the setup_polly.sh${c0}\n" &&
 	printf "${bold}${YEL}script in Thorium/other/Polly. Both of these actions should be taken AFTER running this script!${c0}\n" &&
 	printf "\n"
 }
-
 case $1 in
 	--help) displayHelp; exit 0;;
 esac
@@ -44,16 +44,19 @@ printf "\n" &&
 printf "${YEL}Copying Thorium source files over the Chromium tree...\n" &&
 tput sgr0 &&
 
+# Copy Thorium sources
 cp -r -v src/BUILD.gn $HOME/chromium/src/ &&
 cp -r -v src/ash/. $HOME/chromium/src/ash/ &&
 cp -r -v src/build/. $HOME/chromium/src/build/ &&
 cp -r -v src/chrome/. $HOME/chromium/src/chrome/ &&
+cp -r -v src/chromeos/. $HOME/chromium/src/chromeos/ &&
 cp -r -v src/components/. $HOME/chromium/src/components/ &&
 cp -r -v src/extensions/. $HOME/chromium/src/extensions/ &&
 cp -r -v src/content/. $HOME/chromium/src/content/ &&
 cp -r -v src/media/. $HOME/chromium/src/media/ &&
 cp -r -v src/net/. $HOME/chromium/src/net/ &&
 cp -r -v src/sandbox/. $HOME/chromium/src/sandbox/ &&
+cp -r -v src/services/. $HOME/chromium/src/services/ &&
 cp -r -v src/third_party/. $HOME/chromium/src/third_party/ &&
 cp -r -v src/tools/. $HOME/chromium/src/tools/ &&
 cp -r -v src/ui/. $HOME/chromium/src/ui/ &&
@@ -70,15 +73,6 @@ echo " # Workaround for DevTools" &&
 mkdir -v -p $HOME/chromium/src/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
 cp -r -v src/third_party/devtools-frontend/src/front_end/Images/src/chromeSelectDark.svg $HOME/chromium/src/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
 
-printf "\n" &&
-printf "${YEL}Making some scripts executable...\n" &&
-tput sgr0 &&
-chmod -v +x $HOME/chromium/src/tools/clang/scripts/build.py &&
-
-chmod -v +x $HOME/chromium/src/tools/gn/bootstrap/bootstrap.py &&
-
-chmod -v +x $HOME/chromium/src/chrome/installer/linux/debian/build.sh &&
-
 # MacOS Widevine Workaround
 copyMacOS () {
 	printf "\n" &&
@@ -87,7 +81,6 @@ copyMacOS () {
 	cp -r -v arm/mac_arm.gni $HOME/chromium/src/build/config/arm.gni &&
 	printf "\n"
 }
-
 case $1 in
 	--mac) copyMacOS;
 esac
@@ -96,24 +89,24 @@ esac
 copyRaspi () {
 	printf "\n" &&
 	printf "${YEL}Copying Raspberry Pi build files...${c0}\n" &&
-	cp -r -v arm/build/config/* $HOME/chromium/src/build/config/ &&
-	cp -r -v arm/raspi_arm.gni $HOME/chromium/src/build/config/arm.gni &&
+	cp -r -v arm/raspi/* $HOME/chromium/src/ &&
 	printf "\n"
 }
-
+# Display raspi ascii art
+displayRaspi () {
+	cat logos/raspi_ascii_art.txt
+}
 case $1 in
-	--raspi) copyRaspi;
+	--raspi) copyRaspi; displayRaspi;
 esac
 
-# Windows on ARM workaround
+# Windows on ARM files
 copyWOA () {
 	printf "\n" &&
 	printf "${YEL}Copying Windows on ARM build files...${c0}\n" &&
 	cp -r -v arm/build/config/* $HOME/chromium/src/build/config/ &&
-	cp -r -v arm/woa_arm.gni $HOME/chromium/src/build/config/arm.gni &&
 	printf "\n"
 }
-
 case $1 in
 	--woa) copyWOA;
 esac
@@ -122,12 +115,11 @@ esac
 copyAVX2 () {
 	printf "\n" &&
 	printf "${YEL}Copying AVX2 build files...${c0}\n" &&
-	cp -r -v other/AVX2/build/* $HOME/chromium/src/build/ &&
-	cp -r -v other/AVX2/third_party/* $HOME/chromium/src/third_party/ &&
+	cp -r -v other/AVX2/build/config/* $HOME/chromium/src/build/config/ &&
 	cp -r -v other/AVX2/v8/* $HOME/chromium/src/v8/ &&
+	cp -r -v other/AVX2/third_party/opus/src/* $HOME/chromium/src/third_party/opus/src/ &&
 	printf "\n"
 }
-
 case $1 in
 	--avx2) copyAVX2;
 esac
@@ -136,26 +128,25 @@ esac
 copySSE3 () {
 	printf "\n" &&
 	printf "${YEL}Copying SSE3 build files...${c0}\n" &&
-	cp -r -v other/SSE3/build/* $HOME/chromium/src/build/ &&
-	cp -r -v other/SSE3/third_party/* $HOME/chromium/src/third_party/ &&
+	cp -r -v other/SSE3/build/config/* $HOME/chromium/src/build/config/ &&
 	cp -r -v other/SSE3/v8/* $HOME/chromium/src/v8/ &&
 	printf "\n"
 }
-
 case $1 in
 	--sse3) copySSE3;
 esac
 
-# Copy SSE2 files
-copySSE2 () {
+# Copy Android files
+copyAndroid () {
 	printf "\n" &&
-	printf "${YEL}Copying SSE2 (32 bit) build files...${c0}\n" &&
-	cp -r -v other/SSE2/* $HOME/chromium/src/ &&
+	printf "${YEL}Copying Android (ARM64 and ARM32) build files...${c0}\n" &&
+	cp -r -v arm/build/config/* $HOME/chromium/src/build/config/ &&
+	cp -r -v arm/android/* $HOME/chromium/src/ &&
+	cp -r -v arm/raspi/third_party/* $HOME/chromium/src/third_party/ &&
 	printf "\n"
 }
-
 case $1 in
-	--sse2) copySSE3;
+	--android) copyAndroid;
 esac
 
 printf "${GRE}Done!\n" &&
@@ -225,15 +216,6 @@ printf "alias ${YEL}pgom${c0} = ${CYA}python3 tools/update_pgo_profiles.py --tar
 printf "${CYA}\n" &&
 
 cat logos/thorium_ascii_art.txt &&
-
-# Display raspi ascii art
-displayRaspi () {
-	cat logos/raspi_ascii_art.txt
-}
-
-case $1 in
-	--raspi) displayRaspi;
-esac
 
 printf "${GRE}Enjoy Thorium!\n" &&
 printf "\n" &&
