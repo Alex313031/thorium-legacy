@@ -44,13 +44,10 @@ git checkout -f tags/$THOR_VER &&
 git clean -ffd &&
 git clean -ffd &&
 
-cd ~/thorium &&
+cd ~/thorium-win7 &&
 
 # Use our artifacts hash
 cp -v src/build/vs_toolchain.py ~/chromium/src/build/ &&
-
-# Add //third_party/libjxl to DEPS
-cp -v thorium-libjxl/DEPS ~/chromium/src/ &&
 
 cd ~/chromium/src &&
 
@@ -76,7 +73,7 @@ python3 tools/update_pgo_profiles.py --target=win64 update --gs-url-base=chromiu
 python3 tools/update_pgo_profiles.py --target=mac update --gs-url-base=chromium-optimization-profiles/pgo_profiles &&
 printf "\n" &&
 
-cd ~/thorium &&
+cd ~/thorium-win7 &&
 
 printf "${GRE}Done! ${YEL}You can now run \'./setup.sh\'\n"
 tput sgr0 &&

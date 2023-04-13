@@ -56,7 +56,7 @@ cp -r -v src/content/. $HOME/chromium/src/content/ &&
 cp -r -v src/media/. $HOME/chromium/src/media/ &&
 cp -r -v src/net/. $HOME/chromium/src/net/ &&
 cp -r -v src/sandbox/. $HOME/chromium/src/sandbox/ &&
-cp -r -v src/services/. $HOME/chromium/src/services/ &&
+# cp -r -v src/services/. $HOME/chromium/src/services/ &&
 cp -r -v src/third_party/. $HOME/chromium/src/third_party/ &&
 cp -r -v src/tools/. $HOME/chromium/src/tools/ &&
 cp -r -v src/ui/. $HOME/chromium/src/ui/ &&
@@ -69,9 +69,9 @@ cp -r -v pak_src/bin/pak-win/. $HOME/chromium/src/out/thorium/ &&
 mkdir -v -p $HOME/chromium/src/out/thorium/default_apps &&
 cp -r -v infra/default_apps/. $HOME/chromium/src/out/thorium/default_apps/ &&
 
-echo " # Workaround for DevTools" &&
-mkdir -v -p $HOME/chromium/src/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
-cp -r -v src/third_party/devtools-frontend/src/front_end/Images/src/chromeSelectDark.svg $HOME/chromium/src/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
+# echo " # Workaround for DevTools" &&
+# mkdir -v -p $HOME/chromium/src/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
+# cp -r -v src/third_party/devtools-frontend/src/front_end/Images/src/chromeSelectDark.svg $HOME/chromium/src/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
 
 # MacOS Widevine Workaround
 copyMacOS () {
