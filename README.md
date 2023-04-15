@@ -1,19 +1,20 @@
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/alex313031/thorium?label=Version%3A) &nbsp;![GitHub](https://img.shields.io/github/license/alex313031/thorium?color=green&label=License%3A) &nbsp;![GitHub commit activity](https://img.shields.io/github/commit-activity/w/alex313031/thorium?color=blueviolet&label=Commit%20Activity%3A) &nbsp;![Subreddit subscribers](https://img.shields.io/reddit/subreddit-subscribers/ChromiumBrowser?style=social)
-# Thorium for Windows 7/8/8.1
+# Thorium
 
 <img src="https://github.com/Alex313031/Thorium/blob/main/logos/NEW/thorium_ver_2048_grey_old.png">
 
-## Chromium fork for linux named after [radioactive element No. 90](https://en.wikipedia.org/wiki/Thorium). Windows/MacOS/RasPi/Other builds see below.
+&nbsp;&ndash; __NEW__: Windows 7 / 8 / 8.1 / Here!
 
-- Always built with the latest x64 tip-o-tree "Trunk" build of [Chromium](https://www.chromium.org/).
+## Chromium fork named after [radioactive element No. 90](https://en.wikipedia.org/wiki/Thorium). Windows/MacOS/RasPi/Other builds see below.
+
+- Always built with the latest stable version build of [Chromium](https://www.chromium.org/).
 - Intended to behave like and have the featureset of Google Chrome, with differences/patches/enhancements listed below.
 - Includes [Widevine](https://www.widevine.com/), [All Codecs](https://tools.woolyss.com/html5-audio-video-tester/), Chrome Plugins, as well as thinLTO, CFlag, LDFlag, LLVM Loop, and PGO compiler optimizations. It is built with [SSE4](https://en.wikipedia.org/wiki/SSE4), [AVX](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions), and [AES](https://en.wikipedia.org/wiki/AES_instruction_set), so it won't launch on CPU's below 2nd gen Core or AMD FX, but benefits from Advanced Vector EXtensions. You can disable this and build with regular SSE3 like Chromium and Chrome, or use builds from [Thorium Special](https://github.com/Alex313031/Thorium-Special), some of which are SSE4 only. (See below.)
-### Other Builds &nbsp;<img src="https://github.com/Alex313031/Thorium/blob/main/logos/STAGING/winflag_animated.gif" width="34"> &nbsp;<img src="https://github.com/Alex313031/Thorium/blob/main/logos/STAGING/AVX2.png" width="48"> &nbsp;<img src="https://github.com/Alex313031/Thorium/blob/main/logos/STAGING/apple.png" width="30"> &nbsp;<img src="https://github.com/Alex313031/Thorium/blob/main/logos/STAGING/Raspberry_Pi_Logo.svg" width="24">
+### Other Builds &nbsp;<img src="https://github.com/Alex313031/Thorium/blob/main/logos/STAGING/winflag_animated.gif" width="34"> &nbsp;<img src="https://github.com/Alex313031/Thorium/blob/main/logos/STAGING/AVX2.png" width="48"> &nbsp;<img src="https://github.com/Alex313031/Thorium/blob/main/logos/STAGING/apple.png" width="30"> &nbsp;<img src="https://github.com/Alex313031/Thorium/blob/main/logos/STAGING/Raspberry_Pi_Logo.svg" width="24"> &nbsp;<img src="https://raw.githubusercontent.com/Alex313031/thorium-win7/main/logos/STAGING/win7/compatible-with-windows-7.png" width="28">
 &nbsp;&ndash; I also build for Windows > [Thorium Win](https://github.com/Alex313031/Thorium-Win) You can also find SSE4 builds for Windows here.\
 &nbsp;&ndash; AVX2 Builds for Windows and Linux > [Thorium AVX2](https://github.com/Alex313031/Thorium-AVX2) (source files for AVX2 are here in the "other" directory, as well as files for SSE4 and Polly builds.) \
 &nbsp;&ndash; MacOS (M1 and X64) and Raspberry Pi (arm64) Builds, as well as Special and Experimental builds, sometimes for other CPUs (read the Readme), are located at > [Thorium Special](https://github.com/Alex313031/Thorium-Special) You can also find builds for Piledriver/Steamroller/Excavator CPUS, Haswell CPUs, as well as SSE4 Linux builds. (source files are here in the "arm" directory) \
 &nbsp;&ndash; __NEW__: Thorium Website with deb repo for auto-updating on Linux > https://thorium.rocks/ \
-&nbsp;&ndash; __NEW__: Tigerlake (11th Gen) builds by @midzer in Thorium Special
 
 ### FEATURES & DIFFERENCES BETWEEN CHROMIUM AND THORIUM <img src="https://github.com/Alex313031/Thorium/blob/main/logos/NEW/bulb_light.svg#gh-dark-mode-only"> <img src="https://github.com/Alex313031/Thorium/blob/main/logos/NEW/bulb_dark.svg#gh-light-mode-only">
 > - Various compiler flags that improve performance and target [AVX](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) CPU's (read [PATCHES.md](https://github.com/Alex313031/Thorium/blob/main/infra/PATCHES.md))
@@ -40,6 +41,8 @@
 > - Patches for [GN](https://chromium.googlesource.com/chromium/src/tools/gn/+/48062805e19b4697c5fbd926dc649c78b6aaa138/README.md) and [chrome_sandbox](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/design/sandbox.md) when building.
 > - Remove the addition of the Chrome APT sources.list during installation.
 > - Widevine CDM Patch for Linux.
+> - GTK auto dark mode patch
+> - Various new flags either developed from scratch, or added from Ungoogled Chromium. See [PATCHES.md](https://github.com/Alex313031/Thorium/blob/main/infra/PATCHES.md)
 > - Enable Parallel Downloading by Default.
 > - Inclusion of <img src="https://github.com/Alex313031/Thorium/blob/main/logos/STAGING/pak.png" width="16"> [pak](https://github.com/Alex313031/Thorium/tree/main/pak_src#readme) (Linux) and [pak_mingw](https://github.com/Alex313031/Thorium/tree/main/pak_src/bin/pak-win) (Windows), a utility for packing and unpacking the [&#42;.pak](https://textslashplain.com/2022/05/03/chromium-internals-pak-files/) files in Thorium or any other Chromium based browser.
 > - Logo and Branding/Naming changed to the Thorium logo, Thorium name, and "Alex313031" being appended to "The Chromium Authors" in credits, etc.
