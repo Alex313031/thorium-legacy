@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2022 Alex313031.
+# Copyright (c) 2023 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 RED='\033[1;31m' # Red
@@ -46,7 +46,6 @@ cp -r -v ./files/product_logo_22.png ./temp/ &&
 cp -r -v ./files/thorium-shell ./temp/ &&
 rm -r -v ./temp/cron &&
 rm -r -v ./temp/thorium-browser &&
-rm -r -v ./temp/thorium-browser-unstable &&
 
 printf "\n" &&
 printf "${YEL}Building .AppImage using Thorium.yml...\n" &&
@@ -55,7 +54,7 @@ printf "${c0}\n" &&
 sleep 2 &&
 
 # Build appimage
-chmod +x pkg2appimage &&
+# chmod +x pkg2appimage &&
 ./pkg2appimage Thorium.yml &&
 
 printf "\n" &&
@@ -75,6 +74,6 @@ rm -r -v -f ./Thorium/ &&
 rm -r -v -f ./temp/ &&
 
 printf "\n" &&
-printf "${GRE}Done! ${YEL}AppImage at //out/thorium*.AppImage\n" &&
+printf "${GRE}Done! ${YEL}AppImage at //out/Thorium*.AppImage\n" &&
 printf "\n" &&
 tput sgr0

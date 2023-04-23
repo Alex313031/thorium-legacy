@@ -38,7 +38,7 @@ export LD_LIBRARY_PATH
 APPNAME=thorium
 
 # Set DESKTOP variable
-# DESKTOP="thorium-browser-unstable"
+# DESKTOP="thorium-browser-stable"
 
 # Set XDG Title variable
 TITLE="Thorium Portable"
@@ -48,7 +48,7 @@ export CHROME_DESKTOP="thorium-portable.desktop"
 
 # Set CHROME_VERSION_EXTRA text, which is displayed in the About dialog on chrome://help
 DIST=`cat /etc/debian_version`
-export CHROME_VERSION_EXTRA="unstable, (Portable)"
+export CHROME_VERSION_EXTRA="stable, (Portable)"
 
 # We don't want bug-buddy intercepting our crashes. http://crbug.com/24120
 export GNOME_DISABLE_CRASH_DIALOG=SET_BY_THORIUM
@@ -60,4 +60,4 @@ exec > >(exec cat)
 exec 2> >(exec cat >&2)
 
 # Note: exec -a below is a bashism.
-exec -a "$0" "$HERE/thorium" "--user-data-dir=$(pwd)/.config/thorium" "--no-default-browser-check" "--enable-experimental-web-platform-features" "--new-canvas-2d-api" "$@"
+exec -a "$0" "$HERE/thorium" "--user-data-dir=$(pwd)/.config/thorium" "--enable-experimental-web-platform-features" "--new-canvas-2d-api" "$@"
