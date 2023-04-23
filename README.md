@@ -14,7 +14,7 @@
 &nbsp;&ndash; I also build for Windows > [Thorium Win](https://github.com/Alex313031/Thorium-Win) You can also find SSE4 builds for Windows here.\
 &nbsp;&ndash; AVX2 Builds for Windows and Linux > [Thorium AVX2](https://github.com/Alex313031/Thorium-AVX2) (source files for AVX2 are here in the "other" directory, as well as files for SSE4 and Polly builds.) \
 &nbsp;&ndash; MacOS (M1 and X64) and Raspberry Pi (arm64) Builds, as well as Special and Experimental builds, sometimes for other CPUs (read the Readme), are located at > [Thorium Special](https://github.com/Alex313031/Thorium-Special) You can also find builds for Piledriver/Steamroller/Excavator CPUS, Haswell CPUs, as well as SSE4 Linux builds. (source files are here in the "arm" directory) \
-&nbsp;&ndash; __NEW__: Thorium Website with deb repo for auto-updating on Linux > https://thorium.rocks/ \
+&nbsp;&ndash; __NEW__: Thorium Website with deb repo for auto-updating on Linux > https://thorium.rocks/
 
 ### FEATURES & DIFFERENCES BETWEEN CHROMIUM AND THORIUM <img src="https://github.com/Alex313031/Thorium/blob/main/logos/NEW/bulb_light.svg#gh-dark-mode-only"> <img src="https://github.com/Alex313031/Thorium/blob/main/logos/NEW/bulb_dark.svg#gh-light-mode-only">
 > - Various compiler flags that improve performance and target [AVX](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) CPU's (read [PATCHES.md](https://github.com/Alex313031/Thorium/blob/main/infra/PATCHES.md))
