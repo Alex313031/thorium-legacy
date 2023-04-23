@@ -14,7 +14,6 @@
 #include "content/public/common/cdm_info.h"
 #include "media/cdm/cdm_capability.h"
 #include "media/cdm/cdm_type.h"
-#include "media/cdm/clear_key_cdm_common.h"
 #include "third_party/widevine/cdm/buildflags.h"
 
 #if BUILDFLAG(ENABLE_LIBRARY_CDMS)
