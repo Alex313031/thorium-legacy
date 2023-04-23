@@ -1,4 +1,4 @@
-// Copyright 2022 The Chromium Authors and Alex313031
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -61,7 +61,7 @@ void CloneBookmarkNodeImpl(BookmarkModel* model,
     Time date_added = reset_node_times ? Time::Now() : element.date_added;
     DCHECK(!date_added.is_null());
 
-    const BookmarkNode* node = model->AddNewURL(
+    const BookmarkNode* node = model->AddURL(
         parent, index_to_add_at, element.title, element.url, &meta_info_map);
     model->SetDateAdded(node, date_added);
 

@@ -1,4 +1,4 @@
-# Copyright 2017 The Chromium Authors. All rights reserved.
+# Copyright 2023 The Chromium Authors and Alex313031
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -9,6 +9,7 @@
 
 import("//tools/v8_context_snapshot/v8_context_snapshot.gni")
 
+import("//build/buildflag_header.gni")
 import("//build/config/c++/c++.gni")
 import("//build/config/compiler/compiler.gni")
 import("//v8/gni/snapshot_toolchain.gni")
@@ -111,7 +112,7 @@ if (use_v8_context_snapshot) {
         "//v8",
       ]
 
-      if (is_linux) {
+      if (is_linux || is_chromeos) {
         configs += [ "//build/config/gcc:rpath_for_built_shared_libraries" ]
       }
 

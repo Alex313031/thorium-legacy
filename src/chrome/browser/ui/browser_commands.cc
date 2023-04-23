@@ -1,4 +1,4 @@
-// Copyright 2022 The Chromium Authors and Alex313031
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -842,7 +842,8 @@ void DuplicateTab(Browser* browser) {
 }
 
 bool CanDuplicateTab(const Browser* browser) {
-  return CanDuplicateTabAt(browser, browser->tab_strip_model()->active_index());
+  return !browser->is_type_picture_in_picture() &&
+         CanDuplicateTabAt(browser, browser->tab_strip_model()->active_index());
 }
 
 bool CanDuplicateKeyboardFocusedTab(const Browser* browser) {

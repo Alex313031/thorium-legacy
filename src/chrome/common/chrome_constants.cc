@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Chromium Authors and Alex313031. All rights reserved.
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -13,7 +13,7 @@
 
 #if BUILDFLAG(IS_MAC)
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
-#define PRODUCT_STRING "Thorium"
+#define PRODUCT_STRING "Google Chrome"
 #elif BUILDFLAG(CHROMIUM_BRANDING)
 #define PRODUCT_STRING "Thorium"
 #else
@@ -23,7 +23,16 @@
 
 namespace chrome {
 
+#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+#define PRODUCT_STRING "Google Chrome"
+#elif BUILDFLAG(CHROMIUM_BRANDING)
+#define PRODUCT_STRING "Thorium"
+#else
+#error Unknown branding
+#endif
+
 const char kChromeVersion[] = CHROME_VERSION_STRING;
+const char kBrandName[] = PRODUCT_STRING;
 
 // The following should not be used for UI strings; they are meant
 // for system strings only. UI changes should be made in the GRD.

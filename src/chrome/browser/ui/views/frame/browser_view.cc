@@ -941,7 +941,7 @@ BrowserView::BrowserView(std::unique_ptr<Browser> browser)
   right_aligned_side_panel_separator_ =
       AddChildView(std::make_unique<ContentsSeparator>());
 
-  if (base::FeatureList::IsEnabled(features::kUnifiedSidePanel) && !base::CommandLine::ForCurrentProcess()->HasSwitch("hide-sidepanel-button")) {
+  if (base::FeatureList::IsEnabled(features::kUnifiedSidePanel)) {
     const bool is_right_aligned = GetProfile()->GetPrefs()->GetBoolean(
         prefs::kSidePanelHorizontalAlignment);
     unified_side_panel_ = AddChildView(std::make_unique<SidePanel>(

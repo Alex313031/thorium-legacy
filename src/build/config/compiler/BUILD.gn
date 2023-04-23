@@ -698,7 +698,7 @@ config("compiler") {
         ]
       } else {
         ldflags +=
-            []
+            [ "-Wl,-O3" ]
       }
 
       # ldflags += [ "-Wl,--thinlto-cache-policy=$cache_policy" ]

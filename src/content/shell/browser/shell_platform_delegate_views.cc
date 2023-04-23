@@ -1,4 +1,4 @@
-// Copyright 2022 The Chromium Authors and Alex313031. All rights reserved.
+// Copyright 2023 The Chromium Authors and Alex313031. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -367,8 +367,8 @@ void ShellPlatformDelegate::CreatePlatformWindow(
   views::Widget::InitParams params;
   params.bounds = gfx::Rect(initial_size);
   params.delegate = delegate.release();
-  params.wm_class_class = "Thorium Shell";
-  params.wm_class_name = params.wm_class_class;
+  params.wm_class_class = "thorium_shell";
+  params.wm_class_name = "Thorium Shell";
   shell_data.window_widget->Init(std::move(params));
 #endif
 

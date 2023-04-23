@@ -284,6 +284,7 @@ void ToolbarView::Init() {
 
   std::unique_ptr<SidePanelToolbarButton> side_panel_button;
   if (browser_view_->unified_side_panel()) {
+   if (!base::CommandLine::ForCurrentProcess()->HasSwitch("hide-sidepanel-button"))
     side_panel_button = std::make_unique<SidePanelToolbarButton>(browser_);
   }
 

@@ -1,4 +1,4 @@
-// Copyright 2022 The Chromium Authors and Alex313031. All rights reserved.
+// Copyright 2023 The Chromium Authors and Alex313031. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -109,9 +109,6 @@ void AddInfoBarsIfNecessary(Browser* browser,
 
     if (show_bad_flags_security_warnings)
       chrome::ShowBadFlagsPrompt(web_contents);
-
-    infobars::ContentInfoBarManager* infobar_manager =
-        infobars::ContentInfoBarManager::FromWebContents(web_contents);
 
 #if !BUILDFLAG(IS_CHROMEOS_ASH)
     if (!is_web_app &&

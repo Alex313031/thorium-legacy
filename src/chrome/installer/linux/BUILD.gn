@@ -1,4 +1,4 @@
-# Copyright 2022 The Chromium Authors and Alex313031. All rights reserved.
+# Copyright 2023 The Chromium Authors and Alex313031. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -252,9 +252,7 @@ if (use_qt) {
 # is_component_build=false before building this target.
 group("linux") {
   deps = [
-    ":beta",
     ":stable",
-    ":unstable",
   ]
 }
 
@@ -453,8 +451,6 @@ group("installer_deps") {
 # channel:
 #   Name of the channel.
 template("linux_package") {
-  assert(defined(invoker.channel))
-  channel = invoker.channel
 
   if (is_chrome_branded) {
     package = "google-chrome"
@@ -486,7 +482,7 @@ template("linux_package") {
     }
 
     inputs = packaging_files
-    outputs = [ "$root_out_dir/${package}-${channel}_${chrome_version_full}_${deb_arch}.deb" ]
+    outputs = [ "$root_out_dir/${package}_${chrome_version_full}_${deb_arch}.deb" ]
 
     args = [
       rebase_path("$root_out_dir/installer/debian/build.sh", root_build_dir),
@@ -537,7 +533,7 @@ template("linux_package") {
       }
 
       inputs = packaging_files
-      outputs = [ "$root_out_dir/${package}_${channel}_${chrome_version_full}.${rpm_arch}.rpm" ]
+      outputs = [ "$root_out_dir/${package}_${chrome_version_full}.${rpm_arch}.rpm" ]
 
       args = [
         rebase_path("$root_out_dir/installer/rpm/build.sh", root_build_dir),
@@ -571,7 +567,7 @@ template("linux_package") {
         ]
         script = "//build/gn_run_binary.py"
         sources = [
-          "snap/chrome.launcher.in",
+          "snap/thorium.launcher.in",
           "snap/snapcraft.yaml.in",
         ]
         if (!is_chrome_branded) {
@@ -591,12 +587,11 @@ template("linux_package") {
         args = [
           rebase_path("snap/build.sh", root_build_dir),
           package,
-          channel,
           chrome_version_full,
           snap_arch,
           target_os,
         ]
-        outputs = [ "$root_out_dir/${package}_${channel}_${chrome_version_full}_${snap_arch}.snap" ]
+        outputs = [ "$root_out_dir/${package}_${chrome_version_full}_${snap_arch}.snap" ]
       }
     }
   }
@@ -615,10 +610,4 @@ template("linux_package") {
 # Standard packages.
 linux_package("stable") {
   channel = "stable"
-}
-linux_package("beta") {
-  channel = "beta"
-}
-linux_package("unstable") {
-  channel = "unstable"
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Chromium Authors and Alex313031. All rights reserved.
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -474,8 +474,8 @@ bool HasWMSpecProperty(const base::flat_set<x11::Atom>& properties,
 }
 
 bool GetCustomFramePrefDefault() {
-  // Never default to using the custom title bar. Chromium should integrate, not be a special little snowflake.
-    return false;
+  // Never default to using the custom title bar. Thorium should integrate, not be a special little snowflake.
+  return false;
 }
 
 bool IsWmTiling(WindowManagerName window_manager) {

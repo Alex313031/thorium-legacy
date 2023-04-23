@@ -1,4 +1,4 @@
-# Copyright 2022 The Chromium Authors and Alex313031. All rights reserved.
+# Copyright 2023 The Chromium Authors and Alex313031
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -145,5 +145,6 @@ target(link_target_type, "gpu_sources") {
 
   if (is_linux && use_vaapi) {
     public_configs = [ "//build/config/linux/libva" ]
+    configs += [ "//build/config/linux/libva" ]
   }
 }
