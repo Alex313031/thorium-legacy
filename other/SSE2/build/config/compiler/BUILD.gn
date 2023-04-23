@@ -70,6 +70,9 @@ declare_args() {
   # This is initialized below, after use_gold might have been overridden.
   gold_path = ""
 
+  # Whether to enable LLVM's Polly optimizations. See https://polly.llvm.org/
+  use_polly = false
+
   # Enable fatal linker warnings. Building Chromium with certain versions
   # of binutils can cause linker warning.
   fatal_linker_warnings = true
@@ -341,6 +344,11 @@ config("compiler") {
       }
     }
 
+    # ADDED BY ALEX313031 FOR THORIUM
+    if (is_clang && is_android && !is_ubsan && !is_ubsan_security) {
+      cflags += [ "-fwrapv" ]
+    }
+
     # Linker warnings.
     if (fatal_linker_warnings && !is_apple && current_os != "aix" &&
         current_os != "zos") {
@@ -551,7 +559,7 @@ config("compiler") {
         ldflags += [ "-Wl,-mllvm,-instcombine-lower-dbg-declare=0" ]
       }
     }
-    
+
     # TODO(crbug.com/1235145): Investigate why/if this should be needed.
     if (is_win) {
       cflags += [ "/clang:-ffp-contract=off" ]
@@ -2033,6 +2041,11 @@ if (is_win) {
     "-mllvm", "-extra-vectorizer-passes",
     "-mllvm", "-enable-cond-stores-vec",
     "-mllvm", "-slp-vectorize-hor-store",
+    "-mllvm", "-adce-remove-loops",
+    "-mllvm", "-enable-cse-in-irtranslator",
+    "-mllvm", "-enable-cse-in-legalizer",
+    "-mllvm", "-scalar-evolution-use-expensive-range-sharpening",
+    "-mllvm", "-loop-rotate-multi",
     "-mllvm", "-enable-loopinterchange",
     "-mllvm", "-enable-loop-distribute",
     "-mllvm", "-enable-unroll-and-jam",
@@ -2041,7 +2054,9 @@ if (is_win) {
     "-mllvm", "-unroll-runtime-multi-exit",
     "-mllvm", "-aggressive-ext-opt",
     "-mllvm", "-enable-interleaved-mem-accesses",
-    "/O3",
+    "-mllvm", "-enable-masked-interleaved-mem-accesses",
+    "-mllvm", "-enable-gvn-hoist",
+    "/O2",
     "/clang:-O3",
     "/clang:-msse2",
     "-Xclang", "-O3",
@@ -2051,6 +2066,11 @@ if (is_win) {
     "-mllvm:-extra-vectorizer-passes",
     "-mllvm:-enable-cond-stores-vec",
     "-mllvm:-slp-vectorize-hor-store",
+    "-mllvm:-adce-remove-loops",
+    "-mllvm:-enable-cse-in-irtranslator",
+    "-mllvm:-enable-cse-in-legalizer",
+    "-mllvm:-scalar-evolution-use-expensive-range-sharpening",
+    "-mllvm:-loop-rotate-multi",
     "-mllvm:-enable-loopinterchange",
     "-mllvm:-enable-loop-distribute",
     "-mllvm:-enable-unroll-and-jam",
@@ -2059,8 +2079,19 @@ if (is_win) {
     "-mllvm:-unroll-runtime-multi-exit",
     "-mllvm:-aggressive-ext-opt",
     "-mllvm:-enable-interleaved-mem-accesses",
+    "-mllvm:-enable-masked-interleaved-mem-accesses",
+    "-mllvm:-enable-gvn-hoist",
   ]
-  
+
+  if (use_polly == true) {
+    common_optimize_on_ldflags += [
+    "-mllvm:-polly",
+    "-mllvm:-polly-detect-profitability-min-per-loop-insts=40",
+    "-mllvm:-polly-invariant-load-hoisting",
+    "-mllvm:-polly-vectorizer=stripmine",
+    ]
+  }
+
   # /OPT:ICF is not desirable in Debug builds, since code-folding can result in
   # misleading symbols in stack traces.
   if (!is_debug && !is_component_build) {
@@ -2081,6 +2112,11 @@ if (is_win) {
     "-mllvm", "-extra-vectorizer-passes",
     "-mllvm", "-enable-cond-stores-vec",
     "-mllvm", "-slp-vectorize-hor-store",
+    "-mllvm", "-adce-remove-loops",
+    "-mllvm", "-enable-cse-in-irtranslator",
+    "-mllvm", "-enable-cse-in-legalizer",
+    "-mllvm", "-scalar-evolution-use-expensive-range-sharpening",
+    "-mllvm", "-loop-rotate-multi",
     "-mllvm", "-enable-loopinterchange",
     "-mllvm", "-enable-loop-distribute",
     "-mllvm", "-enable-unroll-and-jam",
@@ -2089,6 +2125,8 @@ if (is_win) {
     "-mllvm", "-unroll-runtime-multi-exit",
     "-mllvm", "-aggressive-ext-opt",
     "-mllvm", "-enable-interleaved-mem-accesses",
+    "-mllvm", "-enable-masked-interleaved-mem-accesses",
+    "-mllvm", "-enable-gvn-hoist",
     "-O3",
   ]
 
@@ -2096,6 +2134,11 @@ if (is_win) {
     "-Wl,-mllvm,-extra-vectorizer-passes",
     "-Wl,-mllvm,-enable-cond-stores-vec",
     "-Wl,-mllvm,-slp-vectorize-hor-store",
+    "-Wl,-mllvm,-adce-remove-loops",
+    "-Wl,-mllvm,-enable-cse-in-irtranslator",
+    "-Wl,-mllvm,-enable-cse-in-legalizer",
+    "-Wl,-mllvm,-scalar-evolution-use-expensive-range-sharpening",
+    "-Wl,-mllvm,-loop-rotate-multi",
     "-Wl,-mllvm,-enable-loopinterchange",
     "-Wl,-mllvm,-enable-loop-distribute",
     "-Wl,-mllvm,-enable-unroll-and-jam",
@@ -2104,8 +2147,19 @@ if (is_win) {
     "-Wl,-mllvm,-unroll-runtime-multi-exit",
     "-Wl,-mllvm,-aggressive-ext-opt",
     "-Wl,-mllvm,-enable-interleaved-mem-accesses",
+    "-Wl,-mllvm,-enable-masked-interleaved-mem-accesses",
+    "-Wl,-mllvm,-enable-gvn-hoist",
     "-Wl,-O3",
   ]
+
+  if (use_polly == true) {
+    common_optimize_on_ldflags += [
+    "-Wl,-mllvm,-polly",
+    "-Wl,-mllvm,-polly-detect-profitability-min-per-loop-insts=40",
+    "-Wl,-mllvm,-polly-invariant-load-hoisting",
+    "-Wl,-mllvm,-polly-vectorizer=stripmine",
+    ]
+  }
 
   if (is_android) {
     # TODO(jdduke) Re-enable on mips after resolving linking
@@ -2448,7 +2502,14 @@ config("win_pdbaltpath") {
 config("symbols") {
   if (is_win) {
     if (is_clang) {
-      cflags = [ "/Z7" ]  # Debug information in the .obj files.
+      cflags = [
+        # Debug information in the .obj files.
+        "/Z7",
+
+        # Disable putting the compiler command line into the debug info to
+        # prevent some types of non-determinism.
+        "-gno-codeview-command-line",
+      ]
     } else {
       cflags = [ "/Zi" ]  # Produce PDB file, no edit and continue.
     }
@@ -2487,6 +2548,7 @@ config("symbols") {
 
     # The gcc-based nacl compilers don't support -fdebug-compilation-dir (see
     # elsewhere in this file), so they can't have build-dir-independent output.
+    # Moreover pnacl does not support newer flags such as -fdebug-prefix-map
     # Disable symbols for nacl object files to get deterministic,
     # build-directory-independent output. pnacl and nacl-clang do support that
     # flag, so we can use use -g1 for pnacl and nacl-clang compiles.
@@ -2618,6 +2680,7 @@ config("minimal_symbols") {
 
     # The gcc-based nacl compilers don't support -fdebug-compilation-dir (see
     # elsewhere in this file), so they can't have build-dir-independent output.
+    # Moreover pnacl does not support newer flags such as -fdebug-prefix-map
     # Disable symbols for nacl object files to get deterministic,
     # build-directory-independent output. pnacl and nacl-clang do support that
     # flag, so we can use use -g1 for pnacl and nacl-clang compiles.
