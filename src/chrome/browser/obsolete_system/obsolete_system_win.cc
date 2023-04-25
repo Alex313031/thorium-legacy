@@ -30,7 +30,7 @@ bool IsObsoleteOsVersion() {
 
 // static
 bool ObsoleteSystem::IsObsoleteNowOrSoon() {
-  return false;
+  return IsObsoleteOsVersion();
 }
 
 // static
