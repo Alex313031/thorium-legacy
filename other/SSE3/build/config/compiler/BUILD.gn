@@ -2038,6 +2038,7 @@ if (is_win) {
   }
 
   common_optimize_on_cflags += [
+    "-Xclang", "-freroll-loops",
     "-mllvm", "-extra-vectorizer-passes",
     "-mllvm", "-enable-cond-stores-vec",
     "-mllvm", "-slp-vectorize-hor-store",
@@ -2051,6 +2052,7 @@ if (is_win) {
     "-mllvm", "-enable-unroll-and-jam",
     "-mllvm", "-enable-loop-flatten",
     "-mllvm", "-interleave-small-loop-scalar-reduction",
+    "-mllvm", "-unroll-runtime",
     "-mllvm", "-unroll-runtime-multi-exit",
     "-mllvm", "-aggressive-ext-opt",
     "-mllvm", "-enable-interleaved-mem-accesses",
@@ -2063,6 +2065,7 @@ if (is_win) {
   ]
 
   common_optimize_on_ldflags += [
+    "-mllvm:-freroll-loops",
     "-mllvm:-extra-vectorizer-passes",
     "-mllvm:-enable-cond-stores-vec",
     "-mllvm:-slp-vectorize-hor-store",
@@ -2076,6 +2079,7 @@ if (is_win) {
     "-mllvm:-enable-unroll-and-jam",
     "-mllvm:-enable-loop-flatten",
     "-mllvm:-interleave-small-loop-scalar-reduction",
+    "-mllvm:-unroll-runtime",
     "-mllvm:-unroll-runtime-multi-exit",
     "-mllvm:-aggressive-ext-opt",
     "-mllvm:-enable-interleaved-mem-accesses",
@@ -2088,6 +2092,7 @@ if (is_win) {
     "-mllvm:-polly",
     "-mllvm:-polly-detect-profitability-min-per-loop-insts=40",
     "-mllvm:-polly-invariant-load-hoisting",
+    "-mllvm:-polly-run-dce",
     "-mllvm:-polly-vectorizer=stripmine",
     ]
   }
@@ -2109,6 +2114,7 @@ if (is_win) {
   common_optimize_on_ldflags = []
 
   common_optimize_on_cflags += [
+    "-freroll-loops",
     "-mllvm", "-extra-vectorizer-passes",
     "-mllvm", "-enable-cond-stores-vec",
     "-mllvm", "-slp-vectorize-hor-store",
@@ -2122,6 +2128,7 @@ if (is_win) {
     "-mllvm", "-enable-unroll-and-jam",
     "-mllvm", "-enable-loop-flatten",
     "-mllvm", "-interleave-small-loop-scalar-reduction",
+    "-mllvm", "-unroll-runtime",
     "-mllvm", "-unroll-runtime-multi-exit",
     "-mllvm", "-aggressive-ext-opt",
     "-mllvm", "-enable-interleaved-mem-accesses",
@@ -2131,6 +2138,7 @@ if (is_win) {
   ]
 
   common_optimize_on_ldflags += [
+    "-freroll-loops",
     "-Wl,-mllvm,-extra-vectorizer-passes",
     "-Wl,-mllvm,-enable-cond-stores-vec",
     "-Wl,-mllvm,-slp-vectorize-hor-store",
@@ -2144,6 +2152,7 @@ if (is_win) {
     "-Wl,-mllvm,-enable-unroll-and-jam",
     "-Wl,-mllvm,-enable-loop-flatten",
     "-Wl,-mllvm,-interleave-small-loop-scalar-reduction",
+    "-Wl,-mllvm,-unroll-runtime",
     "-Wl,-mllvm,-unroll-runtime-multi-exit",
     "-Wl,-mllvm,-aggressive-ext-opt",
     "-Wl,-mllvm,-enable-interleaved-mem-accesses",
@@ -2157,6 +2166,7 @@ if (is_win) {
     "-Wl,-mllvm,-polly",
     "-Wl,-mllvm,-polly-detect-profitability-min-per-loop-insts=40",
     "-Wl,-mllvm,-polly-invariant-load-hoisting",
+    "-Wl,-mllvm,-polly-run-dce",
     "-Wl,-mllvm,-polly-vectorizer=stripmine",
     ]
   }
