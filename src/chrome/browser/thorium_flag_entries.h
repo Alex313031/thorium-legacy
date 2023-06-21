@@ -32,7 +32,7 @@
     {"scroll-tabs",
      "Scroll Switches Active Tab",
      "Switch to the left/right tab if a scroll wheel event happens over the tabstrip, or the empty space beside the tabstrip.",
-     kOsDesktop, MULTI_VALUE_TYPE("scroll-tabs")},
+     kOsDesktop, MULTI_VALUE_TYPE(kScrollEventChangesTab)},
     {"autoplay-policy",
      "Disable/Enable AutoPlay",
      "Allows setting the AutoPlay policy. Use `No User Gesture Required` to enable AutoPlay, and use `Document User Activation Required` to disable AutoPlay and force all sites to require a click to initiate media playback. `User Gesture Required` is the default, and blocks most AutoPlay annoyances, while allowing some (i.e. WebAudio) to continue.",
