@@ -1,6 +1,6 @@
-<img src="https://github.com/Alex313031/Thorium/blob/main/logos/STAGING/Thorium90_504.jpg" width="200">
+<img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/STAGING/Thorium90_504.jpg" width="200">
 
-## List of patches/changes/features included in Thorium <img src="https://raw.githubusercontent.com/Alex313031/Thorium/main/logos/NEW/patches.png" width="32">
+## List of patches/changes/features included in Thorium <img src="https://raw.githubusercontent.com/Alex313031/thorium-win7/main/logos/NEW/patches.png" width="32">
 
 Compiler modifications include SSE4.2, AVX, AES, and CFLAGS, LTO flags, and import_instr_limit flags set to /03, 3, and 30, respectively. \
 NEW > Added some LLVM LOOP optimizations as -mllvm flags. See here > https://github.com/RobRich999/Chromium_Clang/issues/26#issuecomment-976883814
@@ -38,7 +38,7 @@ Intel HD Support Patch > https://github.com/saiarcot895/chromium-ubuntu-build/bl
 
 Nicer Native Notifications Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blob/master/debian/patches/notifications-nicer
 
-Enable Quiet Notifications Patch > https://github.com/Alex313031/thorium/blob/main/src/chrome/browser/permissions/quiet_notification_permission_ui_state.cc
+Enable Quiet Notifications Patch > https://github.com/Alex313031/thorium-win7/blob/main/src/chrome/browser/permissions/quiet_notification_permission_ui_state.cc
   - Made by me.
 
 Title Bar Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blob/master/debian/patches/title-bar-default-system.patch-v35
@@ -101,8 +101,14 @@ Always Show Component Extensions Patch > https://github.com/iridium-browser/irid
 
 Increase default key length for newly-generated RSA keys from 1024 to 2048 Patch > https://github.com/iridium-browser/iridium-browser/commit/d016769081706d591188b5b2929c5fc2efd8ef20
 
-Enable UI Features: Side Search, Side Panel Journeys, Chrome Labs, Extensions Access Menu, Tab Hover Cards, Tab Outlines in Low Contrast Themes, More Prominent Active Tab Title in Dark Mode, WebUI Tab Strip, Drag and Drop Tabs on Wayland, Tab Groups Saving > https://github.com/Alex313031/Thorium/blob/main/chrome/browser/ui/ui_features.cc
+Enable UI Features: Side Search, Side Panel Journeys, Chrome Labs, Extensions Access Menu, Tab Hover Cards, Tab Outlines in Low Contrast Themes, More Prominent Active Tab Title in Dark Mode, WebUI Tab Strip, Drag and Drop Tabs on Wayland, Tab Groups Saving > https://github.com/Alex313031/thorium-win7/blob/main/chrome/browser/ui/ui_features.cc
   - Made by me.
+
+Disable History Expiration Patch > https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-to-disable-local-history-expiration.patch
+ - Modified by me.
+
+Toggle Tab Scrolling (for Non-Linux Platforms) Patch > https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-to-scroll-tabs.patch
+ - Modified by me.
 
 Enable Precompiling of Inline Scripts in HTML - https://github.com/Alex313031/thorium/commit/8d237b76adff2ab4e89147b18ee1d0ab7bb29fb6
   - Modified by me.
@@ -151,7 +157,7 @@ Enable HEVC/H.265 Decoding Patch - https://github.com/StaZhu/enable-chromium-hev
 Allow all HEVC Video Profiles to Play Patch - https://github.com/StaZhu/enable-chromium-hevc-hardware-decoding/blob/main/remove-main-main10-profile-limit.patch
 
 Enable AC3 and EAC3 for HEVC Patch - https://github.com/Muril-o/electron-chromium-codecs
-  - https://github.com/Alex313031/Thorium/commit/46893f326c42b08a56769f3de6743aec049b2091#diff-09b3d55a8198fc42186bfd6bf5869fe78b8edad6f67e75b78228446f1d7cf66f
+  - https://github.com/Alex313031/thorium/commit/46893f326c42b08a56769f3de6743aec049b2091#diff-09b3d55a8198fc42186bfd6bf5869fe78b8edad6f67e75b78228446f1d7cf66f
 
 Show the Apps button in Bookmarks Bar by Default Patch - Made by me.
 
@@ -182,6 +188,9 @@ Android Patches from Bromite:
 Installer patches to include unstripped and RPATH binaries, with chrome_sandbox (needed for older distros), chromedriver and content-shell being added along with an icon and .desktop file for content-shell. - Created by me.
 
 Patches for mini_installer and abseil when using AVX on Windows. Credit goes to @RobRich999
+
+"Ctrl+Shift+Q" to close all windows (exit) "Ctrl+Shift+K" to open a new tab to the right "Ctrl+Shift+D" to duplicate the current tab "Ctrl+Shift+P" to pop out the current tab into a new window
+ - https://github.com/Alex313031/thorium-win7/blob/main/src/chrome/browser/ui/views/accelerator_table.cc
 
 The Thorium .desktop file and content-shell .desktop file have flags added for experimental and useful features, namely: Disabling the Default Browser check and InfoBar, Experimental web platform features, and Experimental Canvas2D.
   - Modified by me.
