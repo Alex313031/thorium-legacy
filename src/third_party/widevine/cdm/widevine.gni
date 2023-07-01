@@ -49,7 +49,7 @@ enable_widevine_cdm_component =
 declare_args() {
   enable_media_foundation_widevine_cdm = false
 }
-assert(!enable_media_foundation_widevine_cdm || is_win)
+assert(!enable_media_foundation_widevine_cdm || target_os == "win")
 assert(!enable_media_foundation_widevine_cdm || enable_widevine)
 
 declare_args() {
