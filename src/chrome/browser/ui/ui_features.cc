@@ -15,7 +15,7 @@ namespace features {
 // by the platform (e.g. Wayland). See https://crbug.com/896640
 BASE_FEATURE(kAllowWindowDragUsingSystemDragDrop,
              "AllowWindowDragUsingSystemDragDrop",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 #if !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_ANDROID)
 BASE_FEATURE(kDesktopPWAsAppHomePage,
