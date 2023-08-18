@@ -1,8 +1,12 @@
 // Dictionary of default apps to install into new profiles. They will be
 // dynamically downloaded and installed from CWS on profile creation.
 {
-  // Drive extension
+  // Docs extension
   "ghbmnnjooekpmoecnnnilnnbdlolhkhi" : {
+    "external_update_url": "https://clients2.google.com/service/update2/crx"
+  },
+  // uBlock Origin extension
+  "cjpalhdlnbpafiamejdnhcphjbkeiagm" : {
     "external_update_url": "https://clients2.google.com/service/update2/crx"
   }
 }
