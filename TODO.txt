@@ -1,2 +1,4 @@
 
  - reload.h
+
+ - enable tab outlines on win7 aero
