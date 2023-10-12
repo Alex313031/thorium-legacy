@@ -812,13 +812,13 @@ Permissions you've already given to websites and apps may apply to this account.
       </if>
 
       <if expr="is_macosx">
-        <message name="IDS_APP_MENU_PRODUCT_NAME" desc="The application's short name, used for the Mac's application menu, activity monitor, etc. This should be less than 16 characters. Example: Thorium, not Google Thorium.">
+        <message name="IDS_APP_MENU_PRODUCT_NAME" desc="The application's short name, used for the Mac's application menu, activity monitor, etc. This should be less than 16 characters. Example: Thorium, not Thorium.">
           Thorium
         </message>
-        <message name="IDS_HELPER_NAME" desc="The helper application's name.  Should contain the Thorium application name (IDS_PRODUCT_NAME). Example: Google Thorium Helper.">
+        <message name="IDS_HELPER_NAME" desc="The helper application's name.  Should contain the Thorium application name (IDS_PRODUCT_NAME). Example: Thorium Helper.">
           Thorium Helper
         </message>
-        <message name="IDS_SHORT_HELPER_NAME" desc="The helper application's short name, used for the Mac's application menu, activity monitor, etc. Example: Thorium Helper, not Google Thorium Helper.">
+        <message name="IDS_SHORT_HELPER_NAME" desc="The helper application's short name, used for the Mac's application menu, activity monitor, etc. Example: Thorium Helper, not Thorium Helper.">
           Thorium Helper
         </message>
       </if>
@@ -933,7 +933,7 @@ Permissions you've already given to websites and apps may apply to this account.
       </if>
 
       <!-- Thorium Cleanup prompt.
-           Note: these strings should only be used by Google Thorium, but
+           Note: these strings should only be used by Thorium, but
                  omitting them brings up a hash collision error. -->
       <if expr="is_win">
         <message name="IDS_CHROME_CLEANUP_PROMPT_EXPLANATION" desc="Description in the Thorium Cleanup dialog that Thorium browser shows when unwanted software, like ad injectors or software that changes the user's settings without their knowledge, is found on the user's computer. Appears under the title asking 'Remove harmful software?' Actor is Thorium; we are asking, Do you want Thorium to remove harmful software? 'it' is harmful software. User has the option of clicking 'Remove' to proceed with a cleanup, or 'Details' to see more details. The description is also shown on the Thorium Cleanup section of the Settings page, under 'Remove harmful software' title. Preferrably, the translation for this string should parallel IDS_SETTINGS_RESET_CLEANUP_EXPLANATION_CURRENTLY_REMOVING.">
