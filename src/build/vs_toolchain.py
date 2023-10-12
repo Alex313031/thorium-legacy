@@ -3,11 +3,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 import collections
 import glob
 import json
 import os
+import pipes
 import platform
 import re
 import shutil
@@ -18,6 +18,7 @@ import sys
 from gn_helpers import ToGNString
 
 # VS 2022 17.7 with 10.0.22621.1778 SDK with ARM64 libraries and UWP support.
+# with ARM64 libraries and UWP support.
 # See go/chromium-msvc-toolchain for instructions about how to update the
 # toolchain.
 #
@@ -26,19 +27,12 @@ from gn_helpers import ToGNString
 #
 # * //base/win/windows_version.cc NTDDI preprocessor check
 #   Triggers a compiler error if the available SDK is older than the minimum.
-# * SDK_VERSION in this file
-#   Must match the packaged/required SDK version.
+# * SDK_VERSION in this file - must match the packaged/required SDK version.
 # * SDK_VERSION in build/toolchain/win/setup_toolchain.py.
 # * //build/config/win/BUILD.gn NTDDI_VERSION value
 #   Affects the availability of APIs in the toolchain headers.
 # * //docs/windows_build_instructions.md mentions of VS or Windows SDK.
 #   Keeps the document consistent with the toolchain version.
-# * //tools/win/setenv.py
-#   Add/remove VS versions when upgrading to a new VS version.
-# * MSVC_TOOLSET_VERSION in this file
-#   Maps between Visual Studio version and MSVC toolset
-# * MSVS_VERSIONS in this file
-#   Records the packaged and default version of Visual Studio
 TOOLCHAIN_HASH = '7eee888925'
 SDK_VERSION = '10.0.22621.0'
 
@@ -308,28 +302,56 @@ def _CopyUCRTRuntime(target_dir, source_dir, target_cpu, suffix):
     target = os.path.join(target_dir, dll)
     source = os.path.join(source_dir, dll)
     _CopyRuntimeImpl(target, source)
-  # We must copy ucrtbased.dll for all CPU types. The rest of the Universal CRT
-  # is installed as part of the OS in Windows 10 and beyond.
-  if not suffix.startswith('.'):
-    win_sdk_dir = os.path.normpath(
-        os.environ.get(
-            'WINDOWSSDKDIR',
-            os.path.expandvars('%ProgramFiles(x86)%'
-                               '\\Windows Kits\\10')))
-    # ucrtbased.dll is located at {win_sdk_dir}/bin/{a.b.c.d}/{target_cpu}/
-    # ucrt/.
-    sdk_bin_root = os.path.join(win_sdk_dir, 'bin')
-    sdk_bin_sub_dirs = glob.glob(os.path.join(sdk_bin_root, '10.*'))
-    # Select the most recent SDK if there are multiple versions installed.
-    _SortByHighestVersionNumberFirst(sdk_bin_sub_dirs)
-    for directory in sdk_bin_sub_dirs:
-      sdk_redist_root_version = os.path.join(sdk_bin_root, directory)
-      if not os.path.isdir(sdk_redist_root_version):
-        continue
-      source_dir = os.path.join(sdk_redist_root_version, target_cpu, 'ucrt')
-      if not os.path.isdir(source_dir):
-        continue
-      break
+  # Copy the UCRT files from the Windows SDK. This location includes the
+  # api-ms-win-crt-*.dll files that are not found in the Windows directory.
+  # These files are needed for component builds. If WINDOWSSDKDIR is not set
+  # use the default SDK path. This will be the case when
+  # DEPOT_TOOLS_WIN_TOOLCHAIN=0 and vcvarsall.bat has not been run.
+  win_sdk_dir = os.path.normpath(
+      os.environ.get('WINDOWSSDKDIR',
+                     os.path.expandvars('%ProgramFiles(x86)%'
+                                        '\\Windows Kits\\10')))
+  # ARM64 doesn't have a redist for the ucrt DLLs because they are always
+  # present in the OS.
+  if target_cpu != 'arm64':
+    # Starting with the 10.0.17763 SDK the ucrt files are in a version-named
+    # directory - this handles both cases.
+    redist_dir = os.path.join(win_sdk_dir, 'Redist')
+    version_dirs = glob.glob(os.path.join(redist_dir, '10.*'))
+    if len(version_dirs) > 0:
+      _SortByHighestVersionNumberFirst(version_dirs)
+      # With SDK installed through VS2022,
+      # C:\Program Files (x86)\Windows Kits\10\Redist\10.0.22621.0
+      # does not have a UCRT directory. Redist\10.0.22000.0 does have a UCRT
+      # directory with the files we need.
+      for directory in version_dirs:
+        if os.path.isdir(os.path.join(directory, 'ucrt')):
+          redist_dir = directory
+          break
+    ucrt_dll_dirs = os.path.join(redist_dir, 'ucrt', 'DLLs', target_cpu)
+    ucrt_files = glob.glob(os.path.join(ucrt_dll_dirs, 'api-ms-win-*.dll'))
+    assert len(ucrt_files) > 0
+    for ucrt_src_file in ucrt_files:
+      file_part = os.path.basename(ucrt_src_file)
+      ucrt_dst_file = os.path.join(target_dir, file_part)
+      _CopyRuntimeImpl(ucrt_dst_file, ucrt_src_file, False)
+  # We must copy ucrtbase.dll for x64/x86, and ucrtbased.dll for all CPU types.
+  if target_cpu != 'arm64' or not suffix.startswith('.'):
+    if not suffix.startswith('.'):
+      # ucrtbased.dll is located at {win_sdk_dir}/bin/{a.b.c.d}/{target_cpu}/
+      # ucrt/.
+      sdk_bin_root = os.path.join(win_sdk_dir, 'bin')
+      sdk_bin_sub_dirs = glob.glob(os.path.join(sdk_bin_root, '10.*'))
+      # Select the most recent SDK if there are multiple versions installed.
+      _SortByHighestVersionNumberFirst(sdk_bin_sub_dirs)
+      for directory in sdk_bin_sub_dirs:
+        sdk_redist_root_version = os.path.join(sdk_bin_root, directory)
+        if not os.path.isdir(sdk_redist_root_version):
+          continue
+        source_dir = os.path.join(sdk_redist_root_version, target_cpu, 'ucrt')
+        if not os.path.isdir(source_dir):
+          continue
+        break
     _CopyRuntimeImpl(os.path.join(target_dir, 'ucrtbase' + suffix),
                      os.path.join(source_dir, 'ucrtbase' + suffix))
 
@@ -398,15 +420,6 @@ def CopyDlls(target_dir, configuration, target_cpu):
   if configuration == 'Debug':
     _CopyRuntime(target_dir, runtime_dir, target_cpu, debug=True)
   _CopyDebugger(target_dir, target_cpu)
-  if target_cpu == 'arm64':
-    target_dir = os.path.join(target_dir, 'win_clang_x64')
-    target_cpu = 'x64'
-    runtime_dir = x64_runtime
-    os.makedirs(target_dir, exist_ok=True)
-    _CopyRuntime(target_dir, runtime_dir, target_cpu, debug=False)
-    if configuration == 'Debug':
-      _CopyRuntime(target_dir, runtime_dir, target_cpu, debug=True)
-    _CopyDebugger(target_dir, target_cpu)
 
 
 def _CopyDebugger(target_dir, target_cpu):
@@ -433,6 +446,10 @@ def _CopyDebugger(target_dir, target_cpu):
   # List of debug files that should be copied, the first element of the tuple is
   # the name of the file and the second indicates if it's optional.
   debug_files = [('dbghelp.dll', False), ('dbgcore.dll', True)]
+  # The UCRT is not a redistributable component on arm64.
+  if target_cpu != 'arm64':
+    debug_files.extend([('api-ms-win-downlevel-kernel32-l2-1-0.dll', False),
+                        ('api-ms-win-eventing-provider-l1-1-0.dll', False)])
   for debug_file, is_optional in debug_files:
     full_path = os.path.join(win_sdk_dir, 'Debuggers', target_cpu, debug_file)
     if not os.path.exists(full_path):
