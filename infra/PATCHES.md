@@ -54,7 +54,7 @@ DoH Bare Minimum HTTP Headers Patch > https://github.com/bromite/bromite/blob/ma
 
 Enable Do Not Track By Default Patch > https://github.com/GrapheneOS/Vanadium/blob/main/patches/0045-enable-dubious-Do-Not-Track-feature-by-default.patch
 
-Show full URLs by Default Patch > https://github.com/Eloston/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/disable-formatting-in-omnibox.patch - Modified by me.
+Show full URLs by Default Patch > https://github.com/Alex313031/thorium/blob/74219f27911e133483c3ab85c70ba4360ea98423/src/chrome/browser/ui/toolbar/chrome_location_bar_model_delegate.cc#L292
 
 Disable FLOC Patch > https://github.com/Eloston/ungoogled-chromium/blob/master/patches/core/ungoogled-chromium/disable-floc.patch
 
@@ -156,6 +156,8 @@ Enable HEVC/H.265 Decoding Patch - https://github.com/StaZhu/enable-chromium-hev
 
 Allow all HEVC Video Profiles to Play Patch - https://github.com/StaZhu/enable-chromium-hevc-hardware-decoding/blob/main/remove-main-main10-profile-limit.patch
 
+Enable multi-threaded HEVC decoding - https://github.com/RobRich999/Chromium_Clang/blob/649f66dc041a72467c02d76e8d1fe00ee06d8276/Linux/linux64-avx.patch#L295
+
 Enable AC3 and EAC3 for HEVC Patch - https://github.com/Muril-o/electron-chromium-codecs
   - https://github.com/Alex313031/thorium/commit/46893f326c42b08a56769f3de6743aec049b2091#diff-09b3d55a8198fc42186bfd6bf5869fe78b8edad6f67e75b78228446f1d7cf66f
 
@@ -169,8 +171,11 @@ Enable double click to close tab flag - https://github.com/bigfoxtail/brave-core
   - Found by @gz83, modified by me.
   
 Enable close confirmation patch - https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-for-close-confirmation.patch
-  - Modfiied by me.
-  
+  - Modified by me.
+
+Warn instead of Error on V8 PGO Profile Mismatch Patch - https://github.com/RobRich999/Chromium_Clang/blob/main/V8/v8.patch
+  - Made by RobRich999
+
 Patches to enable truly Portable usage > Disable Encryption and Machine ID
   - https://github.com/ungoogled-software/ungoogled-chromium-windows/blob/master/patches/ungoogled-chromium/windows/windows-disable-encryption.patch
   - https://github.com/ungoogled-software/ungoogled-chromium-windows/blob/master/patches/ungoogled-chromium/windows/windows-disable-machine-id.patch

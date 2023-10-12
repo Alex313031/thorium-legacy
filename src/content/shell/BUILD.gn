@@ -38,7 +38,7 @@ shell_use_toolkit_views = toolkit_views && !is_castos
 
 declare_args() {
   content_shell_product_name = "Thorium Shell"
-  content_shell_version = "999.77.34.5"
+  content_shell_version = "999.7.3434.555"
   content_shell_major_version = "999"
 }
 

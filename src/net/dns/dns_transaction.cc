@@ -72,6 +72,7 @@
 #include "net/socket/stream_socket.h"
 #include "net/third_party/uri_template/uri_template.h"
 #include "net/traffic_annotation/network_traffic_annotation.h"
+#include "net/url_request/url_request.h"
 #include "net/url_request/url_request_context.h"
 #include "net/url_request/url_request_context_builder.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"

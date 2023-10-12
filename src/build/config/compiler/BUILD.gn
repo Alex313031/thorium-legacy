@@ -559,6 +559,13 @@ config("compiler") {
         ldflags += [ "-Wl,-mllvm,-instcombine-lower-dbg-declare=0" ]
       }
     }
+
+    # TODO(crbug.com/1235145): Investigate why/if this should be needed.
+    if (is_win) {
+      cflags += [ "/clang:-ffp-contract=off" ]
+    } else {
+      cflags += [ "-ffp-contract=off" ]
+    }
   }
 
   # Rust compiler setup (for either clang or rustc).
@@ -2013,9 +2020,6 @@ config("no_incompatible_pointer_warnings") {
 # Shared settings for both "optimize" and "optimize_max" configs.
 # IMPORTANT: On Windows "/O1" and "/O2" must go before the common flags.
 
-  common_optimize_on_cflags = [ "-O3", ]
-  common_optimize_on_ldflags = [ "-Wl,-O3", ]
-
 if (is_win) {
 
   common_optimize_on_cflags = []
@@ -2059,11 +2063,10 @@ if (is_win) {
     "-mllvm", "-enable-masked-interleaved-mem-accesses",
     "-mllvm", "-enable-gvn-hoist",
     "-mllvm", "-enable-dfa-jump-thread",
-    "/O2",
     "/clang:-O3",
-    "/clang:-mavx",
     "/clang:-maes",
     "/clang:-mpclmul",
+    "/clang:-mavx",
     "-Xclang", "-O3",
   ]
 
@@ -2254,11 +2257,11 @@ config("optimize") {
     if (chrome_pgo_phase != 2) {
       # Favor size over speed, /O1 must be before the common flags.
       # /O1 implies /Os and /GF.
-      cflags = [ "/O2", "-Xclang", "-O3", ] + common_optimize_on_cflags + [ "/Oi" ]
+      cflags = [ "/O2", "-Xclang", "-O3" ] + common_optimize_on_cflags + [ "/Oi" ]
     } else {
       # PGO requires all translation units to be compiled with /O2. The actual
       # optimization level will be decided based on the profiling data.
-      cflags = [ "/O2", "-Xclang", "-O3", ] + common_optimize_on_cflags + [ "/Oi" ]
+      cflags = [ "/O2", "-Xclang", "-O3" ] + common_optimize_on_cflags + [ "/Oi" ]
     }
   } else if (optimize_for_size) {
     # Favor size over speed.
@@ -2350,7 +2353,7 @@ config("optimize_max") {
     if (is_win) {
       # Favor speed over size, /O2 must be before the common flags.
       # /O2 implies /Ot, /Oi, and /GF.
-      cflags = [ "/O2", "-Xclang", "-O3", ] + common_optimize_on_cflags
+      cflags = [ "/O2", "-Xclang", "-O3" ] + common_optimize_on_cflags
     } else if (optimize_for_fuzzing) {
       cflags = [ "-O3" ] + common_optimize_on_cflags
     } else {
@@ -2383,7 +2386,7 @@ config("optimize_speed") {
     if (is_win) {
       # Favor speed over size, /O2 must be before the common flags.
       # /O2 implies /Ot, /Oi, and /GF.
-      cflags = [ "/O2", "-Xclang", "-O3", ] + common_optimize_on_cflags
+      cflags = [ "/O2", "-Xclang", "-O3" ] + common_optimize_on_cflags
     } else if (optimize_for_fuzzing) {
       cflags = [ "-O3" ] + common_optimize_on_cflags
     } else {

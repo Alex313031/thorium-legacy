@@ -875,7 +875,7 @@ config("compiler") {
     # For deterministic builds, keep the local machine's current working
     # directory from appearing in build outputs.
     "-Zremap-cwd-prefix=.",
-    
+
     # Full RUSTC optimizations.
     "-Copt-level=3", "-Ctarget-feature=+sse3",
   ]
@@ -2018,9 +2018,6 @@ config("no_incompatible_pointer_warnings") {
 # Shared settings for both "optimize" and "optimize_max" configs.
 # IMPORTANT: On Windows "/O1" and "/O2" must go before the common flags.
 
-  common_optimize_on_cflags = [ "-O3", ]
-  common_optimize_on_ldflags = [ "-Wl,-O3", ]
-
 if (is_win) {
 
   common_optimize_on_cflags = []
@@ -2063,7 +2060,7 @@ if (is_win) {
     "-mllvm", "-enable-interleaved-mem-accesses",
     "-mllvm", "-enable-masked-interleaved-mem-accesses",
     "-mllvm", "-enable-gvn-hoist",
-    "/O2",
+    "-mllvm", "-enable-dfa-jump-thread",
     "/clang:-O3",
     "/clang:-msse3",
     "-Xclang", "-O3",
@@ -2089,6 +2086,7 @@ if (is_win) {
     "-mllvm:-enable-interleaved-mem-accesses",
     "-mllvm:-enable-masked-interleaved-mem-accesses",
     "-mllvm:-enable-gvn-hoist",
+    "-mllvm:-enable-dfa-jump-thread",
   ]
 
   if (use_polly == true) {
@@ -2137,6 +2135,7 @@ if (is_win) {
     "-mllvm", "-enable-interleaved-mem-accesses",
     "-mllvm", "-enable-masked-interleaved-mem-accesses",
     "-mllvm", "-enable-gvn-hoist",
+    "-mllvm", "-enable-dfa-jump-thread",
     "-O3",
   ]
 
@@ -2161,6 +2160,7 @@ if (is_win) {
     "-Wl,-mllvm,-enable-interleaved-mem-accesses",
     "-Wl,-mllvm,-enable-masked-interleaved-mem-accesses",
     "-Wl,-mllvm,-enable-gvn-hoist",
+    "-Wl,-mllvm,-enable-dfa-jump-thread",
     "-Wl,-O3",
   ]
 
@@ -2253,11 +2253,11 @@ config("optimize") {
     if (chrome_pgo_phase != 2) {
       # Favor size over speed, /O1 must be before the common flags.
       # /O1 implies /Os and /GF.
-      cflags = [ "/O2" ] + common_optimize_on_cflags + [ "/Oi" ]
+      cflags = [ "/O2", "-Xclang", "-O3" ] + common_optimize_on_cflags + [ "/Oi" ]
     } else {
       # PGO requires all translation units to be compiled with /O2. The actual
       # optimization level will be decided based on the profiling data.
-      cflags = [ "/O2" ] + common_optimize_on_cflags + [ "/Oi" ]
+      cflags = [ "/O2", "-Xclang", "-O3" ] + common_optimize_on_cflags + [ "/Oi" ]
     }
   } else if (optimize_for_size) {
     # Favor size over speed.
@@ -2349,7 +2349,7 @@ config("optimize_max") {
     if (is_win) {
       # Favor speed over size, /O2 must be before the common flags.
       # /O2 implies /Ot, /Oi, and /GF.
-      cflags = [ "/O2", "-Xclang", "-O3", ] + common_optimize_on_cflags
+      cflags = [ "/O2", "-Xclang", "-O3" ] + common_optimize_on_cflags
     } else if (optimize_for_fuzzing) {
       cflags = [ "-O3" ] + common_optimize_on_cflags
     } else {
@@ -2382,7 +2382,7 @@ config("optimize_speed") {
     if (is_win) {
       # Favor speed over size, /O2 must be before the common flags.
       # /O2 implies /Ot, /Oi, and /GF.
-      cflags = [ "/O2", "-Xclang", "-O3", ] + common_optimize_on_cflags
+      cflags = [ "/O2", "-Xclang", "-O3" ] + common_optimize_on_cflags
     } else if (optimize_for_fuzzing) {
       cflags = [ "-O3" ] + common_optimize_on_cflags
     } else {

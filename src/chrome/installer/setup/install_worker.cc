@@ -1,4 +1,4 @@
-// Copyright 2012 The Chromium Authors, Hibiki Tachibana, and Alex313031.
+// Copyright 2023 The Chromium Authors, Hibiki Tachibana, and Alex313031.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -18,12 +18,12 @@
 #include <memory>
 #include <vector>
 
-#include "base/bind.h"
-#include "base/callback_helpers.h"
 #include "base/command_line.h"
 #include "base/enterprise_util.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
+#include "base/bind.h"
+#include "base/callback_helpers.h"
 #include "base/process/kill.h"
 #include "base/process/process_iterator.h"
 #include "base/logging.h"
@@ -81,6 +81,10 @@ constexpr wchar_t kChromeInstallFilesCapabilitySid[] =
 constexpr wchar_t kLpacChromeInstallFilesCapabilitySid[] =
     L"S-1-15-3-1024-2302894289-466761758-1166120688-1039016420-2430351297-"
     L"4240214049-4028510897-3317428798";
+
+// Thorium Application dir files
+const wchar_t kInitPref[] = L"initial_preferences";
+const wchar_t kThorVer[] = L"thor_ver";
 
 void AddInstallerCopyTasks(const InstallParams& install_params,
                            WorkItemList* install_list) {
@@ -306,6 +310,14 @@ void AddChromeWorkItems(const InstallParams& install_params,
                                     target_path.Append(installer::kChromeExe),
                                     temp_path, WorkItem::NEW_NAME_IF_IN_USE,
                                     new_chrome_exe);
+
+  // Add Thorium-specific files
+  install_list->AddCopyTreeWorkItem(src_path.Append(kInitPref),
+                                    target_path.Append(kInitPref),
+                                    temp_path, WorkItem::ALWAYS);
+  install_list->AddCopyTreeWorkItem(src_path.Append(kThorVer),
+                                    target_path.Append(kThorVer),
+                                    temp_path, WorkItem::ALWAYS);
 
   // Install kVisualElementsManifest if it is present in |src_path|. No need to
   // make this a conditional work item as if the file is not there now, it will

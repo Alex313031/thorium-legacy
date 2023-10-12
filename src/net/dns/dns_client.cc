@@ -267,7 +267,7 @@ class DnsClientImpl : public DnsClient {
       config.nameservers.clear();
 
     if (!config.IsValid()) {
-        LOG(WARNING) << "BuildEffectiveConfig(): invalid configuration";
+      LOG(WARNING) << "BuildEffectiveConfig(): invalid configuration";
       return absl::nullopt;
     }
 

@@ -26,17 +26,28 @@ displayHelp () {
 	printf "${bold}${YEL}Use the --sse3 flag for SSE3 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse2 flag for 32 bit SSE2 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --android flag for Android Builds.${c0}\n" &&
+	printf "${bold}${YEL}IMPORTANT: For Polly builds, first run build_polly.sh in Thorium/infra, then use the setup_polly.sh${c0}\n" &&
+	printf "${bold}${YEL}script in Thorium/other/Polly. Both of these actions should be taken AFTER running this script!${c0}\n" &&
 	printf "\n"
 }
 case $1 in
 	--help) displayHelp; exit 0;;
 esac
 
+# chromium/src dir env variable
+if [ -z "${CR_DIR}" ]; then 
+    CR_SRC_DIR="$HOME/chromium/src"
+    export CR_SRC_DIR
+else 
+    CR_SRC_DIR="${CR_DIR}"
+    export CR_SRC_DIR
+fi
+
 printf "\n" &&
 printf "${YEL}Creating build output directory...\n" &&
 tput sgr0 &&
 
-mkdir -v -p $HOME/chromium/src/out/thorium/ &&
+mkdir -v -p ${CR_SRC_DIR}/out/thorium/ &&
 printf "\n" &&
 
 printf "\n" &&
@@ -44,40 +55,29 @@ printf "${YEL}Copying Thorium source files over the Chromium tree...\n" &&
 tput sgr0 &&
 
 # Copy Thorium sources
-cp -r -v src/BUILD.gn $HOME/chromium/src/ &&
-cp -r -v src/ash/. $HOME/chromium/src/ash/ &&
-cp -r -v src/build/. $HOME/chromium/src/build/ &&
-cp -r -v src/chrome/. $HOME/chromium/src/chrome/ &&
-cp -r -v src/chromeos/. $HOME/chromium/src/chromeos/ &&
-cp -r -v src/components/. $HOME/chromium/src/components/ &&
-cp -r -v src/extensions/. $HOME/chromium/src/extensions/ &&
-cp -r -v src/content/. $HOME/chromium/src/content/ &&
-cp -r -v src/media/. $HOME/chromium/src/media/ &&
-cp -r -v src/net/. $HOME/chromium/src/net/ &&
-cp -r -v src/sandbox/. $HOME/chromium/src/sandbox/ &&
-# cp -r -v src/services/. $HOME/chromium/src/services/ &&
-cp -r -v src/third_party/. $HOME/chromium/src/third_party/ &&
-cp -r -v src/tools/. $HOME/chromium/src/tools/ &&
-cp -r -v src/ui/. $HOME/chromium/src/ui/ &&
-cp -r -v src/v8/. $HOME/chromium/src/v8/ &&
-cp -r -v thorium_shell/. $HOME/chromium/src/out/thorium/ &&
-cp -r -v pak_src/bin/pak $HOME/chromium/src/out/thorium/ &&
-cp -r -v pak_src/bin/pak-win/. $HOME/chromium/src/out/thorium/ &&
+cp -r -v src/. ${CR_SRC_DIR}/ &&
+cp -r -v thorium_shell/. ${CR_SRC_DIR}/out/thorium/ &&
+cp -r -v pak_src/bin/pak ${CR_SRC_DIR}/out/thorium/ &&
+cp -r -v pak_src/bin/pak-win/. ${CR_SRC_DIR}/out/thorium/ &&
 
 # Add default_apps dir for Google Docs Offline extension.
-mkdir -v -p $HOME/chromium/src/out/thorium/default_apps &&
-cp -r -v infra/default_apps/. $HOME/chromium/src/out/thorium/default_apps/ &&
+mkdir -v -p ${CR_SRC_DIR}/out/thorium/default_apps &&
+cp -r -v infra/default_apps/. ${CR_SRC_DIR}/out/thorium/default_apps/ &&
+
+# Add initial preferences file to open Thorium welcome page on first run.
+cp -v infra/initial_preferences ${CR_SRC_DIR}/out/thorium/ &&
+cp -v infra/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 
 echo " # Workaround for DevTools" &&
-mkdir -v -p $HOME/chromium/src/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
-cp -r -v src/third_party/devtools-frontend/src/front_end/Images/src/chromeSelectDark.svg $HOME/chromium/src/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
+mkdir -v -p ${CR_SRC_DIR}/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
+cp -r -v src/third_party/devtools-frontend/src/front_end/Images/src/chromeSelectDark.svg ${CR_SRC_DIR}/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
 
 # MacOS Widevine Workaround
 copyMacOS () {
 	printf "\n" &&
 	printf "${YEL}Copying files for MacOS...${c0}\n" &&
-	cp -r -v other/Mac/cdm_registration.cc $HOME/chromium/src/chrome/common/media/ &&
-	cp -r -v arm/mac_arm.gni $HOME/chromium/src/build/config/arm.gni &&
+	cp -r -v other/Mac/cdm_registration.cc ${CR_SRC_DIR}/chrome/common/media/ &&
+	cp -r -v arm/mac_arm.gni ${CR_SRC_DIR}/build/config/arm.gni &&
 	printf "\n"
 }
 case $1 in
@@ -88,7 +88,7 @@ esac
 copyRaspi () {
 	printf "\n" &&
 	printf "${YEL}Copying Raspberry Pi build files...${c0}\n" &&
-	cp -r -v arm/raspi/* $HOME/chromium/src/ &&
+	cp -r -v arm/raspi/* ${CR_SRC_DIR}/ &&
 	printf "\n"
 }
 # Display raspi ascii art
@@ -103,7 +103,7 @@ esac
 copyWOA () {
 	printf "\n" &&
 	printf "${YEL}Copying Windows on ARM build files...${c0}\n" &&
-	cp -r -v arm/build/config/* $HOME/chromium/src/build/config/ &&
+	cp -r -v arm/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	printf "\n"
 }
 case $1 in
@@ -114,9 +114,10 @@ esac
 copyAVX2 () {
 	printf "\n" &&
 	printf "${YEL}Copying AVX2 build files...${c0}\n" &&
-	cp -r -v other/AVX2/build/config/* $HOME/chromium/src/build/config/ &&
-	cp -r -v other/AVX2/v8/* $HOME/chromium/src/v8/ &&
-	cp -r -v other/AVX2/third_party/* $HOME/chromium/src/third_party/ &&
+	cp -r -v other/AVX2/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v other/AVX2/v8/* ${CR_SRC_DIR}/v8/ &&
+	cp -r -v other/AVX2/third_party/* ${CR_SRC_DIR}/third_party/ &&
+	cp -r -v other/AVX2/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n"
 }
 case $1 in
@@ -127,9 +128,9 @@ esac
 copySSE3 () {
 	printf "\n" &&
 	printf "${YEL}Copying SSE3 build files...${c0}\n" &&
-	cp -r -v other/SSE3/build/config/* $HOME/chromium/src/build/config/ &&
-	cp -r -v other/SSE3/v8/* $HOME/chromium/src/v8/ &&
-	cp -r -v other/SSE3/third_party/* $HOME/chromium/src/third_party/ &&
+	cp -r -v other/SSE3/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v other/SSE3/v8/* ${CR_SRC_DIR}/v8/ &&
+	cp -r -v other/SSE3/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n"
 }
 case $1 in
@@ -140,8 +141,8 @@ esac
 copySSE2 () {
 	printf "\n" &&
 	printf "${YEL}Copying SSE2 (32-bit) build files...${c0}\n" &&
-	cp -r -v other/SSE2/build/config/* $HOME/chromium/src/build/config/ &&
-	cp -r -v other/SSE2/third_party/* $HOME/chromium/src/third_party/ &&
+	cp -r -v other/SSE2/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v other/SSE2/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n"
 }
 case $1 in
@@ -152,9 +153,22 @@ esac
 copyAndroid () {
 	printf "\n" &&
 	printf "${YEL}Copying Android (ARM64 and ARM32) build files...${c0}\n" &&
-	cp -r -v arm/build/config/* $HOME/chromium/src/build/config/ &&
-	cp -r -v arm/android/* $HOME/chromium/src/ &&
-	cp -r -v arm/raspi/third_party/* $HOME/chromium/src/third_party/ &&
+	cp -r -v arm/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v arm/android/* ${CR_SRC_DIR}/ &&
+	cp -r -v arm/raspi/third_party/* ${CR_SRC_DIR}/third_party/ &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_base/drawable-v26/ic_launcher.xml &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_base/drawable-v26/ic_launcher_round.xml &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-mdpi/layered_app_icon_background.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-mdpi/layered_app_icon.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xhdpi/layered_app_icon_background.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xhdpi/layered_app_icon.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxxhdpi/layered_app_icon_background.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxxhdpi/layered_app_icon.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-nodpi/layered_app_icon_foreground.xml &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-hdpi/layered_app_icon_background.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-hdpi/layered_app_icon.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxhdpi/layered_app_icon_background.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxhdpi/layered_app_icon.png &&
 	printf "\n"
 }
 case $1 in
@@ -167,6 +181,7 @@ printf "\n" &&
 printf "${YEL}Exporting variables and setting handy aliases...\n" &&
 
 export NINJA_SUMMARIZE_BUILD=1 &&
+export NINJA_STATUS="[%r processes, %f/%t @ %o/s | %e sec. ] " &&
 
 export EDITOR=nano &&
 
@@ -225,7 +240,7 @@ printf "alias ${YEL}pgow${c0} = ${CYA}python3 tools/update_pgo_profiles.py --tar
 
 printf "alias ${YEL}pgom${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=mac update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
 
-printf "${CYA}\n" &&
+printf "\n" &&
 
 cat logos/thorium_ascii_art.txt &&
 

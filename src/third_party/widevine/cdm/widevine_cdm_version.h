@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Chromium Authors and Alex313031. All rights reserved.
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -14,7 +14,6 @@
 //  - WIDEVINE_CDM_VERSION_STRING (with the version of the CDM that's available
 //    as a string, e.g., "1.0.123.456").
 
-#define WIDEVINE_CDM_AVAILABLE
 #define WIDEVINE_CDM_VERSION_STRING "undefined"
 
 #endif  // WIDEVINE_CDM_VERSION_H_

@@ -1,4 +1,3 @@
+ - compare quarantine patch
 
- - reload.h
-
- - enable tab outlines on win7 aero
+ - update PGO profiles

@@ -108,4 +108,4 @@ LOAD_FLAG(CAN_USE_RESTRICTED_PREFETCH, 1 << 16)
 // advertise brotli encoding.
 // Used to comply with IETF (draft) DNS-over-HTTPS:
 // "Implementors SHOULD NOT set non-essential HTTP headers in DoH client requests."
-LOAD_FLAG(MINIMAL_HEADERS, 1 << 19)
+LOAD_FLAG(MINIMAL_HEADERS, 1 << 17)
