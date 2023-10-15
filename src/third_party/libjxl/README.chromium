@@ -1,0 +1,16 @@
+Name: libjxl JPEG XL image decoder library
+Short Name: libjxl
+URL: https://github.com/libjxl/libjxl
+Version: 0.8.2
+Date: 2023-06-14
+Revision: 954b460768c08a147abf47689ad69b0e7beff65e
+License: BSD 3-Clause
+License File: src/LICENSE
+Security Critical: yes
+CPEPrefix: cpe:/a:libjxl_project:libjxl:0.8.2
+
+Description:
+The reference implementation for the JPEG XL image encoder/decoder.
+
+Local Modifications:
+None. Only decoder-side is compiled, for use in blink Internals>Images>Codecs.

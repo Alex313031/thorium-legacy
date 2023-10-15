@@ -1195,7 +1195,7 @@ bool TabStrip::ShouldDrawStrokes() const {
   static const bool tab_outlines_in_low_contrast =
       base::FeatureList::IsEnabled(features::kTabOutlinesInLowContrastThemes);
   if (tab_outlines_in_low_contrast) {
-    constexpr float kMinimumAbsoluteContrastForOutlines = 0.1f;
+    constexpr float kMinimumAbsoluteContrastForOutlines = 0.0f;
     const float background_luminance =
         color_utils::GetRelativeLuminance(background_color);
     const float frame_luminance =
