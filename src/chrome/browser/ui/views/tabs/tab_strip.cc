@@ -23,7 +23,9 @@
 #include "base/feature_list.h"
 #include "base/i18n/rtl.h"
 #include "base/memory/raw_ptr.h"
+#include "base/command_line.h"
 #include "base/memory/weak_ptr.h"
+#include "ui/base/ui_base_switches.h"
 #include "base/metrics/histogram.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/metrics/histogram_macros.h"
@@ -1195,15 +1197,7 @@ bool TabStrip::ShouldDrawStrokes() const {
   static const bool tab_outlines_in_low_contrast =
       base::FeatureList::IsEnabled(features::kTabOutlinesInLowContrastThemes);
   if (tab_outlines_in_low_contrast) {
-    constexpr float kMinimumAbsoluteContrastForOutlines = 0.0f;
-    const float background_luminance =
-        color_utils::GetRelativeLuminance(background_color);
-    const float frame_luminance =
-        color_utils::GetRelativeLuminance(frame_color);
-    const float contrast_difference =
-        std::fabs(background_luminance - frame_luminance);
-    if (contrast_difference < kMinimumAbsoluteContrastForOutlines)
-      return true;
+    return true;
   }
 
   return false;

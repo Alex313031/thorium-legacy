@@ -225,7 +225,7 @@ const char kTabHoverCardAlternateFormat[] = "alternate_format";
 // Enables tab outlines in additional situations for accessibility.
 BASE_FEATURE(kTabOutlinesInLowContrastThemes,
              "TabOutlinesInLowContrastThemes",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kTabSearchChevronIcon,
              "TabSearchChevronIcon",
