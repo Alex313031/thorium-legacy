@@ -91,7 +91,7 @@ BASE_FEATURE(kPowerBookmarksSidePanel,
 // accessibility.
 BASE_FEATURE(kProminentDarkModeActiveTabTitle,
              "ProminentDarkModeActiveTabTitle",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables the QuickCommands UI surface. See https://crbug.com/1014639
 BASE_FEATURE(kQuickCommands,
