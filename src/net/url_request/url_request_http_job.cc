@@ -341,21 +341,22 @@ void URLRequestHttpJob::OnGotFirstPartySetCacheFilterMatchInfo(
   // fields in the referrer.
   GURL referrer(request_->referrer());
 
+  // Load minimal headers
   if (!(request_info_.load_flags & LOAD_MINIMAL_HEADERS)) {
-  // Our consumer should have made sure that this is a safe referrer (e.g. via
-  // URLRequestJob::ComputeReferrerForPolicy).
-  if (referrer.is_valid()) {
-    std::string referer_value = referrer.spec();
-    request_info_.extra_headers.SetHeader(HttpRequestHeaders::kReferer,
+    // Our consumer should have made sure that this is a safe referrer (e.g. via
+    // URLRequestJob::ComputeReferrerForPolicy).
+    if (referrer.is_valid()) {
+      std::string referer_value = referrer.spec();
+      request_info_.extra_headers.SetHeader(HttpRequestHeaders::kReferer,
                                           referer_value);
-  }
+    }
   }
 
   if (!(request_info_.load_flags & LOAD_MINIMAL_HEADERS)) {
-  request_info_.extra_headers.SetHeaderIfMissing(
-      HttpRequestHeaders::kUserAgent,
-      http_user_agent_settings_ ?
-          http_user_agent_settings_->GetUserAgent() : std::string());
+    request_info_.extra_headers.SetHeaderIfMissing(
+        HttpRequestHeaders::kUserAgent,
+        http_user_agent_settings_ ?
+            http_user_agent_settings_->GetUserAgent() : std::string());
   }
 
   AddExtraHeaders();
