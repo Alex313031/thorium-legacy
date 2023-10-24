@@ -91,7 +91,7 @@ BASE_FEATURE(kPowerBookmarksSidePanel,
 // accessibility.
 BASE_FEATURE(kProminentDarkModeActiveTabTitle,
              "ProminentDarkModeActiveTabTitle",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables the QuickCommands UI surface. See https://crbug.com/1014639
 BASE_FEATURE(kQuickCommands,
@@ -225,7 +225,7 @@ const char kTabHoverCardAlternateFormat[] = "alternate_format";
 // Enables tab outlines in additional situations for accessibility.
 BASE_FEATURE(kTabOutlinesInLowContrastThemes,
              "TabOutlinesInLowContrastThemes",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kTabSearchChevronIcon,
              "TabSearchChevronIcon",
