@@ -36,7 +36,7 @@ else
     export CR_SRC_DIR
 fi
 
-THOR_VER="109.0.5414.171"
+THOR_VER="109.0.5414.172"
 
 export THOR_VER &&
 
@@ -58,7 +58,7 @@ cd ~/thorium-win7 &&
 # Use our artifacts hash
 cp -v src/build/vs_toolchain.py ${CR_SRC_DIR}/build/ &&
 
-# Use 109.0.5414.170 DEPS
+# Use my DEPS
 cp -v src/DEPS ${CR_SRC_DIR}/ &&
 
 cd ${CR_SRC_DIR} &&
