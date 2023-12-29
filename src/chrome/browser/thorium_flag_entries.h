@@ -17,14 +17,6 @@
      kOsLinux, SINGLE_VALUE_TYPE("auto-dark-mode")},
 #endif // BUILDFLAG(IS_LINUX)
 
-#if BUILDFLAG(IS_WIN)
-    {"disable-aero",
-     "Disable Aero Window Frame Compositing",
-     "Use the classic Chromium theme designed to mimick \"Aero\" window controls. "
-     "Typically used when desktop composition is disabled or unavailable.",
-     kOsWin, SINGLE_VALUE_TYPE("disable-aero")},
-#endif // BUILDFLAG(IS_WIN)
-
     {"prominent-active-tab-titles",
      "Prominent Active Tab Titles",
      "Makes the active tab title bolder so that it is easier to identify. (Default: Enabled)",
@@ -33,6 +25,15 @@
      "Enable Tab Outlines",
      "Force enables tab outline strokes, improving accessiblity in dark mode, incognito mode, and low contrast themes. (Default: Enabled)",
      kOsAll, FEATURE_VALUE_TYPE(features::kTabOutlinesInLowContrastThemes)},
+
+#if BUILDFLAG(IS_WIN)
+    {"disable-aero",
+     "Disable Aero Window Frame Compositing",
+     "Use the classic Chromium theme designed to mimick \"Aero\" window controls. "
+     "Typically used when desktop composition is disabled or unavailable.",
+     kOsWin, SINGLE_VALUE_TYPE("disable-aero")},
+#endif // BUILDFLAG(IS_WIN)
+
     {"force-high-contrast",
      "Enable High Contrast Mode",
      "Enables high contrast mode for all Thorium instances.",
