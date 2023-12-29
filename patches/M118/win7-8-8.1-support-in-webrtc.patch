@@ -1,0 +1,30 @@
+diff --git a/modules/desktop_capture/win/screen_capture_utils.cc b/modules/desktop_capture/win/screen_capture_utils.cc
+index 3745e9cba5..2135a5b228 100644
+--- a/modules/desktop_capture/win/screen_capture_utils.cc
++++ b/modules/desktop_capture/win/screen_capture_utils.cc
+@@ -148,12 +148,21 @@ DesktopRect GetFullscreenRect() {
+ 
+ DesktopVector GetDpiForMonitor(HMONITOR monitor) {
+   UINT dpi_x, dpi_y;
++  typedef HRESULT (*GetDpiForMonitorFunc)(HMONITOR, MONITOR_DPI_TYPE, UINT*,
++                                          UINT*);
+   // MDT_EFFECTIVE_DPI includes the scale factor as well as the system DPI.
+-  HRESULT hr = ::GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y);
+-  if (SUCCEEDED(hr)) {
+-    return {static_cast<INT>(dpi_x), static_cast<INT>(dpi_y)};
++  HMODULE shcore_library_ = LoadLibraryW(L"shcore.dll");
++  if (shcore_library_) {
++    GetDpiForMonitorFunc get_dpi_mon_ = (GetDpiForMonitorFunc)GetProcAddress(
++        shcore_library_, "GetDpiForMonitor");
++    if (get_dpi_mon_) {
++      HRESULT hr = get_dpi_mon_(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y);
++      if (SUCCEEDED(hr)) {
++        return {static_cast<INT>(dpi_x), static_cast<INT>(dpi_y)};
++      }
++      RTC_LOG_GLE_EX(LS_WARNING, hr) << "GetDpiForMonitor() failed";
++    }
+   }
+-  RTC_LOG_GLE_EX(LS_WARNING, hr) << "GetDpiForMonitor() failed";
+ 
+   // If we can't get the per-monitor DPI, then return the system DPI.
+   HDC hdc = GetDC(nullptr);

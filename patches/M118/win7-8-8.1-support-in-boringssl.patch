@@ -1,0 +1,125 @@
+diff --git a/crypto/fipsmodule/rand/internal.h b/crypto/fipsmodule/rand/internal.h
+index 91bbe5897..685298b6c 100644
+--- a/crypto/fipsmodule/rand/internal.h
++++ b/crypto/fipsmodule/rand/internal.h
+@@ -82,15 +82,11 @@ void CRYPTO_sysrand(uint8_t *buf, size_t len);
+ // depending on the vendor's configuration.
+ void CRYPTO_sysrand_for_seed(uint8_t *buf, size_t len);
+ 
+-#if defined(OPENSSL_RAND_URANDOM) || defined(OPENSSL_RAND_WINDOWS)
++#if defined(OPENSSL_RAND_URANDOM)
+ // CRYPTO_init_sysrand initializes long-lived resources needed to draw entropy
+ // from the operating system.
+ void CRYPTO_init_sysrand(void);
+-#else
+-OPENSSL_INLINE void CRYPTO_init_sysrand(void) {}
+-#endif  // defined(OPENSSL_RAND_URANDOM) || defined(OPENSSL_RAND_WINDOWS)
+ 
+-#if defined(OPENSSL_RAND_URANDOM)
+ // CRYPTO_sysrand_if_available fills |len| bytes at |buf| with entropy from the
+ // operating system, or early /dev/urandom data, and returns 1, _if_ the entropy
+ // pool is initialized or if getrandom() is not available and not in FIPS mode.
+@@ -98,11 +94,13 @@ OPENSSL_INLINE void CRYPTO_init_sysrand(void) {}
+ // return 0.
+ int CRYPTO_sysrand_if_available(uint8_t *buf, size_t len);
+ #else
++OPENSSL_INLINE void CRYPTO_init_sysrand(void) {}
++
+ OPENSSL_INLINE int CRYPTO_sysrand_if_available(uint8_t *buf, size_t len) {
+   CRYPTO_sysrand(buf, len);
+   return 1;
+ }
+-#endif  // defined(OPENSSL_RAND_URANDOM)
++#endif
+ 
+ // rand_fork_unsafe_buffering_enabled returns whether fork-unsafe buffering has
+ // been enabled via |RAND_enable_fork_unsafe_buffering|.
+diff --git a/crypto/rand_extra/windows.c b/crypto/rand_extra/windows.c
+index 6b407b7c0..bb623c9aa 100644
+--- a/crypto/rand_extra/windows.c
++++ b/crypto/rand_extra/windows.c
+@@ -29,14 +29,18 @@ OPENSSL_MSVC_PRAGMA(warning(push, 3))
+     !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+ #include <bcrypt.h>
+ OPENSSL_MSVC_PRAGMA(comment(lib, "bcrypt.lib"))
++#else
++// #define needed to link in RtlGenRandom(), a.k.a. SystemFunction036.  See the
++// "Community Additions" comment on MSDN here:
++// http://msdn.microsoft.com/en-us/library/windows/desktop/aa387694.aspx
++#define SystemFunction036 NTAPI SystemFunction036
++#include <ntsecapi.h>
++#undef SystemFunction036
+ #endif  // WINAPI_PARTITION_APP && !WINAPI_PARTITION_DESKTOP
+ 
+ OPENSSL_MSVC_PRAGMA(warning(pop))
+ 
+-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && \
+-    !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+-
+-void CRYPTO_init_sysrand(void) {}
++#include "../fipsmodule/rand/internal.h"
+ 
+ void CRYPTO_sysrand(uint8_t *out, size_t requested) {
+   while (requested > 0) {
+@@ -44,46 +48,23 @@ void CRYPTO_sysrand(uint8_t *out, size_t requested) {
+     if (requested < output_bytes_this_pass) {
+       output_bytes_this_pass = (ULONG)requested;
+     }
++    // On non-UWP configurations, use RtlGenRandom instead of BCryptGenRandom
++    // to avoid accessing resources that may be unavailable inside the
++    // Chromium sandbox. See https://crbug.com/boringssl/307
++#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && \
++    !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+     if (!BCRYPT_SUCCESS(BCryptGenRandom(
+             /*hAlgorithm=*/NULL, out, output_bytes_this_pass,
+             BCRYPT_USE_SYSTEM_PREFERRED_RNG))) {
++#else
++    if (RtlGenRandom(out, output_bytes_this_pass) == FALSE) {
++#endif  // WINAPI_PARTITION_APP && !WINAPI_PARTITION_DESKTOP
+       abort();
+     }
+     requested -= output_bytes_this_pass;
+     out += output_bytes_this_pass;
+   }
+-}
+-
+-#else
+-
+-// See: https://learn.microsoft.com/en-us/windows/win32/seccng/processprng
+-typedef BOOL (WINAPI *ProcessPrngFunction)(PBYTE pbData, SIZE_T cbData);
+-static ProcessPrngFunction g_processprng_fn = NULL;
+-
+-static void init_processprng(void) {
+-  HMODULE hmod = LoadLibraryW(L"bcryptprimitives");
+-  if (hmod == NULL) {
+-    abort();
+-  }
+-  g_processprng_fn = (ProcessPrngFunction)GetProcAddress(hmod, "ProcessPrng");
+-  if (g_processprng_fn == NULL) {
+-    abort();
+-  }
+-}
+-
+-void CRYPTO_init_sysrand(void) {
+-  static CRYPTO_once_t once = CRYPTO_ONCE_INIT;
+-  CRYPTO_once(&once, init_processprng);
+-}
+-
+-void CRYPTO_sysrand(uint8_t *out, size_t requested) {
+-  CRYPTO_init_sysrand();
+-  // On non-UWP configurations, use ProcessPrng instead of BCryptGenRandom
+-  // to avoid accessing resources that may be unavailable inside the
+-  // Chromium sandbox. See https://crbug.com/74242
+-  if (!g_processprng_fn(out, requested)) {
+-    abort();
+-  }
++  return;
+ }
+ 
+ #endif  // WINAPI_PARTITION_APP && !WINAPI_PARTITION_DESKTOP
+@@ -91,5 +72,3 @@ void CRYPTO_sysrand(uint8_t *out, size_t requested) {
+ void CRYPTO_sysrand_for_seed(uint8_t *out, size_t requested) {
+   CRYPTO_sysrand(out, requested);
+ }
+-
+-#endif  // OPENSSL_RAND_WINDOWS
