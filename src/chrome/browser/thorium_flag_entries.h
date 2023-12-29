@@ -21,7 +21,7 @@
     {"disable-aero",
      "Disable Aero Window Frame Compositing",
      "Use the classic Chromium theme designed to mimick \"Aero\" window controls. "
-     "Typically used when desktop composition is disabled or unavailable.";
+     "Typically used when desktop composition is disabled or unavailable.",
      kOsWin, SINGLE_VALUE_TYPE("disable-aero")},
 #endif // BUILDFLAG(IS_WIN)
 
@@ -39,7 +39,8 @@
      kOsAll, FEATURE_VALUE_TYPE(features::kTabOutlinesInLowContrastThemes)},
     {"custom-ntp",
      "Custom New Tab Page",
-     "Allows setting a custom URL for the New Tab Page (NTP). Value can be internal (e.g. `about:blank`), external (e.g. `example.com`), or local (e.g. `file:///tmp/startpage.html`). This applies for incognito windows as well when not set to a `chrome://` internal page.",
+     "Allows setting a custom URL for the New Tab Page (NTP). Value can be internal (e.g. `about:blank` or `chrome://new-tab-page`), external (e.g. `example.com`), or local (e.g. `file:///tmp/startpage.html`). "
+     "This applies for incognito windows as well when not set to a `chrome://` internal page.",
      kOsDesktop, ORIGIN_LIST_VALUE_TYPE("custom-ntp", "")},
     {"hide-sidepanel-button",
      "Hide Side Panel Button",
@@ -51,7 +52,8 @@
      kOsDesktop, MULTI_VALUE_TYPE(kScrollEventChangesTab)},
     {"autoplay-policy",
      "Disable/Enable AutoPlay",
-     "Allows setting the AutoPlay policy. Use `No User Gesture Required` to enable AutoPlay, and use `Document User Activation Required` to disable AutoPlay and force all sites to require a click to initiate media playback. `User Gesture Required` is the default, and blocks most AutoPlay annoyances, while allowing some (i.e. WebAudio) to continue.",
+     "Allows setting the AutoPlay policy. Use `No User Gesture Required` to enable AutoPlay, and use `Document User Activation Required` to disable AutoPlay "
+     "and force all sites to require a click to initiate media playback. `User Gesture Required` is the default, and blocks most AutoPlay annoyances, while allowing some (i.e. WebAudio) to continue.",
      kOsDesktop, MULTI_VALUE_TYPE(kAutoplayPolicyChoices)},
     {"show-avatar-button",
      "Show/Hide the Avatar Button",
@@ -123,10 +125,13 @@
      "Disable Web Security",
      "Don't enforce the same-origin policy; meant for website testing only. See `https://web.dev/same-origin-policy/`",
      kOsAll, SINGLE_VALUE_TYPE(switches::kDisableWebSecurity)},
+
+#if !BUILDFLAG(IS_ANDROID)
     {"media-router",
      "Enable/Disable Media Router",
      "Media router is a component responsible for pairing Thorium to devices and endpoints, for streaming and rendering media sources on those devices. This is used, for example, for Cast.",
      kOsDesktop, FEATURE_VALUE_TYPE(media_router::kMediaRouter)},
+#endif // BUILDFLAG(IS_ANDROID)
 
 #if BUILDFLAG(IS_LINUX)
     {"password-store",
