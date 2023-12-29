@@ -4,6 +4,7 @@
 
 #include "chrome/browser/themes/theme_helper_win.h"
 
+#include "base/command_line.h"
 #include "chrome/browser/win/titlebar_config.h"
 #include "chrome/grit/theme_resources.h"
 #include "skia/ext/skia_utils_win.h"
