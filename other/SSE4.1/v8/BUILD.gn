@@ -1218,8 +1218,8 @@ config("toolchain") {
     }
     if (is_linux) {
       # Full optimization for V8.
-      cflags += [ "-O3", "-msse3" ]
-      ldflags += [ "-Wl,-O3", "-msse3" ]
+      cflags += [ "-O3", "-msse4.1" ]
+      ldflags += [ "-Wl,-O3", "-msse4.1" ]
     }
   }
   if (is_android && v8_android_log_stdout) {

@@ -21,19 +21,21 @@ tput sgr0 &&
 printf "${BOLD}\n" &&
 
 # Set executable permissions
-export NINJA_SUMMARIZE_BUILD=1 &&
+cd .. &&
 
 sudo chmod -v +x depot_tools/autoninja &&
 
 sudo chmod -v +x build.sh &&
 
+sudo chmod -v +x build_android.sh &&
+
 sudo chmod -v +x build_dmg.sh &&
 
 sudo chmod -v +x build_mac.sh &&
 
-sudo chmod -v +x build_win.sh &&
+sudo chmod -v +x build_linux.sh &&
 
-sudo chmod -v +x check_avx.sh &&
+sudo chmod -v +x check_simd.sh &&
 
 sudo chmod -v +x clean.sh &&
 
@@ -45,9 +47,11 @@ sudo chmod -v +x trunk.sh &&
 
 sudo chmod -v +x reset_depot_tools.sh &&
 
-sudo chmod -v +x VERSION.sh &&
+sudo chmod -v +x version.sh &&
 
 sudo chmod -v +x infra/install_deps.sh &&
+
+sudo chmod -v +x infra/build_dmg_cr.sh &&
 
 sudo chmod -v +x infra/build_polly.sh &&
 
@@ -89,7 +93,9 @@ sudo chmod -v +x src/tools/gn/bootstrap/bootstrap.py &&
 
 sudo chmod -v +x src/tools/clang/scripts/build.py &&
 
-sudo chmod -v +x other/Polly/setup_polly.sh &&
+# sudo chmod -v +x other/Polly/setup_polly.sh &&
 
+printf "\n" &&
 printf "${GRE}${bold}Scripts are ready!\n" &&
+printf "\n" &&
 tput sgr0
