@@ -1,6 +1,3 @@
-diff --git a/0) b/0)
-new file mode 100644
-index 0000000000000..e69de29bb2d1d
 diff --git a/LICENSE.chromium_os b/LICENSE.chromium_os
 deleted file mode 100644
 index 2e71f04e137a9..0000000000000
@@ -303,7 +300,7 @@ index c6071fa8b092f..cac35bc52ad53 100644
 -  BOOL success = process_prng_fn(static_cast<BYTE*>(output), output_length);
 -  // ProcessPrng is documented to always return TRUE.
 -  PA_BASE_CHECK(success);
-+ 
++
  }
  
  }  // namespace partition_alloc::internal::base
@@ -364,7 +361,7 @@ index d762b168a9ccf..5bbdb4e86d69a 100644
  }
  
  bool CommandLine::HasSwitch(const char switch_constant[]) const {
-+	
++
    return HasSwitch(StringPiece(switch_constant));
  }
  
@@ -377,7 +374,7 @@ index b7dc8ce05d8ca..4e1e6bd2d243d 100644
  
  BASE_FEATURE(kJsonNegativeZero, "JsonNegativeZero", FEATURE_ENABLED_BY_DEFAULT);
 -
-+			 
++
 +BASE_FEATURE(kForceDarkModeFlag,
 +             "ForceDarkModeFlag",
 +             base::FEATURE_DISABLED_BY_DEFAULT);
@@ -535,7 +532,7 @@ index 9425ad4ba5432..395d86b6fa45f 100644
                                     &overlapped, timeout)) {
      if (!overlapped)
        return false;  // Nothing in the queue.
-+  
++
      item->error = GetLastError();
      item->bytes_transfered = 0;
    }
@@ -1233,7 +1230,7 @@ index 64fa91320a040..5761ea461574a 100644
  
  TEST(HStringReferenceTest, Init) {
 +  EXPECT_TRUE(HStringReference::ResolveCoreWinRTStringDelayload());
-+ 
++
    const HStringReference string(kTestString);
    EXPECT_NE(string.Get(), nullptr);
    VerifyHSTRINGEquals(string.Get(), kTestString);
@@ -1510,10 +1507,10 @@ index 0d81e7c0a268e..b65c2426fb443 100644
  namespace win {
  
  namespace {
-+	
++
 +// Disables the DirectWrite font rendering system on windows.
 +const char kDisableDirectWrite[] = "disable-direct-write";
-+	
++
 +bool ShouldUseDirectWrite() {
 +  // Considering that there are seemingly some decent DirectWrite implementations
 +  // out there for XP, we will no longer discriminate by OS version.
@@ -1598,10 +1595,10 @@ index 0d81e7c0a268e..b65c2426fb443 100644
 +	  auto get_process_mitigation_policy =
 +      reinterpret_cast<decltype(&GetProcessMitigationPolicy)>(::GetProcAddress(
 +          ::GetModuleHandleA("kernel32.dll"), "GetProcessMitigationPolicy"));
-+		  
++
 +    if(!get_process_mitigation_policy)
 +		return true;
-+		  
++
      PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY policy = {};
 -    if (::GetProcessMitigationPolicy(GetCurrentProcess(),
 +    if (get_process_mitigation_policy(GetCurrentProcess(),
@@ -1649,8 +1646,8 @@ index ddcc94a2d5468..ec923348a1409 100644
    #  and with this switch, clang emits it like this:
    #    foo/bar.cc:12:34: error: something went wrong
    use_clang_diagnostics_format = false
-+  
-+ 
++
++
 +  # Indicates whether to use /pdbpagesize:8192 to allow PDBs larger than 4 GiB.
 +  use_large_pdbs = false
  }
@@ -1741,7 +1738,7 @@ index 32e2e14cdb2d9..d345159155523 100644
 +	 SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
 +	{"force-xp-theme",
 +	 flag_descriptions::kForceXpThemeName, flag_descriptions::kForceXpThemeDescription, kOsWin,
-+	 FEATURE_VALUE_TYPE(kForceXpTheme)},	 
++	 FEATURE_VALUE_TYPE(kForceXpTheme)},
 +	{"force-gdi",
 +	 flag_descriptions::kForceGdiName, flag_descriptions::kForceGdiDescription, kOsWin,
 +	 SINGLE_VALUE_TYPE("disable-direct-write")},
@@ -1765,7 +1762,7 @@ index 32e2e14cdb2d9..d345159155523 100644
       FEATURE_VALUE_TYPE(media::kBuiltInHlsPlayer)},
  #endif
 +	{"disable-download-upload",
-+	 flag_descriptions::kDisableDownloadUploadName, flag_descriptions::kDisableDownloadUploadDescription, 
++	 flag_descriptions::kDisableDownloadUploadName, flag_descriptions::kDisableDownloadUploadDescription,
 +	 kOsAll, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
  
  #if !BUILDFLAG(IS_CHROMEOS_ASH)
@@ -1853,7 +1850,7 @@ index 27d85fc9bd95d..2f8a36dcfda41 100644
      DownloadItemModel model(item);
      model.DetermineAndSetShouldPreferOpeningInBrowser(
          target_info->target_path, target_info->is_filetype_handled_safely);
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload) {
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload)) {
      model.SetDangerLevel(target_info->danger_level);
 +	}
    }
@@ -1863,7 +1860,7 @@ index 27d85fc9bd95d..2f8a36dcfda41 100644
  bool ChromeDownloadManagerDelegate::ShouldBlockFile(
      download::DownloadItem* item,
      download::DownloadDangerType danger_type) const {
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload) {
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload)) {
 +	  return false;
 +  }
    // Chrome-initiated background downloads should not be blocked.
@@ -1897,7 +1894,7 @@ index 60d6876953def..03db4e06e94b8 100644
 +    "name": "disable-download-upload",
 +    "owners": [ "win32ss", "alex313031" ],
 +    "expiry_milestone": -1
-+  },  
++  },
    {
      "name": "disable-explicit-dma-fences",
      "owners": [ "chromeos-gfx@google.com" ],
@@ -1997,7 +1994,7 @@ index d33d6d04c130e..5295d5d72ff88 100644
  const char kDesktopPWAsWebBundlesDescription[] =
      "Adds support for web bundles, making web apps able to be launched "
      "offline.";
-+	
++
 +const char kDisableDownloadUploadName[] = "Disable Safe Browsing for Downloads and Download Sample Uploads";
 +const char kDisableDownloadUploadDescription[] = "Disables prompts about unsafe or uncommon downloads, and "
 +												  "prevents samples of downloads from being sent to Google.";
@@ -2030,12 +2027,12 @@ index d33d6d04c130e..5295d5d72ff88 100644
  const char kAutoWebContentsDarkModeName[] = "Auto Dark Mode for Web Contents";
  const char kAutoWebContentsDarkModeDescription[] =
      "Automatically render all web contents using a dark theme.";
-+	
++
 +const char kForceDarkModeFlagName[] = "Forced Dark Mode for UI";
-+const char kForceDarkModeFlagDescription[] = 
-+	"Enables dark mode for all UI elements (but not web contents - " 
++const char kForceDarkModeFlagDescription[] =
++	"Enables dark mode for all UI elements (but not web contents - "
 +	"enable #enable-force-dark for darkening web contents).";
-+	
++
 +const char kForceXpThemeName[] = "Use Classic Theme";
 +const char kForceXpThemeDescription[] =
 +	"Use the classic Chrome theme designed to mimick \"Aero\" window controls. "
@@ -2234,7 +2231,7 @@ index c6da605fb1f1e..0f5a06fe24912 100644
 +    constexpr SkColor kSystemSolidLightFrameColor = SK_ColorWHITE;
 +    constexpr SkColor kSystemSolidDarkInactiveFrameColor =
 +        SkColorSetRGB(0x2B, 0x2B, 0x2B);
-+		
++
 +    constexpr SkColor kSystemMicaLightFrameColor =
        SkColorSetRGB(0xE8, 0xE8, 0xE8);
 -  constexpr SkColor kSystemMicaDarkFrameColor = SkColorSetRGB(0x20, 0x20, 0x20);
@@ -2362,9 +2359,9 @@ index ac17822240248..87d4c7ca95ede 100644
  }
  
  views::FrameMode BrowserDesktopWindowTreeHostWin::GetFrameMode() const {
-+  if (browser_view_->GetIsWebAppType()) 
-+	  return views::FrameMode::CUSTOM_DRAWN; 
-+  
++  if (browser_view_->GetIsWebAppType())
++	  return views::FrameMode::CUSTOM_DRAWN;
++
    const views::FrameMode system_frame_mode =
        ShouldBrowserCustomDrawTitlebar(browser_view_)
            ? views::FrameMode::SYSTEM_DRAWN_NO_CONTROLS
@@ -2555,10 +2552,10 @@ index f088a7071b1e0..48729bce514dd 100644
 +bool ShouldCustomDrawSystemTitlebar() {
 +  // Some extra code added here because those with pre-win8 and no DWM will have to fallback on the custom titlebar.
 +  BOOL result = FALSE;
-+	
++
 +  typedef HRESULT(WINAPI* DwmIsCompositionEnabledFunc)(BOOL* enabled);
 +  DwmIsCompositionEnabledFunc func_ = nullptr;
-+	
++
 +  HMODULE dwmapi_library_ = LoadLibraryW(L"dwmapi.dll");
 +  if (dwmapi_library_) {
 +    func_ = reinterpret_cast<DwmIsCompositionEnabledFunc>(
@@ -2566,7 +2563,7 @@ index f088a7071b1e0..48729bce514dd 100644
 +  }
 +  else
 +	  return true;
-+  
++
 +  if (func_) {
 +	  func_(&result);
 +  }
@@ -3149,7 +3146,7 @@ index bc2127fedcd84..a985a08a8b622 100644
  
  namespace updater {
  namespace {
-+	
++
 +	std::wstring FromCharOrEmpty(const wchar_t* str) {
 +  return str ? std::wstring(str) : std::wstring();
 +}
@@ -3287,10 +3284,10 @@ index c957a691efcac..59bcdbb763bc2 100644
 +	}
 +	if (version == base::win::Version::XP) {
 +		return 51;
-+	}	
++	}
 +	if (version == base::win::Version::PRE_XP) {
 +		return 50;
-+	}	
++	}
 +	return 0;
 +}
 +
@@ -3486,7 +3483,7 @@ index b141cfe3cc2e6..711838407f765 100644
 +  if (base::win::GetVersion() >= base::win::Version::WIN10) {
    result = sandbox::policy::SandboxWin::AddWin32kLockdownPolicy(config);
 -  if (result != sandbox::SBOX_ALL_OK) {
-+  if (result != sandbox::SBOX_ALL_OK) 
++  if (result != sandbox::SBOX_ALL_OK)
      return false;
    }
  #endif  // !defined(NACL_WIN64)
@@ -4721,7 +4718,7 @@ index b7ee9276d64fc..116953d3ef8f9 100644
 +  hr = GetLocalFontCollection(factory3_, &collection_);
    DCHECK(SUCCEEDED(hr));
 +  }
-+  
++
  
    if (!collection_) {
      return;
@@ -4826,7 +4823,7 @@ index a529ad9aac0b9..90c0ff972bda5 100644
 +  using DWriteCreateFactoryProc = decltype(DWriteCreateFactory)*;
 +
 +  HMODULE dwrite_dll = GetModuleHandleW(L"dwrite.dll");
-+  
++
    PatchServiceManagerCalls();
  
 -  CHECK(SUCCEEDED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_ISOLATED,
@@ -4849,7 +4846,7 @@ index a529ad9aac0b9..90c0ff972bda5 100644
 +  HMODULE dwrite_dll = LoadLibraryW(L"dwrite.dll");
 +  if (!dwrite_dll)
 +    return;
-+ 
++
    CreateDirectWriteFactory(&factory);
  
    if (!g_font_collection) {
@@ -5017,7 +5014,7 @@ index 364f4b8c67b49..ce17776bcea93 100644
 +    bool need_sandbox = true;
 +    if(base::win::GetVersion() >= base::win::Version::WIN8) {
 +	// Windows 8+ specific limitations required renderer sandbox disabled for GDI
-+    need_sandbox = gfx::win::ShouldUseDirectWrite() && 
++    need_sandbox = gfx::win::ShouldUseDirectWrite() &&
          !command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
 +	}
 +	else
@@ -5058,9 +5055,9 @@ index e7b8caa9ab118..430b6371d4f00 100644
 -  bool no_sandbox =
 -      command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
 +  bool no_sandbox =command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
-+	  
++
 +  bool use_direct_write = gfx::win::ShouldUseDirectWrite();
-+  
++
 +  if (use_direct_write) {
 +      InitializeDWriteFontProxy();
 +    } else {
@@ -5585,7 +5582,7 @@ index fc31388dc3232..ed7dd8748b5a8 100644
 -  if (result != SBOX_ALL_OK)
 -    return false;
 -
-+  
++
 +  if (gfx::win::ShouldUseDirectWrite()) {
 +	  ResultCode result =
 +		  config->AddRule(SubSystem::kFiles, Semantics::kFilesAllowReadonly,
@@ -5625,7 +5622,7 @@ index fc31388dc3232..ed7dd8748b5a8 100644
        MITIGATION_SEHOP | MITIGATION_NONSYSTEM_FONT_DISABLE |
        MITIGATION_IMAGE_LOAD_NO_REMOTE | MITIGATION_IMAGE_LOAD_NO_LOW_LABEL |
        MITIGATION_RESTRICT_INDIRECT_BRANCH_PREDICTION | MITIGATION_KTM_COMPONENT;
-+	  
++
 +  #if !defined(NACL_WIN64)
 +    // Don't block font loading with GDI.
 +    if (!gfx::win::ShouldUseDirectWrite())
@@ -5714,7 +5711,7 @@ index 37cc8fa8f8996..d966f133f185b 100644
 +      reinterpret_cast<CreateAppContainerProfileFunc*>(GetProcAddress(
 +          GetModuleHandle(L"userenv"), "CreateAppContainerProfile"));
 +  if (!create_app_container_profile)
-+    return nullptr; 
++    return nullptr;
 +
 + PSID package_sid_ptr = nullptr;
 +  HRESULT hr = create_app_container_profile(
@@ -6089,7 +6086,7 @@ index 79ca46ee037be..e1d295ee2717f 100644
    base::win::Version version = base::win::GetVersion();
 -
 -  if (flags & MITIGATION_DLL_SEARCH_ORDER) {
-+  
++
 +  #if !defined(NACL_WIN64)
 +  // Don't block font loading with GDI.
 +  if (!gfx::win::ShouldUseDirectWrite())
@@ -8254,7 +8251,7 @@ index bb6625fe0df54..7f5945591bee8 100644
 -    if (!first_candidate_)
 -      FontCache::CrashWithFontInfo(&font_description_);
 +    if (!first_candidate_) {
-+		FontCache::CrashWithFontInfo(&font_description_);		
++		FontCache::CrashWithFontInfo(&font_description_);
 +	}
      return first_candidate_;
    }
@@ -8267,7 +8264,7 @@ index fae5547d5ef83..33cc33aaa4424 100644
    FontPlatformData* const platform_data = GetOrCreateFontPlatformData(
        font_cache, font_description, create_by_alternate_family,
        AlternateFontName::kNoAlternate);
-+  
++
    if (!platform_data)
      return nullptr;
  
@@ -8298,7 +8295,7 @@ index 29d1d81729d81..5e3c4455d6ffd 100644
 +#if BUILDFLAG(IS_WIN)
 +  if(!useDirectWrite()) {
 +	return sk_sp<SkTypeface>(font_manager->legacyMakeTypeface(
-+      name.empty() ? nullptr : name.c_str(), font_description.SkiaFontStyle()));	  
++      name.empty() ? nullptr : name.c_str(), font_description.SkiaFontStyle()));
 +  }
 +#endif
    return sk_sp<SkTypeface>(font_manager->matchFamilyStyle(
@@ -8726,7 +8723,7 @@ index 01e6acd3c8dbc..3463aecd5cbbe 100644
    } else {
      typeface = CreateTypeface(font_description, creation_params, name);
 -
-+    
++
      // For a family match, Windows will always give us a valid pointer here,
      // even if the face name is non-existent. We have to double-check and see if
      // the family name was really used.
@@ -9271,7 +9268,7 @@ index 7a4c07887d822..8079de6c60522 100644
  #include "build/build_config.h"
  
  namespace switches {
-+	
++
 +#if BUILDFLAG(IS_WIN)
 +// Disables the DirectWrite font rendering system on windows.
 +const char kDisableDirectWrite[] = "disable-direct-write";
@@ -9328,7 +9325,7 @@ index 6e091a20069c0..e7c3bda983459 100644
  
  namespace gfx {
  namespace win {
-+	
++
 +GFX_EXPORT bool ShouldUseDirectWrite() {
 +  // Considering that there are seemingly some decent DirectWrite implementations
 +  // out there for XP, we will no longer discriminate by OS version.
@@ -9373,7 +9370,7 @@ index 6e091a20069c0..e7c3bda983459 100644
 +    return;
 +
    Microsoft::WRL::ComPtr<IUnknown> factory_unknown;
-+  
++
    HRESULT hr =
 -      DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
 +      dwrite_create_factory_proc(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
@@ -9454,7 +9451,7 @@ index 72022056d29c4..6185acdd2c2de 100644
  
  namespace gfx {
  namespace win {
-+	
++
 +// Returns whether DirectWrite font rendering should be used.
 +GFX_EXPORT bool ShouldUseDirectWrite();
  
@@ -9579,7 +9576,7 @@ index 74d600db1ea5e..d6b9e8fcadd25 100644
    UINT flags = PW_CLIENTONLY | PW_RENDERFULLCONTENT;
 -
 -  BOOL result = PrintWindow(window_handle, mem_hdc, flags);
-+  
++
 +  if (base::win::GetVersion() >= base::win::Version::WIN8_1){
 +	result = PrintWindow(window_handle, mem_hdc, flags);
 +  }
@@ -9588,21 +9585,21 @@ index 74d600db1ea5e..d6b9e8fcadd25 100644
 +	// Copying from the window's actual HDC doesn't work so let's just use the full screen HDC.
 +	// When a snapshot is captured the focus should be on the browser window anyway.
 +	HDC window_hdc = GetDC(NULL);
-+	
++
 +	RECT window_rect;
-+	
++
 +	memset(&window_rect, 0, sizeof(RECT));
-+	
++
 +	result = GetWindowRect(window_handle, &window_rect);
-+	
++
 +	 if (!result) {
 +    PLOG(ERROR) << "Failed to get valid rect for snapshot area.";
 +    return false;
 +    }
 +	// The left of the snapshot "window" rect is offset by 8 pixels to remove a bit of the dark grey showing through.
-+	result = BitBlt(mem_hdc, 0, 0, bitmap_size.width(), bitmap_size.height(), 
++	result = BitBlt(mem_hdc, 0, 0, bitmap_size.width(), bitmap_size.height(),
 +					window_hdc, window_rect.left + 8, window_rect.top, SRCCOPY);
-+	
++
 +	DeleteDC(window_hdc);
 +  }
    if (!result) {
@@ -9678,9 +9675,9 @@ index a1a17ca0f4090..c45c6e5b98b4c 100644
    full_text_ = gfx::RenderText::CreateRenderText();
    full_text_->SetHorizontalAlignment(gfx::ALIGN_CENTER);
 +  #if BUILDFLAG(IS_WIN)
-+  if (!gfx::win::IsDirectWriteEnabled() && 
++  if (!gfx::win::IsDirectWriteEnabled() &&
 +  (text_context_ != style::CONTEXT_MENU && text_context_ != style::CONTEXT_DIALOG_TITLE)) {
-+	  full_text_->SetVerticalAlignment(gfx::ALIGN_SPECIAL); 
++	  full_text_->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
 +  } // The bookmark bar labels and some of the side text in the menus are CONTEXT_BUTTON.
 +	// The "new tab" labels are CONTEXT_LABEL.
 +  #endif
@@ -9699,7 +9696,7 @@ index da848fcdc1784..4184e62a9d93f 100644
 +  // multiple tabs into separate windows.
 +  contents_size_ = std::max(1, contents_size_);
 +  viewport_size_ = std::max(1, viewport_size_);
-+  
++
    thumb_->SetPosition(CalculateThumbPosition(contents_scroll_offset_));
  }
  
@@ -9775,7 +9772,7 @@ index f43aa724b2a8e..8956e92107f0a 100644
  LRESULT HWNDMessageHandler::OnEraseBkgnd(HDC dc) {
    gfx::Insets insets;
 -  if (delegate_->GetDwmFrameInsetsInPixels(&insets) && !insets.IsEmpty() &&
-+  if (!ShouldCustomDrawSystemTitlebar() && 
++  if (!ShouldCustomDrawSystemTitlebar() &&
 +	  delegate_->GetDwmFrameInsetsInPixels(&insets) && !insets.IsEmpty() &&
        needs_dwm_frame_clear_) {
      // This is necessary to avoid white flashing in the titlebar area around the
@@ -9840,18 +9837,18 @@ index f43aa724b2a8e..8956e92107f0a 100644
        POINT point;
        point.x = TOUCH_COORD_TO_PIXEL(input[i].x);
        point.y = TOUCH_COORD_TO_PIXEL(input[i].y);
-+	  
++
 +	  if (base::win::GetVersion() == base::win::Version::WIN7) {
 +		  // Windows 7 sends touch events for NC area touches but Win8+ do not.
 +		  // This code will be used to make Windows 7 ignore these touches as well.
-+		  
++
 +		  LPARAM l_param_ht = MAKELPARAM(point.x, point.y);
 +		  LRESULT hittest = SendMessage(hwnd(), WM_NCHITTEST, 0, l_param_ht);
-+		  
++
 +		  if (hittest != HTCLIENT)
 +			  return 0;
 +	  }
-+	  
++
        ScreenToClient(hwnd(), &point);
  
        last_touch_or_pen_message_time_ = ::GetMessageTime();
@@ -9909,7 +9906,7 @@ index 96826a9c5b271..94bbc3c3c8f94 100644
 +	  pointer_point_statics_ = nullptr;
 +	  return;
 +    }
-+	
++
      base::win::AssertComInitialized();
      base::win::RoGetActivationFactory(
          base::win::HStringReference(

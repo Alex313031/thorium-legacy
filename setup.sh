@@ -192,6 +192,8 @@ case $1 in
 	--android) copyAndroid;
 esac
 
+# git apply --reject --ignore-space-change --recount --ignore-whitespace win7-8-8.1-support.patch
+
 printf "${GRE}Done!\n" &&
 printf "\n" &&
 
