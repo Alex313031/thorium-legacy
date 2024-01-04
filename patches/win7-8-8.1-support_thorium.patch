@@ -1,36 +1,3 @@
-diff --git a/LICENSE.chromium_os b/LICENSE.chromium_os
-deleted file mode 100644
-index 2e71f04e137a9..0000000000000
---- a/LICENSE.chromium_os
-+++ /dev/null
-@@ -1,27 +0,0 @@
--// Copyright 2006-2009 The ChromiumOS Authors
--//
--// Redistribution and use in source and binary forms, with or without
--// modification, are permitted provided that the following conditions are
--// met:
--//
--//    * Redistributions of source code must retain the above copyright
--// notice, this list of conditions and the following disclaimer.
--//    * Redistributions in binary form must reproduce the above
--// copyright notice, this list of conditions and the following disclaimer
--// in the documentation and/or other materials provided with the
--// distribution.
--//    * Neither the name of Google LLC nor the names of its
--// contributors may be used to endorse or promote products derived from
--// this software without specific prior written permission.
--//
--// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
--// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
--// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
--// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
--// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
--// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
--// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
--// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
--// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
--// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
--// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 diff --git a/README.md b/README.md
 index 08f1a0445babd..f5f245da9dacb 100644
 --- a/README.md
@@ -1778,14 +1745,6 @@ index 32e2e14cdb2d9..868daa4c37e5d 100644
  #include "base/feature_list.h"
  #include "base/functional/bind.h"
  #include "base/functional/callback.h"
-@@ -4064,6 +4065,7 @@ const FeatureEntry::FeatureVariation kWebAuthnAndroidCredManVariations[] = {
-      nullptr}};
- #endif  // BUILDFLAG(IS_ANDROID)
- 
-+
- // RECORDING USER METRICS FOR FLAGS:
- // -----------------------------------------------------------------------------
- // The first line of the entry is the internal name.
 @@ -5646,6 +5648,20 @@ const FeatureEntry kFeatureEntries[] = {
                                      kForceDarkVariations,
                                      "ForceDarkVariations")},
@@ -2100,7 +2059,7 @@ index d33d6d04c130e..7cbd830715c4f 100644
 +const char kInheritNativeThemeFromParentWidgetName[] =
 +    "Allow widgets to inherit native theme from its parent widget.";
 +const char kInheritNativeThemeFromParentWidgetDescription[] =
-+    "When enabled, secondary UIs like menu, dialogs etc would be in dark mode "
++    "When enabled, secondary UIs like menus, dialogs etc would be in dark mode "
 +    "when Incognito mode is open.";
  
  const char kFillingAcrossGroupedSitesName[] =
@@ -5907,7 +5866,7 @@ index e7b8caa9ab118..430b6371d4f00 100644
    if (!no_sandbox) {
      // ICU DateFormat class (used in base/time_format.cc) needs to get the
 diff --git a/content/shell/browser/shell_content_browser_client.cc b/content/shell/browser/shell_content_browser_client.cc
-index 0008e3c7c9600..c56d6991da655 100644
+index 0008e3c7c9600..95ebd524d0d67 100644
 --- a/content/shell/browser/shell_content_browser_client.cc
 +++ b/content/shell/browser/shell_content_browser_client.cc
 @@ -14,6 +14,7 @@
@@ -5918,7 +5877,7 @@ index 0008e3c7c9600..c56d6991da655 100644
  #include "base/containers/cxx20_erase.h"
  #include "base/containers/flat_set.h"
  #include "base/feature_list.h"
-@@ -450,6 +450,11 @@ std::string ShellContentBrowserClient::GetDefaultDownloadName() {
+@@ -450,6 +451,11 @@ std::string ShellContentBrowserClient::GetDefaultDownloadName() {
    return "download";
  }
  
@@ -5930,7 +5889,7 @@ index 0008e3c7c9600..c56d6991da655 100644
  std::unique_ptr<WebContentsViewDelegate>
  ShellContentBrowserClient::GetWebContentsViewDelegate(
      WebContents* web_contents) {
-@@ -525,7 +530,7 @@ void ShellContentBrowserClient::OverrideWebkitPrefs(
+@@ -525,7 +531,7 @@ void ShellContentBrowserClient::OverrideWebkitPrefs(
      WebContents* web_contents,
      blink::web_pref::WebPreferences* prefs) {
    if (base::CommandLine::ForCurrentProcess()->HasSwitch(

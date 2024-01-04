@@ -61,7 +61,7 @@ cp -r -v thorium-libjxl/src/. ${CR_SRC_DIR}/ &&
 
 # Copy Thorium sources
 cp -r -v src/. ${CR_SRC_DIR}/ &&
-cp -r -v patches/win7-8-8.1-support.patch ${CR_SRC_DIR}/ &&
+cp -r -v patches/win7-8-8.1-support_thorium.patch ${CR_SRC_DIR}/ &&
 cp -r -v patches/win7-8-8.1-support-in-boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
 cp -r -v patches/win7-8-8.1-support-in-webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
 cp -r -v thorium_shell/. ${CR_SRC_DIR}/out/thorium/ &&
