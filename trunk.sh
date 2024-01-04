@@ -116,7 +116,7 @@ tput sgr0 &&
 #printf "${c7}            Long Live Chromium\041\n${c0}\n" &&
 
 printf "\n" &&
-cat ~/thorium/logos/chromium_logo_ascii_art.txt &&
+cat ~/thorium-win7/logos/chromium_logo_ascii_art.txt &&
 printf "\n"
 
 exit 0

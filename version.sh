@@ -50,7 +50,7 @@ cd ${CR_SRC_DIR} &&
 
 git checkout -f tags/$THOR_VER &&
 
-cd ~/thorium &&
+cd ~/thorium-win7 &&
 
 # Use our artifacts hash
 cp -v src/build/vs_toolchain.py ${CR_SRC_DIR}/build/ &&
@@ -91,7 +91,7 @@ tput sgr0 &&
 python3 v8/tools/builtins-pgo/download_profiles.py --depot-tools=$HOME/depot_tools download &&
 printf "\n" &&
 
-cd ~/thorium &&
+cd ~/thorium-win7 &&
 
 printf "${GRE}Done! ${YEL}You can now run \'./setup.sh\'\n"
 tput sgr0 &&

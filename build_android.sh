@@ -51,7 +51,7 @@ export NINJA_STATUS="[%r processes, %f/%t @ %o/s | %e sec. ] " &&
 cd ${CR_SRC_DIR} &&
 autoninja -C out/thorium chrome_public_apk content_shell_apk system_webview_apk -j${cr_build_jobs} &&
 
-cat ~/thorium/logos/thorium_logo_ascii_art.txt &&
+cat ~/thorium-win7/logos/thorium_logo_ascii_art.txt &&
 
 printf "${GRE}${bold}Build Completed. ${YEL}${bold}You can copy the .apk(s) to your device or use ADB to install it.\n" &&
 printf "${GRE}${bold}They are located in \'//chromium/src/out/thorium/apks/\'\n" &&

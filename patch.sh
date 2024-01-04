@@ -37,9 +37,9 @@ else
 fi
 
 # Patch Chromium
-cp -r -v patches/win7-8-8.1-support_thorium.patch ${CR_SRC_DIR}/ &&
-cp -r -v patches/win7-8-8.1-support-in-boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
-cp -r -v patches/win7-8-8.1-support-in-webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
+cp -v patches/win7-8-8.1-support_thorium.patch ${CR_SRC_DIR}/ &&
+cp -v patches/win7-8-8.1-support-in-boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
+cp -v patches/win7-8-8.1-support-in-webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
 
 cd ${CR_SRC_DIR}/ &&
 

@@ -39,7 +39,7 @@ buildShell () {
 	cd ${CR_SRC_DIR} &&
 	autoninja -C out/thorium chrome chromedriver thorium_shell -j$@ &&
 	
-	cat ~/thorium/logos/thorium_logo_ascii_art.txt &&
+	cat ~/thorium-win7/logos/thorium_logo_ascii_art.txt &&
 	
 	printf "${GRE}${bold}Build Completed. ${YEL}${bold}You can now run \'./build_dmg.sh\', and copy the Thorium Shell.app out.\n" &&
 	tput sgr0
@@ -68,7 +68,7 @@ export NINJA_STATUS="[%r processes, %f/%t @ %o/s | %e sec. ] " &&
 cd ${CR_SRC_DIR} &&
 autoninja -C out/thorium chrome chromedriver -j$@ &&
 
-cat ~/thorium/logos/thorium_logo_ascii_art.txt &&
+cat ~/thorium-win7/logos/thorium_logo_ascii_art.txt &&
 
 printf "${GRE}${bold}Build Completed. ${YEL}${bold}You can now run \'./build_dmg.sh\'\n" &&
 

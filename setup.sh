@@ -56,14 +56,11 @@ printf "${YEL}Copying Thorium source files over the Chromium tree...\n" &&
 tput sgr0 &&
 
 # Copy libjxl src
-cd ~/thorium &&
+cd ~/thorium-win7 &&
 cp -r -v thorium-libjxl/src/. ${CR_SRC_DIR}/ &&
 
 # Copy Thorium sources
 cp -r -v src/. ${CR_SRC_DIR}/ &&
-cp -v patches/win7-8-8.1-support_thorium.patch ${CR_SRC_DIR}/ &&
-cp -v patches/win7-8-8.1-support-in-boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
-cp -v patches/win7-8-8.1-support-in-webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
 cp -r -v thorium_shell/. ${CR_SRC_DIR}/out/thorium/ &&
 cp -r -v pak_src/binaries/pak ${CR_SRC_DIR}/out/thorium/ &&
 cp -r -v pak_src/binaries/pak-win/. ${CR_SRC_DIR}/out/thorium/ &&
@@ -212,46 +209,37 @@ case $1 in
 esac
 
 printf "${GRE}Done!\n" &&
+
+# Patch Chromium for NT 6.x
 printf "\n" &&
-
-printf "${YEL}Exporting variables and setting handy aliases...\n" &&
-
-. ~/thorium/aliases &&
+printf "${YEL}Patching Chromium for Windows 7/8/8.1...${c0}\n" &&
+printf "\n" &&
+cp -v patches/win7-8-8.1-support_thorium.patch ${CR_SRC_DIR}/ &&
+cp -v patches/win7-8-8.1-support-in-boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
+cp -v patches/win7-8-8.1-support-in-webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
 
 printf "\n" &&
-tput sgr0 &&
+printf "${YEL}Exporting variables and setting handy aliases...${c0}\n" &&
 
+. ~/thorium-win7/aliases &&
+
+printf "\n" &&
 printf "export ${CYA}NINJA_SUMMARIZE_BUILD=1${c0}\n" &&
-
 printf "export ${CYA}EDITOR=nano${c0}\n" &&
-
 printf "export ${CYA}VISUAL=nano${c0}\n" &&
 printf "\n" &&
-
 printf "alias ${YEL}origin${c0} = ${CYA}git checkout -f origin/main${c0}\n" &&
-
 printf "alias ${YEL}gfetch${c0} = ${CYA}git fetch --tags${c0}\n" &&
-
 printf "alias ${YEL}rebase${c0} = ${CYA}git rebase-update${c0}\n" &&
-
 printf "alias ${YEL}gsync${c0} = ${CYA}gclient sync --with_branch_heads --with_tags -f -R -D${c0}\n" &&
-
 printf "alias ${YEL}args${c0} = ${CYA}gn args out/thorium${c0}\n" &&
-
 printf "alias ${YEL}gnls${c0} = ${CYA}gn ls out/thorium${c0}\n" &&
-
 printf "alias ${YEL}show${c0} = ${CYA}git show-ref${c0}\n" &&
-
 printf "alias ${YEL}runhooks${c0} = ${CYA}gclient runhooks${c0}\n" &&
-
 printf "alias ${YEL}pgo${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=linux update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
-
 printf "alias ${YEL}pgow${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=win64 update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
-
 printf "alias ${YEL}pgom${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=mac update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
-
 printf "alias ${YEL}pgomac-arm${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=mac-arm update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
-
 printf "\n" &&
 
 cat logos/thorium_ascii_art.txt &&
