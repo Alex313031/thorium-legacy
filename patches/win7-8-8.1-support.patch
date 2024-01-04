@@ -343,47 +343,6 @@ index bb6195f590759..224a3507195c7 100644
  
  #if BUILDFLAG(HAS_64_BIT_POINTERS) && \
      (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_ANDROID))
-diff --git a/base/allocator/partition_allocator/shim/allocator_shim.cc b/base/allocator/partition_allocator/shim/allocator_shim.cc
-index fca41408d6977..d51a566970a47 100644
---- a/base/allocator/partition_allocator/shim/allocator_shim.cc
-+++ b/base/allocator/partition_allocator/shim/allocator_shim.cc
-@@ -20,7 +20,11 @@
- #if !BUILDFLAG(IS_WIN)
- #include <unistd.h>
- #else
-+#include <Windows.h>
- #include "base/allocator/partition_allocator/shim/winheap_stubs_win.h"
-+extern "C" {
-+VOID __stdcall TLSInit_DllMain_ThreadAttach(HMODULE DllBase);
-+}
- #endif
- 
- #if BUILDFLAG(IS_APPLE)
-@@ -233,8 +237,12 @@ PA_ALWAYS_INLINE void* ShimMalloc(size_t size, void* context) {
- }
- 
- PA_ALWAYS_INLINE void* ShimCalloc(size_t n, size_t size, void* context) {
-+  #if BUILDFLAG(IS_WIN)
-+	TLSInit_DllMain_ThreadAttach(::GetModuleHandleA("chrome.dll"));
-+  #endif
-   const allocator_shim::AllocatorDispatch* const chain_head = GetChainHead();
-   void* ptr;
-+
-   do {
-     ptr = chain_head->alloc_zero_initialized_function(chain_head, n, size,
-                                                       context);
-diff --git a/base/allocator/partition_allocator/shim/allocator_shim_override_ucrt_symbols_win.h b/base/allocator/partition_allocator/shim/allocator_shim_override_ucrt_symbols_win.h
-index 9b452196ef011..8ea46ba3d38cd 100644
---- a/base/allocator/partition_allocator/shim/allocator_shim_override_ucrt_symbols_win.h
-+++ b/base/allocator/partition_allocator/shim/allocator_shim_override_ucrt_symbols_win.h
-@@ -20,6 +20,7 @@
- #include "base/allocator/partition_allocator/partition_alloc_check.h"
- #include "base/allocator/partition_allocator/shim/allocator_shim_internals.h"
- 
-+
- // Even though most C++ allocation operators can be left alone since the
- // interception works at a lower level, these ones should be
- // overridden. Otherwise they redirect to malloc(), which is configured to crash
 diff --git a/base/command_line.cc b/base/command_line.cc
 index d762b168a9ccf..5bbdb4e86d69a 100644
 --- a/base/command_line.cc
@@ -885,36 +844,6 @@ index 549f4362af8b6..2d9a1633b564f 100644
  }
  
  }  // namespace
-diff --git a/base/sampling_heap_profiler/poisson_allocation_sampler.cc b/base/sampling_heap_profiler/poisson_allocation_sampler.cc
-index cd00c4b93d624..d1b46fcde7121 100644
---- a/base/sampling_heap_profiler/poisson_allocation_sampler.cc
-+++ b/base/sampling_heap_profiler/poisson_allocation_sampler.cc
-@@ -19,6 +19,14 @@
- #include "build/build_config.h"
- #include "third_party/abseil-cpp/absl/base/attributes.h"
- 
-+#if BUILDFLAG(IS_WIN)
-+#include <windows.h>
-+extern "C" {
-+VOID __stdcall TLSInit_DllMain_ThreadAttach(HMODULE DllBase);
-+}
-+
-+#endif
-+
- namespace base {
- 
- namespace {
-@@ -240,6 +248,10 @@ void PoissonAllocationSampler::DoRecordAllocation(
-     size_t size,
-     base::allocator::dispatcher::AllocationSubsystem type,
-     const char* context) {
-+
-+  #if BUILDFLAG(IS_WIN)
-+	TLSInit_DllMain_ThreadAttach(::GetModuleHandleA("chrome.dll"));
-+  #endif
-   ThreadLocalData* const thread_local_data = GetThreadLocalData();
- 
-   thread_local_data->accumulated_bytes += size;
 diff --git a/base/task/thread_pool/thread_group.cc b/base/task/thread_pool/thread_group.cc
 index 7e9dd368eb0ec..0fb94478eb47b 100644
 --- a/base/task/thread_pool/thread_group.cc
@@ -6138,58 +6067,6 @@ index 645c22bc8340b..d82ce2567048a 100644
      prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kDark;
    } else {
      prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kLight;
-diff --git a/crypto/unexportable_key_win.cc b/crypto/unexportable_key_win.cc
-index 58d1441f03061..a1935145ffc52 100644
---- a/crypto/unexportable_key_win.cc
-+++ b/crypto/unexportable_key_win.cc
-@@ -367,6 +367,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return absl::nullopt;
-+	  }
-+
-       if (FAILED(NCryptOpenStorageProvider(
-               ScopedNCryptProvider::Receiver(provider).get(),
-               MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
-@@ -386,6 +391,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return nullptr;
-+	  }
-+
-       if (FAILED(NCryptOpenStorageProvider(
-               ScopedNCryptProvider::Receiver(provider).get(),
-               MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
-@@ -612,6 +622,11 @@ class VirtualUnexportableKeyProviderWin
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return absl::nullopt;
-+	  }
-+
-       SECURITY_STATUS status = NCryptOpenStorageProvider(
-           ScopedNCryptProvider::Receiver(provider).get(),
-           MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
-@@ -634,6 +649,11 @@ class VirtualUnexportableKeyProviderWin
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return nullptr;
-+	  }
-+
-       SECURITY_STATUS status = NCryptOpenStorageProvider(
-           ScopedNCryptProvider::Receiver(provider).get(),
-           MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
 diff --git a/device/bluetooth/bluetooth_adapter_winrt.cc b/device/bluetooth/bluetooth_adapter_winrt.cc
 index a2ba812053fa5..195ec4ee6afe8 100644
 --- a/device/bluetooth/bluetooth_adapter_winrt.cc
