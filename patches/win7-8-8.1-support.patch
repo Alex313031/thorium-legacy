@@ -421,8 +421,8 @@ index b7dc8ce05d8ca..e03cfe3014b0e 100644
  
 +BASE_FEATURE(kIncognitoBrandConsistencyForDesktop,
 +			"IncognitoBrandConsistencyForDesktop",
-+			base::FEATURE_DISABLED_BY_DEFAULT);			 
-+			 
++			base::FEATURE_DISABLED_BY_DEFAULT);
++
 +#if BUILDFLAG(IS_WIN)
 +BASE_FEATURE(kForceGdi,
 +             "ForceGdi",
@@ -700,7 +700,7 @@ index 384c77134b692..383e0bf5361b5 100644
    STARTUPINFO* startup_info = startup_info_wrapper.startup_info();
    DWORD flags = 0;
 -
-+  
++  //
    // Count extended attributes before reserving space.
    DWORD attribute_count = 0;
    // Count PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY.
@@ -717,8 +717,8 @@ index 384c77134b692..383e0bf5361b5 100644
 -      return Process();
 -    }
 -    flags |= EXTENDED_STARTUPINFO_PRESENT;
-+  
-+	  
++
++
 +  if (base::win::GetVersion() >= base::win::Version::VISTA) {
 +	  // Reserve space for attributes.
 +	  if (attribute_count > 0) {
@@ -737,7 +737,7 @@ index 384c77134b692..383e0bf5361b5 100644
    // Set PROC_THREAD_ATTRIBUTE_HANDLE_LIST.
    bool inherit_handles = options.inherit_mode == LaunchOptions::Inherit::kAll;
 -  if (!options.handles_to_inherit.empty()) {
-+  if (!options.handles_to_inherit.empty() && 
++  if (!options.handles_to_inherit.empty() &&
 +	  base::win::GetVersion() < base::win::Version::VISTA) {
 +	  inherit_handles = true;
 +  }
@@ -908,7 +908,7 @@ index cd00c4b93d624..d1b46fcde7121 100644
      size_t size,
      base::allocator::dispatcher::AllocationSubsystem type,
      const char* context) {
-+		
++
 +  #if BUILDFLAG(IS_WIN)
 +	TLSInit_DllMain_ThreadAttach(::GetModuleHandleA("chrome.dll"));
 +  #endif
@@ -1257,7 +1257,7 @@ index 0c5546fb1b406..5da7d686f77f3 100644
  // linked in will also be called.
  BOOL WINAPI DllMain(PVOID h, DWORD reason, PVOID reserved) {
 +
-+  if (DLL_PROCESS_ATTACH == reason) 
++  if (DLL_PROCESS_ATTACH == reason)
 +	  TLSInit_DllMain_ProcessAttach(h); // Implicit TLS initialization code for Windows XP and below
 +                                             // Implemented in progwrp.dll.
 +  if (DLL_THREAD_ATTACH == reason)
@@ -1911,7 +1911,7 @@ index 32e2e14cdb2d9..868daa4c37e5d 100644
      {"memlog-stack-mode", flag_descriptions::kMemlogStackModeName,
       flag_descriptions::kMemlogStackModeDescription, kOsAll,
       MULTI_VALUE_TYPE(kMemlogStackModeChoices)},
-+	 
++
 +    {"incognito-brand-consistency-for-desktop",
 +     flag_descriptions::kIncognitoBrandConsistencyForDesktopName,
 +     flag_descriptions::kIncognitoBrandConsistencyForDesktopDescription,
@@ -1945,7 +1945,7 @@ index 32e2e14cdb2d9..868daa4c37e5d 100644
 +
 +	 kOsAll, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
 +	{"disable-download-upload",
-+	 flag_descriptions::kDisableDownloadUploadName, flag_descriptions::kDisableDownloadUploadDescription, 
++	 flag_descriptions::kDisableDownloadUploadName, flag_descriptions::kDisableDownloadUploadDescription,
 +	 kOsAll, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
  
  #if !BUILDFLAG(IS_CHROMEOS_ASH)
@@ -1954,7 +1954,7 @@ index 32e2e14cdb2d9..868daa4c37e5d 100644
      {"observable-api", flag_descriptions::kObservableAPIName,
       flag_descriptions::kObservableAPIDescription, kOsAll,
       FEATURE_VALUE_TYPE(blink::features::kObservableAPI)},
-+	 
++
 +    {"custom-tab-shapes",
 +     flag_descriptions::kThoriumCustomTabsName,
 +     flag_descriptions::kThoriumCustomTabsDescription,
@@ -2138,13 +2138,6 @@ index 60d6876953def..03db4e06e94b8 100644
    {
      "name": "forced-colors",
      "owners": [ "almaher@microsoft.com" ],
-@@ -8184,6 +8209,11 @@
-     // Chrome OS.
-     "expiry_milestone": -1
-   },
-   {
-     "name": "unsafely-treat-insecure-origin-as-secure",
-     "owners": [ "security-dev" ],
 diff --git a/chrome/browser/flag-never-expire-list.json b/chrome/browser/flag-never-expire-list.json
 index 5319a2eecd5d5..773fb3d2bd0af 100644
 --- a/chrome/browser/flag-never-expire-list.json
@@ -2178,13 +2171,6 @@ index 5319a2eecd5d5..773fb3d2bd0af 100644
    "fullscreen-promos-manager-skip-internal-limits",
    "fullscreen-viewport-adjustment-experiment",
    "gesture-properties-dbus-service",
-@@ -125,6 +130,7 @@
-   "ui-debug-tools",
-   "ui-disable-partial-swap",
-   "ui-slow-animations",
-   "unsafely-treat-insecure-origin-as-secure",
-   "update-menu-item-custom-summary",
-   "use-android-staging-smds",
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 index d33d6d04c130e..7cbd830715c4f 100644
 --- a/chrome/browser/flag_descriptions.cc
@@ -2204,13 +2190,13 @@ index d33d6d04c130e..7cbd830715c4f 100644
  const char kDrawImmediatelyWhenInteractiveDescription[] =
      "Causes viz to activate and draw frames immediately during a touch "
      "interaction or scroll.";
-+	
++
 +const char kIncognitoBrandConsistencyForDesktopName[] =
 +    "Enable Incognito brand consistency in desktop.";
 +const char kIncognitoBrandConsistencyForDesktopDescription[] =
 +    "When enabled, removes any theme or background customization done by the "
 +    "user on the Incognito UI.";
-+	
++
 +const char kInheritNativeThemeFromParentWidgetName[] =
 +    "Allow widgets to inherit native theme from its parent widget.";
 +const char kInheritNativeThemeFromParentWidgetDescription[] =
@@ -2238,7 +2224,7 @@ index d33d6d04c130e..7cbd830715c4f 100644
  const char kHideIncognitoMediaMetadataDescription[] =
      "When enabled, media metadata will be hidden from your OS' media player "
      "if you are in an Incognito session.";
-+	
++
 +
 +
 +
@@ -2251,8 +2237,8 @@ index d33d6d04c130e..7cbd830715c4f 100644
      "Automatically render all web contents using a dark theme.";
 +
 +const char kForceDarkModeFlagName[] = "Forced Dark Mode for UI";
-+const char kForceDarkModeFlagDescription[] = 
-+	"Enables dark mode for all UI elements (but not web contents - " 
++const char kForceDarkModeFlagDescription[] =
++	"Enables dark mode for all UI elements (but not web contents - "
 +	"enable #enable-force-dark for darkening web contents).";
 +
 +const char kForceXpThemeName[] = "Use Classic Theme";
@@ -2267,7 +2253,7 @@ index d33d6d04c130e..7cbd830715c4f 100644
  #endif  // BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
  
 +const char kThoriumCustomTabsName[] = "Thorium Custom Tab UI";
-+const char kThoriumCustomTabsDescription[] = 
++const char kThoriumCustomTabsDescription[] =
 +	"Changes the look of browser tabs to appear with a trapezoidal shape, restoring the pre M72 tabstrip appearance.";
 +
  // ============================================================================
@@ -2463,7 +2449,7 @@ index 43b03f9c3dce7..937a6d540de88 100644
 +}
 +
 +
-+// static 
++// static
 +bool ThemeHelper::UseIncognitoColor(int id,
 +                                    const CustomThemeSupplier* theme_supplier) {
 +  // Incognito is disabled for any non-ignored custom theme colors so they apply
@@ -2495,7 +2481,7 @@ index 34a4c3501ca8b..8715be77976a6 100644
  
   private:
    friend class theme_service_internal::ThemeServiceTest;
-+  
++
 +  // Whether the default incognito color/tint for |id| should be used, if
 +  // available.
 +  static bool UseIncognitoColor(int id,
@@ -2510,7 +2496,7 @@ index 34a4c3501ca8b..8715be77976a6 100644
 +      int id,
 +      bool incognito,
 +      const CustomThemeSupplier* theme_supplier);
-+	  
++
    // Returns a cross platform image for an id.
    gfx::Image GetImageNamed(int id,
                             bool incognito,
@@ -3013,7 +2999,7 @@ index 3e917d0207c85..2acb3962120f9 100644
 -      path.arcTo(content_corner_radius, content_corner_radius, 0,
 -                 SkPath::kSmall_ArcSize, SkPathDirection::kCW, tab_right,
 -                 tab_top + content_corner_radius);
-+    
++
 +    if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
 +		path.moveTo(left, extended_bottom);
 +		if (tab_left != left) {
@@ -3341,13 +3327,13 @@ index 7ccdb12bf2258..a29a3474597f6 100644
  //         that will blow up with the loader lock held.
  //         https://bugs.chromium.org/p/chromium/issues/detail?id=748949#c18
  BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID reserved) {
-+	
-+  if (DLL_PROCESS_ATTACH == reason) 
++
++  if (DLL_PROCESS_ATTACH == reason)
 +	  TLSInit_DllMain_ProcessAttach(module); // Implicit TLS initialization code for Windows XP and below
 +                                             // Implemented in progwrp.dll.
 +  if (DLL_THREAD_ATTACH == reason)
 +	  TLSInit_DllMain_ThreadAttach(module);
-+	
++
    if (reason == DLL_PROCESS_ATTACH) {
      install_static::InitializeProductDetailsForPrimaryModule();
      install_static::InitializeProcessType();
@@ -4200,8 +4186,8 @@ index afc97218f731b..fd8eddc7f2dc3 100644
      const base::FilePath& new_path) {
    base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                  base::BlockingType::MAY_BLOCK);
-+												
-+  if(base::win::GetVersion() < base::win::Version::VISTA) {	  
++
++  if(base::win::GetVersion() < base::win::Version::VISTA) {
 +	  // The parameters to SHFileOperation must be terminated with 2 NULL chars.
 +	  base::FilePath::StringType source = full_path_.value();
 +	  base::FilePath::StringType target = new_path.value();
@@ -4225,9 +4211,9 @@ index afc97218f731b..fd8eddc7f2dc3 100644
 +		interrupt_reason = MapShFileOperationCodes(result);
 +
 +	  if (interrupt_reason != DOWNLOAD_INTERRUPT_REASON_NONE)
-+		return LogInterruptReason("SHFileOperation", result, interrupt_reason);	
++		return LogInterruptReason("SHFileOperation", result, interrupt_reason);
 +
-+	  return interrupt_reason;	
++	  return interrupt_reason;
 +  }
  
    base::win::AssertComInitialized();
@@ -6160,11 +6146,11 @@ index 58d1441f03061..a1935145ffc52 100644
      ScopedNCryptProvider provider;
      {
        SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+	  
++
 +	  if(!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return absl::nullopt;
 +	  }
-+	  
++
        if (FAILED(NCryptOpenStorageProvider(
                ScopedNCryptProvider::Receiver(provider).get(),
                MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
@@ -6172,11 +6158,11 @@ index 58d1441f03061..a1935145ffc52 100644
      ScopedNCryptProvider provider;
      {
        SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+	  
++
 +	  if(!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return nullptr;
 +	  }
-+	  
++
        if (FAILED(NCryptOpenStorageProvider(
                ScopedNCryptProvider::Receiver(provider).get(),
                MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
@@ -6188,7 +6174,7 @@ index 58d1441f03061..a1935145ffc52 100644
 +	  if(!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return absl::nullopt;
 +	  }
-+	  
++
        SECURITY_STATUS status = NCryptOpenStorageProvider(
            ScopedNCryptProvider::Receiver(provider).get(),
            MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
@@ -6196,11 +6182,11 @@ index 58d1441f03061..a1935145ffc52 100644
      ScopedNCryptProvider provider;
      {
        SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+	  
++
 +	  if(!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return nullptr;
 +	  }
-+	  
++
        SECURITY_STATUS status = NCryptOpenStorageProvider(
            ScopedNCryptProvider::Receiver(provider).get(),
            MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
@@ -6699,7 +6685,7 @@ index b160875beda79..8e340c1065af6 100644
      }
 -
      effects |= input_params.effects();
-+	
++
 +    if (!CoreAudioUtil::IsSupported()) {
 +      // If WASAPI isn't supported we'll fallback to WaveOut, which will take
 +      // care of resampling and bits per sample changes.  By setting these
@@ -6745,7 +6731,7 @@ index 0a53e62efa795..f0370bf026081 100644
   private:
    // Allow unit test to modify the utilized enumeration API.
    friend class AudioManagerTest;
-+  
++
 +  // Returns a PCMWaveInAudioInputStream instance or NULL on failure.
 +  // This method converts MMDevice-style device ID to WaveIn-style device ID if
 +  // necessary.
@@ -6810,7 +6796,7 @@ index 11b1678768a10..b72c5e3a6385c 100644
 +  }
 +
 +  return std::string();
-+  
++
 +}
 +
  std::string GetDeviceSuffixWin(const std::string& controller_id) {
@@ -7786,7 +7772,7 @@ index f9f4f061aeec0..cbe8f418de703 100644
      DllInterceptionData* dll_data) {
    DCHECK(thunks);
    DCHECK(dll_data);
-+  
++
 +  DWORD base_code = 0;
 +  DWORD bytes_read = 0;
  
@@ -11138,7 +11124,7 @@ index 1efd4d1804251..7911f274cde4e 100644
  BASE_FEATURE(kBubbleMetricsApi,
               "BubbleMetricsApi",
               base::FEATURE_DISABLED_BY_DEFAULT);
-+			 
++
 +BASE_FEATURE(kThoriumCustomTabs,
 +             "ThoriumCustomTabs",
 +             base::FEATURE_ENABLED_BY_DEFAULT);
@@ -11821,10 +11807,10 @@ index 562d300d13db4..b7ee33b25ef19 100644
    } else {
      // The text will draw with the correct vertical alignment if we don't apply
      // the vertical insets.
-+	
++
 +	#if BUILDFLAG(IS_WIN)
 +    if (!gfx::win::IsDirectWriteEnabled()) {
-+	  GetRenderText()->SetVerticalAlignment(gfx::ALIGN_SPECIAL);    
++	  GetRenderText()->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
 +	}
 +	#endif
      bounds.Inset(gfx::Insets::TLBR(0, insets.left(), 0, insets.right()));
@@ -11846,7 +11832,7 @@ index 9c296ba65e0b7..fb9aba323cdba 100644
  BASE_FEATURE(kWidgetLayering,
               "WidgetLayering",
               base::FEATURE_ENABLED_BY_DEFAULT);
-+			 
++
 +// When enabled, widgets inherit the theme from their parent widget.
 +const base::Feature kInheritNativeThemeFromParentWidget{
 +    "InheritNativeThemeFromParentWidget", base::FEATURE_ENABLED_BY_DEFAULT};
