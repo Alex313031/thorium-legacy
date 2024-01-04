@@ -193,6 +193,7 @@ case $1 in
 esac
 
 # git apply --reject --ignore-space-change --recount --ignore-whitespace win7-8-8.1-support.patch
+# https://github.com/Alex313031/cr-win7/tree/c7f6d3a846d638e76e8c6dced53f0b183e70c3d4
 
 printf "${GRE}Done!\n" &&
 printf "\n" &&
