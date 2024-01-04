@@ -1166,35 +1166,6 @@ index 3a6e0c9f3774c..c4a802c85d6ed 100644
  // The following stubs are provided for when component build is enabled, in
  // order to avoid the propagation of delay-loading CoreWinRT to other modules.
  
-diff --git a/base/win/dllmain.cc b/base/win/dllmain.cc
-index 0c5546fb1b406..5da7d686f77f3 100644
---- a/base/win/dllmain.cc
-+++ b/base/win/dllmain.cc
-@@ -89,9 +89,24 @@ NOINLINE static void CrashOnProcessDetach() {
-   *static_cast<volatile int*>(nullptr) = 0x356;
- }
- 
-+extern "C" {
-+
-+VOID __stdcall TLSInit_DllMain_ProcessAttach(PVOID DllBase);
-+
-+VOID __stdcall TLSInit_DllMain_ThreadAttach(PVOID DllBase);
-+
-+}
-+
- // Make DllMain call the listed callbacks.  This way any third parties that are
- // linked in will also be called.
- BOOL WINAPI DllMain(PVOID h, DWORD reason, PVOID reserved) {
-+
-+  if (DLL_PROCESS_ATTACH == reason)
-+	  TLSInit_DllMain_ProcessAttach(h); // Implicit TLS initialization code for Windows XP and below
-+                                             // Implemented in progwrp.dll.
-+  if (DLL_THREAD_ATTACH == reason)
-+	  TLSInit_DllMain_ThreadAttach(h);
-+
-   if (DLL_PROCESS_DETACH == reason && base::win::ShouldCrashOnProcessDetach())
-     CrashOnProcessDetach();
- 
 diff --git a/base/win/hstring_reference.cc b/base/win/hstring_reference.cc
 index b254fc64310a1..6b2b1a6290990 100644
 --- a/base/win/hstring_reference.cc
@@ -1872,10 +1843,10 @@ index 32e2e14cdb2d9..868daa4c37e5d 100644
  #endif
 +
 +
-+	 kOsAll, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
++
 +	{"disable-download-upload",
 +	 flag_descriptions::kDisableDownloadUploadName, flag_descriptions::kDisableDownloadUploadDescription,
-+	 kOsAll, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
++	 kOsAll, SINGLE_VALUE_TYPE("disable-download-upload")},
  
  #if !BUILDFLAG(IS_CHROMEOS_ASH)
      {"profiles-reordering", flag_descriptions::kProfilesReorderingName,
@@ -3233,39 +3204,6 @@ index 48f413792d5aa..596d9ad041c21 100644
 +bool SystemTitlebarSupportsDarkMode();
 +
  #endif  // CHROME_BROWSER_WIN_TITLEBAR_CONFIG_H_
-diff --git a/chrome/chrome_elf/chrome_elf_main.cc b/chrome/chrome_elf/chrome_elf_main.cc
-index 7ccdb12bf2258..a29a3474597f6 100644
---- a/chrome/chrome_elf/chrome_elf_main.cc
-+++ b/chrome/chrome_elf/chrome_elf_main.cc
-@@ -49,6 +49,14 @@ bool GetUserDataDirectoryThunk(wchar_t* user_data_dir,
-   return true;
- }
- 
-+extern "C" {
-+
-+VOID __stdcall TLSInit_DllMain_ProcessAttach(HMODULE DllBase);
-+
-+VOID __stdcall TLSInit_DllMain_ThreadAttach(HMODULE DllBase);
-+
-+}
-+
- // DllMain
- // -------
- // Warning: The OS loader lock is held during DllMain.  Be careful.
-@@ -59,6 +67,13 @@ bool GetUserDataDirectoryThunk(wchar_t* user_data_dir,
- //         that will blow up with the loader lock held.
- //         https://bugs.chromium.org/p/chromium/issues/detail?id=748949#c18
- BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID reserved) {
-+
-+  if (DLL_PROCESS_ATTACH == reason)
-+	  TLSInit_DllMain_ProcessAttach(module); // Implicit TLS initialization code for Windows XP and below
-+                                             // Implemented in progwrp.dll.
-+  if (DLL_THREAD_ATTACH == reason)
-+	  TLSInit_DllMain_ThreadAttach(module);
-+
-   if (reason == DLL_PROCESS_ATTACH) {
-     install_static::InitializeProductDetailsForPrimaryModule();
-     install_static::InitializeProcessType();
 diff --git a/chrome/chrome_elf/chrome_elf_security.cc b/chrome/chrome_elf/chrome_elf_security.cc
 index ea44babfb52ea..045b3a6221712 100644
 --- a/chrome/chrome_elf/chrome_elf_security.cc
