@@ -214,9 +214,7 @@ printf "${GRE}Done!\n" &&
 printf "\n" &&
 printf "${YEL}Patching Chromium for Windows 7/8/8.1...${c0}\n" &&
 printf "\n" &&
-cp -v patches/win7-8-8.1-support_thorium.patch ${CR_SRC_DIR}/ &&
-cp -v patches/win7-8-8.1-support-in-boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
-cp -v patches/win7-8-8.1-support-in-webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
+. patch.sh &&
 
 printf "\n" &&
 printf "${YEL}Exporting variables and setting handy aliases...${c0}\n" &&
