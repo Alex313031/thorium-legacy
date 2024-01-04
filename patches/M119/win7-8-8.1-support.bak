@@ -32,7 +32,7 @@ index 2e71f04e137a9..0000000000000
 -// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 -// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 diff --git a/README.md b/README.md
-index 08f1a0445babd..f5f245da9dacb 100644
+index 08f1a0445babd..610c30a916a3c 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,21 +1,2 @@
@@ -343,47 +343,6 @@ index bb6195f590759..224a3507195c7 100644
  
  #if BUILDFLAG(HAS_64_BIT_POINTERS) && \
      (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_ANDROID))
-diff --git a/base/allocator/partition_allocator/shim/allocator_shim.cc b/base/allocator/partition_allocator/shim/allocator_shim.cc
-index fca41408d6977..d51a566970a47 100644
---- a/base/allocator/partition_allocator/shim/allocator_shim.cc
-+++ b/base/allocator/partition_allocator/shim/allocator_shim.cc
-@@ -20,7 +20,11 @@
- #if !BUILDFLAG(IS_WIN)
- #include <unistd.h>
- #else
-+#include <Windows.h>
- #include "base/allocator/partition_allocator/shim/winheap_stubs_win.h"
-+extern "C" {
-+VOID __stdcall TLSInit_DllMain_ThreadAttach(HMODULE DllBase);
-+}
- #endif
- 
- #if BUILDFLAG(IS_APPLE)
-@@ -233,8 +237,12 @@ PA_ALWAYS_INLINE void* ShimMalloc(size_t size, void* context) {
- }
- 
- PA_ALWAYS_INLINE void* ShimCalloc(size_t n, size_t size, void* context) {
-+  #if BUILDFLAG(IS_WIN)
-+	TLSInit_DllMain_ThreadAttach(::GetModuleHandleA("chrome.dll"));
-+  #endif
-   const allocator_shim::AllocatorDispatch* const chain_head = GetChainHead();
-   void* ptr;
-+
-   do {
-     ptr = chain_head->alloc_zero_initialized_function(chain_head, n, size,
-                                                       context);
-diff --git a/base/allocator/partition_allocator/shim/allocator_shim_override_ucrt_symbols_win.h b/base/allocator/partition_allocator/shim/allocator_shim_override_ucrt_symbols_win.h
-index 9b452196ef011..8ea46ba3d38cd 100644
---- a/base/allocator/partition_allocator/shim/allocator_shim_override_ucrt_symbols_win.h
-+++ b/base/allocator/partition_allocator/shim/allocator_shim_override_ucrt_symbols_win.h
-@@ -20,6 +20,7 @@
- #include "base/allocator/partition_allocator/partition_alloc_check.h"
- #include "base/allocator/partition_allocator/shim/allocator_shim_internals.h"
- 
-+
- // Even though most C++ allocation operators can be left alone since the
- // interception works at a lower level, these ones should be
- // overridden. Otherwise they redirect to malloc(), which is configured to crash
 diff --git a/base/command_line.cc b/base/command_line.cc
 index d762b168a9ccf..5bbdb4e86d69a 100644
 --- a/base/command_line.cc
@@ -407,22 +366,18 @@ index d762b168a9ccf..5bbdb4e86d69a 100644
  }
  
 diff --git a/base/features.cc b/base/features.cc
-index b7dc8ce05d8ca..e03cfe3014b0e 100644
+index b7dc8ce05d8ca..4e1e6bd2d243d 100644
 --- a/base/features.cc
 +++ b/base/features.cc
-@@ -37,7 +37,20 @@ BASE_FEATURE(kUseRustJsonParser,
+@@ -37,7 +37,15 @@ BASE_FEATURE(kUseRustJsonParser,
               FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kJsonNegativeZero, "JsonNegativeZero", FEATURE_ENABLED_BY_DEFAULT);
+-
 +
 +BASE_FEATURE(kForceDarkModeFlag,
 +             "ForceDarkModeFlag",
 +             base::FEATURE_DISABLED_BY_DEFAULT);
- 
-+BASE_FEATURE(kIncognitoBrandConsistencyForDesktop,
-+			"IncognitoBrandConsistencyForDesktop",
-+			base::FEATURE_DISABLED_BY_DEFAULT);			 
-+			 
 +#if BUILDFLAG(IS_WIN)
 +BASE_FEATURE(kForceGdi,
 +             "ForceGdi",
@@ -432,17 +387,14 @@ index b7dc8ce05d8ca..e03cfe3014b0e 100644
  // Force to enable LowEndDeviceMode partially on Android mid-range devices.
  // Such devices aren't considered low-end, but we'd like experiment with
 diff --git a/base/features.h b/base/features.h
-index 756445ec6bed3..134e418aa9af6 100644
+index 756445ec6bed3..ca9b953c9e2bc 100644
 --- a/base/features.h
 +++ b/base/features.h
-@@ -27,6 +27,13 @@ BASE_EXPORT BASE_DECLARE_FEATURE(kUseRustJsonParser);
+@@ -27,6 +27,10 @@ BASE_EXPORT BASE_DECLARE_FEATURE(kUseRustJsonParser);
  
  BASE_EXPORT BASE_DECLARE_FEATURE(kJsonNegativeZero);
  
 +BASE_EXPORT BASE_DECLARE_FEATURE(kForceDarkModeFlag);
-+
-+BASE_EXPORT BASE_DECLARE_FEATURE(kIncognitoBrandConsistencyForDesktop);
-+
 +#if BUILDFLAG(IS_WIN)
 +BASE_EXPORT BASE_DECLARE_FEATURE(kForceGdi);
 +#endif
@@ -691,60 +643,6 @@ index 4e7b6563bc229..3925a372ed509 100644
    }
  }
  
-diff --git a/base/process/launch_win.cc b/base/process/launch_win.cc
-index 384c77134b692..383e0bf5361b5 100644
---- a/base/process/launch_win.cc
-+++ b/base/process/launch_win.cc
-@@ -260,7 +260,7 @@ Process LaunchProcess(const CommandLine::StringType& cmdline,
-   win::StartupInformation startup_info_wrapper;
-   STARTUPINFO* startup_info = startup_info_wrapper.startup_info();
-   DWORD flags = 0;
--
-+  
-   // Count extended attributes before reserving space.
-   DWORD attribute_count = 0;
-   // Count PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY.
-@@ -272,15 +272,18 @@ Process LaunchProcess(const CommandLine::StringType& cmdline,
-   // Count PROC_THREAD_ATTRIBUTE_HANDLE_LIST.
-   if (!options.handles_to_inherit.empty())
-     ++attribute_count;
--
--  // Reserve space for attributes.
--  if (attribute_count > 0) {
--    if (!startup_info_wrapper.InitializeProcThreadAttributeList(
--            attribute_count)) {
--      DPLOG(ERROR);
--      return Process();
--    }
--    flags |= EXTENDED_STARTUPINFO_PRESENT;
-+  
-+	  
-+  if (base::win::GetVersion() >= base::win::Version::VISTA) {
-+	  // Reserve space for attributes.
-+	  if (attribute_count > 0) {
-+		if (!startup_info_wrapper.InitializeProcThreadAttributeList(
-+				attribute_count)) {
-+		  DPLOG(ERROR);
-+		  return Process();
-+		}
-+		flags |= EXTENDED_STARTUPINFO_PRESENT;
-+	  }
-   }
- 
-   // Set PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY.
-@@ -298,7 +301,11 @@ Process LaunchProcess(const CommandLine::StringType& cmdline,
- 
-   // Set PROC_THREAD_ATTRIBUTE_HANDLE_LIST.
-   bool inherit_handles = options.inherit_mode == LaunchOptions::Inherit::kAll;
--  if (!options.handles_to_inherit.empty()) {
-+  if (!options.handles_to_inherit.empty() && 
-+	  base::win::GetVersion() < base::win::Version::VISTA) {
-+	  inherit_handles = true;
-+  }
-+  if (!options.handles_to_inherit.empty() && base::win::GetVersion() >= base::win::Version::VISTA) {
-     DCHECK_GT(attribute_count, 0u);
-     DCHECK_EQ(options.inherit_mode, LaunchOptions::Inherit::kSpecific);
- 
 diff --git a/base/process/process_util_unittest.cc b/base/process/process_util_unittest.cc
 index 306d850f6319c..9c59833f55bf3 100644
 --- a/base/process/process_util_unittest.cc
@@ -885,36 +783,6 @@ index 549f4362af8b6..2d9a1633b564f 100644
  }
  
  }  // namespace
-diff --git a/base/sampling_heap_profiler/poisson_allocation_sampler.cc b/base/sampling_heap_profiler/poisson_allocation_sampler.cc
-index cd00c4b93d624..d1b46fcde7121 100644
---- a/base/sampling_heap_profiler/poisson_allocation_sampler.cc
-+++ b/base/sampling_heap_profiler/poisson_allocation_sampler.cc
-@@ -19,6 +19,14 @@
- #include "build/build_config.h"
- #include "third_party/abseil-cpp/absl/base/attributes.h"
- 
-+#if BUILDFLAG(IS_WIN)
-+#include <windows.h>
-+extern "C" {
-+VOID __stdcall TLSInit_DllMain_ThreadAttach(HMODULE DllBase);
-+}
-+
-+#endif
-+
- namespace base {
- 
- namespace {
-@@ -240,6 +248,10 @@ void PoissonAllocationSampler::DoRecordAllocation(
-     size_t size,
-     base::allocator::dispatcher::AllocationSubsystem type,
-     const char* context) {
-+		
-+  #if BUILDFLAG(IS_WIN)
-+	TLSInit_DllMain_ThreadAttach(::GetModuleHandleA("chrome.dll"));
-+  #endif
-   ThreadLocalData* const thread_local_data = GetThreadLocalData();
- 
-   thread_local_data->accumulated_bytes += size;
 diff --git a/base/task/thread_pool/thread_group.cc b/base/task/thread_pool/thread_group.cc
 index 7e9dd368eb0ec..0fb94478eb47b 100644
 --- a/base/task/thread_pool/thread_group.cc
@@ -1236,36 +1104,6 @@ index 3a6e0c9f3774c..c4a802c85d6ed 100644
 +
  // The following stubs are provided for when component build is enabled, in
  // order to avoid the propagation of delay-loading CoreWinRT to other modules.
- 
-diff --git a/base/win/dllmain.cc b/base/win/dllmain.cc
-index 0c5546fb1b406..5da7d686f77f3 100644
---- a/base/win/dllmain.cc
-+++ b/base/win/dllmain.cc
-@@ -89,9 +89,24 @@ NOINLINE static void CrashOnProcessDetach() {
-   *static_cast<volatile int*>(nullptr) = 0x356;
- }
- 
-+extern "C" {
-+
-+VOID __stdcall TLSInit_DllMain_ProcessAttach(PVOID DllBase);
-+
-+VOID __stdcall TLSInit_DllMain_ThreadAttach(PVOID DllBase);
-+
-+}
-+
- // Make DllMain call the listed callbacks.  This way any third parties that are
- // linked in will also be called.
- BOOL WINAPI DllMain(PVOID h, DWORD reason, PVOID reserved) {
-+
-+  if (DLL_PROCESS_ATTACH == reason) 
-+	  TLSInit_DllMain_ProcessAttach(h); // Implicit TLS initialization code for Windows XP and below
-+                                             // Implemented in progwrp.dll.
-+  if (DLL_THREAD_ATTACH == reason)
-+	  TLSInit_DllMain_ThreadAttach(h);
-+
-   if (DLL_PROCESS_DETACH == reason && base::win::ShouldCrashOnProcessDetach())
-     CrashOnProcessDetach();
- 
 diff --git a/base/win/hstring_reference.cc b/base/win/hstring_reference.cc
 index b254fc64310a1..6b2b1a6290990 100644
 --- a/base/win/hstring_reference.cc
@@ -1801,7 +1639,7 @@ index 5c54819e4b85a..8f3f64f29011a 100644
    Microsoft::WRL::ComPtr<ABI::Windows::Storage::Streams::IBuffer> buffer;
    ASSERT_HRESULT_SUCCEEDED(
 diff --git a/build/config/win/BUILD.gn b/build/config/win/BUILD.gn
-index ddcc94a2d5468..63e278ca02605 100644
+index ddcc94a2d5468..ec923348a1409 100644
 --- a/build/config/win/BUILD.gn
 +++ b/build/config/win/BUILD.gn
 @@ -43,6 +43,10 @@ declare_args() {
@@ -1850,6 +1688,15 @@ index ddcc94a2d5468..63e278ca02605 100644
    }
  
    if (!is_debug && !is_component_build) {
+@@ -243,7 +257,7 @@ config("runtime_library") {
+     "_ATL_NO_OPENGL",
+     "_WINDOWS",
+     "CERT_CHAIN_PARA_HAS_EXTRA_FIELDS",
+-    "PSAPI_VERSION=2",
++     "PSAPI_VERSION=2",
+     "WIN32",
+     "_SECURE_ATL",
+   ]
 @@ -688,3 +702,15 @@ config("lean_and_mean") {
  config("nominmax") {
    defines = [ "NOMINMAX" ]
@@ -1867,7 +1714,7 @@ index ddcc94a2d5468..63e278ca02605 100644
 +  ldflags += [ "/pdbpagesize:8192" ]
 +}
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
-index 32e2e14cdb2d9..868daa4c37e5d 100644
+index 32e2e14cdb2d9..d345159155523 100644
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
 @@ -15,6 +15,7 @@
@@ -1878,15 +1725,7 @@ index 32e2e14cdb2d9..868daa4c37e5d 100644
  #include "base/feature_list.h"
  #include "base/functional/bind.h"
  #include "base/functional/callback.h"
-@@ -4064,6 +4065,7 @@ const FeatureEntry::FeatureVariation kWebAuthnAndroidCredManVariations[] = {
-      nullptr}};
- #endif  // BUILDFLAG(IS_ANDROID)
- 
-+
- // RECORDING USER METRICS FOR FLAGS:
- // -----------------------------------------------------------------------------
- // The first line of the entry is the internal name.
-@@ -5646,6 +5648,20 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -5646,6 +5647,20 @@ const FeatureEntry kFeatureEntries[] = {
                                      kForceDarkVariations,
                                      "ForceDarkVariations")},
  #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
@@ -1907,26 +1746,7 @@ index 32e2e14cdb2d9..868daa4c37e5d 100644
  #if BUILDFLAG(IS_ANDROID)
      {"enable-accessibility-page-zoom",
       flag_descriptions::kAccessibilityPageZoomName,
-@@ -6441,6 +6457,18 @@ const FeatureEntry kFeatureEntries[] = {
-     {"memlog-stack-mode", flag_descriptions::kMemlogStackModeName,
-      flag_descriptions::kMemlogStackModeDescription, kOsAll,
-      MULTI_VALUE_TYPE(kMemlogStackModeChoices)},
-+	 
-+    {"incognito-brand-consistency-for-desktop",
-+     flag_descriptions::kIncognitoBrandConsistencyForDesktopName,
-+     flag_descriptions::kIncognitoBrandConsistencyForDesktopDescription,
-+     kOsDesktop,
-+     FEATURE_VALUE_TYPE(base::features::kIncognitoBrandConsistencyForDesktop)},
-+
-+    {"inherit-native-theme-from-parent-widget",
-+     flag_descriptions::kInheritNativeThemeFromParentWidgetName,
-+     flag_descriptions::kInheritNativeThemeFromParentWidgetDescription,
-+     kOsDesktop,
-+     FEATURE_VALUE_TYPE(views::features::kInheritNativeThemeFromParentWidget)},
- 
-     {"omnibox-max-zero-suggest-matches",
-      flag_descriptions::kOmniboxMaxZeroSuggestMatchesName,
-@@ -7271,10 +7299,6 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -7271,10 +7286,6 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kEnableWindowsGamingInputDataFetcherName,
       flag_descriptions::kEnableWindowsGamingInputDataFetcherDescription, kOsWin,
       FEATURE_VALUE_TYPE(features::kEnableWindowsGamingInputDataFetcher)},
@@ -1937,33 +1757,16 @@ index 32e2e14cdb2d9..868daa4c37e5d 100644
  #endif
  
  #if BUILDFLAG(IS_ANDROID)
-@@ -11253,6 +11277,12 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -11253,6 +11264,12 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kEnableBuiltinHlsDescription, kOsAll,
       FEATURE_VALUE_TYPE(media::kBuiltInHlsPlayer)},
  #endif
-+
-+
-+	 kOsAll, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
 +	{"disable-download-upload",
-+	 flag_descriptions::kDisableDownloadUploadName, flag_descriptions::kDisableDownloadUploadDescription, 
++	 flag_descriptions::kDisableDownloadUploadName, flag_descriptions::kDisableDownloadUploadDescription,
 +	 kOsAll, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
  
  #if !BUILDFLAG(IS_CHROMEOS_ASH)
      {"profiles-reordering", flag_descriptions::kProfilesReorderingName,
-@@ -11365,6 +11395,13 @@ const FeatureEntry kFeatureEntries[] = {
-     {"observable-api", flag_descriptions::kObservableAPIName,
-      flag_descriptions::kObservableAPIDescription, kOsAll,
-      FEATURE_VALUE_TYPE(blink::features::kObservableAPI)},
-+	 
-+    {"custom-tab-shapes",
-+     flag_descriptions::kThoriumCustomTabsName,
-+     flag_descriptions::kThoriumCustomTabsDescription,
-+     kOsAll,
-+     FEATURE_VALUE_TYPE(features::kThoriumCustomTabs)},
-+
- 
-     // NOTE: Adding a new flag requires adding a corresponding entry to enum
-     // "LoginCustomFlags" in tools/metrics/histograms/enums.xml. See "Flag
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 index 9b845c0e331c4..4f3afef7ec231 100644
 --- a/chrome/browser/chrome_content_browser_client.cc
@@ -2048,7 +1851,6 @@ index 27d85fc9bd95d..2f8a36dcfda41 100644
      model.DetermineAndSetShouldPreferOpeningInBrowser(
          target_info->target_path, target_info->is_filetype_handled_safely);
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload)) {
-+
      model.SetDangerLevel(target_info->danger_level);
 +	}
    }
@@ -2059,7 +1861,6 @@ index 27d85fc9bd95d..2f8a36dcfda41 100644
      download::DownloadItem* item,
      download::DownloadDangerType danger_type) const {
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload)) {
-+
 +	  return false;
 +  }
    // Chrome-initiated background downloads should not be blocked.
@@ -2186,7 +1987,7 @@ index 5319a2eecd5d5..773fb3d2bd0af 100644
    "update-menu-item-custom-summary",
    "use-android-staging-smds",
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
-index d33d6d04c130e..7cbd830715c4f 100644
+index d33d6d04c130e..5295d5d72ff88 100644
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
 @@ -1093,6 +1093,10 @@ const char kDesktopPWAsWebBundlesName[] = "Desktop PWAs Web Bundles";
@@ -2200,26 +2001,7 @@ index d33d6d04c130e..7cbd830715c4f 100644
  
  const char kEnableTLS13EarlyDataName[] = "TLS 1.3 Early Data";
  const char kEnableTLS13EarlyDataDescription[] =
-@@ -1747,6 +1751,18 @@ const char kDrawImmediatelyWhenInteractiveName[] =
- const char kDrawImmediatelyWhenInteractiveDescription[] =
-     "Causes viz to activate and draw frames immediately during a touch "
-     "interaction or scroll.";
-+	
-+const char kIncognitoBrandConsistencyForDesktopName[] =
-+    "Enable Incognito brand consistency in desktop.";
-+const char kIncognitoBrandConsistencyForDesktopDescription[] =
-+    "When enabled, removes any theme or background customization done by the "
-+    "user on the Incognito UI.";
-+	
-+const char kInheritNativeThemeFromParentWidgetName[] =
-+    "Allow widgets to inherit native theme from its parent widget.";
-+const char kInheritNativeThemeFromParentWidgetDescription[] =
-+    "When enabled, secondary UIs like menu, dialogs etc would be in dark mode "
-+    "when Incognito mode is open.";
- 
- const char kFillingAcrossGroupedSitesName[] =
-     "Password filling across grouped websites";
-@@ -1779,6 +1795,14 @@ const char kForceTextDirectionDescription[] =
+@@ -1779,6 +1783,14 @@ const char kForceTextDirectionDescription[] =
  const char kForceDirectionLtr[] = "Left-to-right";
  const char kForceDirectionRtl[] = "Right-to-left";
  
@@ -2234,25 +2016,21 @@ index d33d6d04c130e..7cbd830715c4f 100644
  const char kForceUiDirectionName[] = "Force UI direction";
  const char kForceUiDirectionDescription[] =
      "Explicitly force the UI to left-to-right (LTR) or right-to-left (RTL) "
-@@ -1935,6 +1959,10 @@ const char kHideIncognitoMediaMetadataName[] =
+@@ -1935,6 +1947,10 @@ const char kHideIncognitoMediaMetadataName[] =
  const char kHideIncognitoMediaMetadataDescription[] =
      "When enabled, media metadata will be hidden from your OS' media player "
      "if you are in an Incognito session.";
-+	
-+
-+
-+
  
  const char kTabAudioMutingName[] = "Tab audio muting UI control";
  const char kTabAudioMutingDescription[] =
-@@ -2802,6 +2830,16 @@ const char kVmPerBootShaderCacheDescription[] =
+@@ -2802,6 +2818,16 @@ const char kVmPerBootShaderCacheDescription[] =
  const char kAutoWebContentsDarkModeName[] = "Auto Dark Mode for Web Contents";
  const char kAutoWebContentsDarkModeDescription[] =
      "Automatically render all web contents using a dark theme.";
 +
 +const char kForceDarkModeFlagName[] = "Forced Dark Mode for UI";
-+const char kForceDarkModeFlagDescription[] = 
-+	"Enables dark mode for all UI elements (but not web contents - " 
++const char kForceDarkModeFlagDescription[] =
++	"Enables dark mode for all UI elements (but not web contents - "
 +	"enable #enable-force-dark for darkening web contents).";
 +
 +const char kForceXpThemeName[] = "Use Classic Theme";
@@ -2262,19 +2040,8 @@ index d33d6d04c130e..7cbd830715c4f 100644
  
  const char kForcedColorsName[] = "Forced Colors";
  const char kForcedColorsDescription[] =
-@@ -7749,6 +7787,10 @@ const char kEnableBoundSessionCredentialsDescription[] =
-     "prevent the usage of bound credentials outside of the user device.";
- #endif  // BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
- 
-+const char kThoriumCustomTabsName[] = "Thorium Custom Tab UI";
-+const char kThoriumCustomTabsDescription[] = 
-+	"Changes the look of browser tabs to appear with a trapezoidal shape, restoring the pre M72 tabstrip appearance.";
-+
- // ============================================================================
- // Don't just add flags to the end, put them in the right section in
- // alphabetical order just like the header file.
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
-index 89d8ca8a55114..80b3a9c62e440 100644
+index 89d8ca8a55114..4dae6401ea729 100644
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
 @@ -1591,6 +1591,18 @@ extern const char kParallelDownloadingDescription[];
@@ -2283,9 +2050,6 @@ index 89d8ca8a55114..80b3a9c62e440 100644
  
 +extern const char kDisableDownloadUploadName[];
 +extern const char kDisableDownloadUploadDescription[];
-+
-+
-+
 +
 +extern const char kForceGdiName[];
 +extern const char kForceGdiDescription[];
@@ -2309,22 +2073,6 @@ index 89d8ca8a55114..80b3a9c62e440 100644
  extern const char kForcedColorsName[];
  extern const char kForcedColorsDescription[];
  
-@@ -4487,6 +4505,15 @@ extern const char kEnableBoundSessionCredentialsName[];
- extern const char kEnableBoundSessionCredentialsDescription[];
- #endif  // BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
- 
-+extern const char kThoriumCustomTabsName[];
-+extern const char kThoriumCustomTabsDescription[];
-+
-+extern const char kIncognitoBrandConsistencyForDesktopName[];
-+extern const char kIncognitoBrandConsistencyForDesktopDescription[];
-+
-+extern const char kInheritNativeThemeFromParentWidgetName[];
-+extern const char kInheritNativeThemeFromParentWidgetDescription[];
-+
- // ============================================================================
- // Don't just add flags to the end, put them in the right section in
- // alphabetical order. See top instructions for more.
 diff --git a/chrome/browser/notifications/notification_platform_bridge_win.cc b/chrome/browser/notifications/notification_platform_bridge_win.cc
 index 8b8e8e3c6195b..8a45dcc5babcb 100644
 --- a/chrome/browser/notifications/notification_platform_bridge_win.cc
@@ -2406,114 +2154,6 @@ index 57d5a500579aa..f9eeea2a3a7bc 100644
  
  #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS)
  void RegisterProfilePrefs(PrefRegistrySimple* registry) {
-diff --git a/chrome/browser/themes/theme_helper.cc b/chrome/browser/themes/theme_helper.cc
-index 43b03f9c3dce7..937a6d540de88 100644
---- a/chrome/browser/themes/theme_helper.cc
-+++ b/chrome/browser/themes/theme_helper.cc
-@@ -5,6 +5,7 @@
- #include "chrome/browser/themes/theme_service.h"
- 
- #include "base/feature_list.h"
-+#include "base/features.h"
- #include "base/no_destructor.h"
- #include "build/build_config.h"
- #include "build/chromeos_buildflags.h"
-@@ -116,6 +117,59 @@ base::RefCountedMemory* ThemeHelper::GetRawData(
-   return data;
- }
- 
-+// For legacy reasons, the theme supplier requires the incognito variants of
-+// color IDs.  This converts from normal to incognito IDs where they exist.
-+int GetIncognitoId(int id) {
-+  switch (id) {
-+    case TP::COLOR_FRAME_ACTIVE:
-+      return TP::COLOR_FRAME_ACTIVE_INCOGNITO;
-+    case TP::COLOR_FRAME_INACTIVE:
-+      return TP::COLOR_FRAME_INACTIVE_INCOGNITO;
-+    case TP::COLOR_TAB_BACKGROUND_INACTIVE_FRAME_ACTIVE:
-+      return TP::COLOR_TAB_BACKGROUND_INACTIVE_FRAME_ACTIVE_INCOGNITO;
-+    case TP::COLOR_TAB_BACKGROUND_INACTIVE_FRAME_INACTIVE:
-+      return TP::COLOR_TAB_BACKGROUND_INACTIVE_FRAME_INACTIVE_INCOGNITO;
-+    case TP::COLOR_TAB_FOREGROUND_INACTIVE_FRAME_ACTIVE:
-+      return TP::COLOR_TAB_FOREGROUND_INACTIVE_FRAME_ACTIVE_INCOGNITO;
-+    case TP::COLOR_TAB_FOREGROUND_INACTIVE_FRAME_INACTIVE:
-+      return TP::COLOR_TAB_FOREGROUND_INACTIVE_FRAME_INACTIVE_INCOGNITO;
-+    case TP::COLOR_WINDOW_CONTROL_BUTTON_BACKGROUND_ACTIVE:
-+      return TP::COLOR_WINDOW_CONTROL_BUTTON_BACKGROUND_INCOGNITO_ACTIVE;
-+    case TP::COLOR_WINDOW_CONTROL_BUTTON_BACKGROUND_INACTIVE:
-+      return TP::COLOR_WINDOW_CONTROL_BUTTON_BACKGROUND_INCOGNITO_INACTIVE;
-+    default:
-+      return id;
-+  }
-+}
-+
-+// static
-+bool ThemeHelper::ShouldIgnoreThemeSupplier(
-+    int id,
-+    bool incognito,
-+    const CustomThemeSupplier* theme_supplier) {
-+  if (incognito && base::FeatureList::IsEnabled(
-+                       base::features::kIncognitoBrandConsistencyForDesktop)) {
-+    return true;
-+  }
-+  // The incognito NTP uses the default background color instead of any theme
-+  // background color, unless the theme also sets a custom background image.
-+  return incognito && (id == TP::COLOR_NTP_BACKGROUND) &&
-+         !HasCustomImage(IDR_THEME_NTP_BACKGROUND, theme_supplier);
-+}
-+
-+
-+// static 
-+bool ThemeHelper::UseIncognitoColor(int id,
-+                                    const CustomThemeSupplier* theme_supplier) {
-+  // Incognito is disabled for any non-ignored custom theme colors so they apply
-+  // atop a predictable state.
-+  return ShouldIgnoreThemeSupplier(id, true, theme_supplier) ||
-+         (!IsCustomTheme(theme_supplier) &&
-+          (!theme_supplier || theme_supplier->CanUseIncognitoColors()));
-+}
-+
-+
-+
- color_utils::HSL ThemeHelper::GetTint(
-     int id,
-     bool incognito,
-@@ -125,7 +179,7 @@ color_utils::HSL ThemeHelper::GetTint(
-   if (theme_supplier && theme_supplier->GetTint(id, &hsl))
-     return hsl;
- 
--  return TP::GetDefaultTint(id, incognito, UseDarkModeColors(theme_supplier));
-+  return TP::GetDefaultTint(id, incognito  && UseIncognitoColor(id, theme_supplier), UseDarkModeColors(theme_supplier));
- }
- 
- gfx::ImageSkia* ThemeHelper::GetImageSkiaNamed(
-diff --git a/chrome/browser/themes/theme_helper.h b/chrome/browser/themes/theme_helper.h
-index 34a4c3501ca8b..8715be77976a6 100644
---- a/chrome/browser/themes/theme_helper.h
-+++ b/chrome/browser/themes/theme_helper.h
-@@ -93,10 +93,22 @@ class ThemeHelper {
- 
-  private:
-   friend class theme_service_internal::ThemeServiceTest;
-+  
-+  // Whether the default incognito color/tint for |id| should be used, if
-+  // available.
-+  static bool UseIncognitoColor(int id,
-+                                const CustomThemeSupplier* theme_supplier);
- 
-   // Whether dark default colors/tints should be used, if available.
-   static bool UseDarkModeColors(const CustomThemeSupplier* theme_supplier);
- 
-+  // Whether the color from |theme_supplier| (if any) should be ignored for
-+  // the given |id| and |incognito| state.
-+  static bool ShouldIgnoreThemeSupplier(
-+      int id,
-+      bool incognito,
-+      const CustomThemeSupplier* theme_supplier);
-+	  
-   // Returns a cross platform image for an id.
-   gfx::Image GetImageNamed(int id,
-                            bool incognito,
 diff --git a/chrome/browser/themes/theme_helper_win.cc b/chrome/browser/themes/theme_helper_win.cc
 index 259668e16470f..aef2186c2dee7 100644
 --- a/chrome/browser/themes/theme_helper_win.cc
@@ -2542,30 +2182,6 @@ index 259668e16470f..aef2186c2dee7 100644
 +		// Only the "original" Chromium theme that mimicks Aero is not considered native.
 +  return (!HasCustomImage(IDR_THEME_FRAME, theme_supplier) && (base::win::GetVersion() >= base::win::Version::VISTA)) && !base::FeatureList::IsEnabled(kForceXpTheme);
  }
-diff --git a/chrome/browser/themes/theme_service.cc b/chrome/browser/themes/theme_service.cc
-index d0e1d573c1fca..2e4b7f76f3e6d 100644
---- a/chrome/browser/themes/theme_service.cc
-+++ b/chrome/browser/themes/theme_service.cc
-@@ -11,6 +11,7 @@
- 
- #include "base/command_line.h"
- #include "base/containers/fixed_flat_map.h"
-+#include "base/features.h"
- #include "base/files/file_util.h"
- #include "base/functional/bind.h"
- #include "base/location.h"
-@@ -237,7 +238,10 @@ base::RefCountedMemory* ThemeService::BrowserThemeProvider::GetRawData(
- 
- CustomThemeSupplier* ThemeService::BrowserThemeProvider::GetThemeSupplier()
-     const {
--  return incognito_ ? nullptr : delegate_->GetThemeSupplier();
-+    bool should_ignore_theme_supplier =
-+      incognito_ && base::FeatureList::IsEnabled(
-+                        base::features::kIncognitoBrandConsistencyForDesktop);
-+  return should_ignore_theme_supplier ? nullptr : delegate_->GetThemeSupplier();
- }
- 
- // ThemeService ---------------------------------------------------------------
 diff --git a/chrome/browser/ui/color/win/native_chrome_color_mixer_win.cc b/chrome/browser/ui/color/win/native_chrome_color_mixer_win.cc
 index c6da605fb1f1e..0f5a06fe24912 100644
 --- a/chrome/browser/ui/color/win/native_chrome_color_mixer_win.cc
@@ -2712,63 +2328,6 @@ index fd2bd40a10288..f984e16e57281 100644
  #if BUILDFLAG(IS_WIN)
      sandbox::policy::switches::kAllowThirdPartyModules,
  #endif
-diff --git a/chrome/browser/ui/tabs/tab_style.cc b/chrome/browser/ui/tabs/tab_style.cc
-index aa9cd30374311..140fa117e6e7c 100644
---- a/chrome/browser/ui/tabs/tab_style.cc
-+++ b/chrome/browser/ui/tabs/tab_style.cc
-@@ -118,7 +118,7 @@ int GM2TabStyle::GetMinimumInactiveWidth() const {
- }
- 
- int GM2TabStyle::GetTabOverlap() const {
--  return GetBottomCornerRadius() * 2 + GetSeparatorSize().width();
-+	return GetBottomCornerRadius() * 2 + GetSeparatorSize().width();
- }
- 
- int GM2TabStyle::GetDragHandleExtension(int height) const {
-@@ -126,8 +126,12 @@ int GM2TabStyle::GetDragHandleExtension(int height) const {
- }
- 
- gfx::Size GM2TabStyle::GetSeparatorSize() const {
--  return gfx::Size(kGM2SeparatorThickness,
-+  if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
-+	return gfx::Size(kGM2SeparatorThickness,
-                    GetLayoutConstant(TAB_SEPARATOR_HEIGHT));
-+  }
-+  else
-+	  return gfx::Size(0, 0);
- }
- 
- gfx::Insets GM2TabStyle::GetSeparatorMargins() const {
-@@ -147,12 +151,12 @@ gfx::Size GM2TabStyle::GetPreviewImageSize() const {
- }
- 
- int GM2TabStyle::GetTopCornerRadius() const {
--  return views::LayoutProvider::Get()->GetCornerRadiusMetric(
-+	return views::LayoutProvider::Get()->GetCornerRadiusMetric(
-       views::Emphasis::kHigh);
- }
- 
- int GM2TabStyle::GetBottomCornerRadius() const {
--  return views::LayoutProvider::Get()->GetCornerRadiusMetric(
-+	return views::LayoutProvider::Get()->GetCornerRadiusMetric(
-       views::Emphasis::kHigh);
- }
- 
-@@ -206,10 +210,10 @@ int ChromeRefresh2023TabStyle::GetBottomCornerRadius() const {
- 
- int ChromeRefresh2023TabStyle::GetTabOverlap() const {
-   // The overlap removes the width and the margins of the separator.
--  const float total_separator_width = GetSeparatorMargins().left() +
--                                      GetSeparatorSize().width() +
--                                      GetSeparatorMargins().right();
--  return 2 * GetBottomCornerRadius() - total_separator_width;
-+	const float total_separator_width = GetSeparatorMargins().left() +
-+										GetSeparatorSize().width() +
-+										GetSeparatorMargins().right();
-+	return 2 * GetBottomCornerRadius() - total_separator_width;
- }
- 
- gfx::Size ChromeRefresh2023TabStyle::GetSeparatorSize() const {
 diff --git a/chrome/browser/ui/test/test_browser_ui.cc b/chrome/browser/ui/test/test_browser_ui.cc
 index 2f61aef15bbf8..2b49f57680e6f 100644
 --- a/chrome/browser/ui/test/test_browser_ui.cc
@@ -2825,51 +2384,6 @@ index ac17822240248..87d4c7ca95ede 100644
    // Otherwise, we use the native frame when we're told we should by the theme
    // provider (e.g. no custom theme is active).
    return GetWidget()->GetThemeProvider()->ShouldUseNativeFrame();
-diff --git a/chrome/browser/ui/views/frame/browser_frame.cc b/chrome/browser/ui/views/frame/browser_frame.cc
-index bb4b3821bcfda..c31be5f3400b2 100644
---- a/chrome/browser/ui/views/frame/browser_frame.cc
-+++ b/chrome/browser/ui/views/frame/browser_frame.cc
-@@ -10,6 +10,7 @@
- #include "base/command_line.h"
- #include "base/containers/fixed_flat_map.h"
- #include "base/debug/leak_annotations.h"
-+#include "base/features.h"
- #include "base/functional/bind.h"
- #include "base/i18n/rtl.h"
- #include "build/build_config.h"
-@@ -347,7 +348,8 @@ const ui::ThemeProvider* BrowserFrame::GetThemeProvider() const {
- ui::ColorProviderKey::ThemeInitializerSupplier* BrowserFrame::GetCustomTheme()
-     const {
-   // Do not return any custom theme if this is an incognito browser.
--  if (IsIncognitoBrowser()) {
-+  if (IsIncognitoBrowser() && base::FeatureList::IsEnabled(
-+            base::features::kIncognitoBrandConsistencyForDesktop)) {
-     return nullptr;
-   }
- 
-@@ -563,8 +565,20 @@ void BrowserFrame::SelectNativeTheme() {
-   // of system theme (gtk, qt etc).
-   ui::NativeTheme* native_theme = ui::NativeTheme::GetInstanceForNativeUi();
-   if (IsIncognitoBrowser()) {
--    SetNativeTheme(native_theme);
--    return;
-+    // If the flag is enabled, then no matter if we are using the default theme
-+    // or not we always use the dark ui instance.
-+      if (base::FeatureList::IsEnabled(
-+            base::features::kIncognitoBrandConsistencyForDesktop)) {
-+      SetNativeTheme(ui::NativeTheme::GetInstanceForDarkUI());
-+      return;
-+    }
-+
-+    // Flag is disabled, fallback to using dark theme only if the incognito
-+    // profile is using a default theme.
-+      if (ThemeServiceFactory::GetForProfile(browser_view_->browser()->profile())
-+            ->UsingDefaultTheme()) {
-+        native_theme = ui::NativeTheme::GetInstanceForDarkUI();
-+	}
-   }
- 
-   // Ignore the system theme for web apps with window-controls-overlay as the
 diff --git a/chrome/browser/ui/views/frame/browser_frame_view_win.cc b/chrome/browser/ui/views/frame/browser_frame_view_win.cc
 index 769e7e8ac3b39..8579e6a095305 100644
 --- a/chrome/browser/ui/views/frame/browser_frame_view_win.cc
@@ -2951,197 +2465,6 @@ index 1bf912250ff05..e768404fabf43 100644
    SetButtons(ui::DIALOG_BUTTON_NONE);
    SetTitle(IDS_BROWSER_SHARING_SCREENSHOT_POST_CAPTURE_TITLE);
  }
-diff --git a/chrome/browser/ui/views/tabs/tab_style_views.cc b/chrome/browser/ui/views/tabs/tab_style_views.cc
-index 3e917d0207c85..2acb3962120f9 100644
---- a/chrome/browser/ui/views/tabs/tab_style_views.cc
-+++ b/chrome/browser/ui/views/tabs/tab_style_views.cc
-@@ -322,87 +322,106 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
-     // stroke width.
- 
-     // Start with the left side of the shape.
--    path.moveTo(left, extended_bottom);
--
--    if (tab_left != left) {
--      // Draw the left edge of the extension.
--      //   ╭─────────╮
--      //   │ Content │
--      // ┏─╯         ╰─┐
--      if (tab_bottom != extended_bottom)
--        path.lineTo(left, tab_bottom);
--
--      // Draw the bottom-left corner.
--      //   ╭─────────╮
--      //   │ Content │
--      // ┌━╝         ╰─┐
--      if (extend_left_to_bottom) {
--        path.lineTo(tab_left, tab_bottom);
--      } else {
--        path.lineTo(tab_left - extension_corner_radius, tab_bottom);
--        path.arcTo(extension_corner_radius, extension_corner_radius, 0,
--                   SkPath::kSmall_ArcSize, SkPathDirection::kCCW, tab_left,
--                   tab_bottom - extension_corner_radius);
--      }
--    }
--
--    // Draw the ascender and top-left curve, if present.
--    if (extend_to_top) {
--      //   ┎─────────╮
--      //   ┃ Content │
--      // ┌─╯         ╰─┐
--      path.lineTo(tab_left, tab_top);
--    } else {
--      //   ╔─────────╮
--      //   ┃ Content │
--      // ┌─╯         ╰─┐
--      path.lineTo(tab_left, tab_top + content_corner_radius);
--      path.arcTo(content_corner_radius, content_corner_radius, 0,
--                 SkPath::kSmall_ArcSize, SkPathDirection::kCW,
--                 tab_left + content_corner_radius, tab_top);
--    }
--
--    // Draw the top crossbar and top-right curve, if present.
--    if (extend_to_top) {
--      //   ┌━━━━━━━━━┑
--      //   │ Content │
--      // ┌─╯         ╰─┐
--      path.lineTo(tab_right, tab_top);
--    } else {
--      //   ╭━━━━━━━━━╗
--      //   │ Content │
--      // ┌─╯         ╰─┐
--      path.lineTo(tab_right - content_corner_radius, tab_top);
--      path.arcTo(content_corner_radius, content_corner_radius, 0,
--                 SkPath::kSmall_ArcSize, SkPathDirection::kCW, tab_right,
--                 tab_top + content_corner_radius);
-+    
-+    if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
-+		path.moveTo(left, extended_bottom);
-+		if (tab_left != left) {
-+		  // Draw the left edge of the extension.
-+		  //   ╭─────────╮
-+		  //   │ Content │
-+		  // ┏─╯         ╰─┐
-+		  if (tab_bottom != extended_bottom)
-+			path.lineTo(left, tab_bottom);
-+
-+		  // Draw the bottom-left corner.
-+		  //   ╭─────────╮
-+		  //   │ Content │
-+		  // ┌━╝         ╰─┐
-+		  if (extend_left_to_bottom) {
-+			path.lineTo(tab_left, tab_bottom);
-+		  } else {
-+			path.lineTo(tab_left - extension_corner_radius, tab_bottom);
-+			path.arcTo(extension_corner_radius, extension_corner_radius, 0,
-+					   SkPath::kSmall_ArcSize, SkPathDirection::kCCW, tab_left,
-+					   tab_bottom - extension_corner_radius);
-+		  }
-+		}
-+
-+		// Draw the ascender and top-left curve, if present.
-+		if (extend_to_top) {
-+		  //   ┎─────────╮
-+		  //   ┃ Content │
-+		  // ┌─╯         ╰─┐
-+		  path.lineTo(tab_left, tab_top);
-+		} else {
-+		  //   ╔─────────╮
-+		  //   ┃ Content │
-+		  // ┌─╯         ╰─┐
-+		  path.lineTo(tab_left, tab_top + content_corner_radius);
-+		  path.arcTo(content_corner_radius, content_corner_radius, 0,
-+					 SkPath::kSmall_ArcSize, SkPathDirection::kCW,
-+					 tab_left + content_corner_radius, tab_top);
-+		}
-+
-+		// Draw the top crossbar and top-right curve, if present.
-+		if (extend_to_top) {
-+		  //   ┌━━━━━━━━━┑
-+		  //   │ Content │
-+		  // ┌─╯         ╰─┐
-+		  path.lineTo(tab_right, tab_top);
-+		} else {
-+		  //   ╭━━━━━━━━━╗
-+		  //   │ Content │
-+		  // ┌─╯         ╰─┐
-+		  path.lineTo(tab_right - content_corner_radius, tab_top);
-+		  path.arcTo(content_corner_radius, content_corner_radius, 0,
-+					 SkPath::kSmall_ArcSize, SkPathDirection::kCW, tab_right,
-+					 tab_top + content_corner_radius);
-+		}
-+
-+		if (tab_right != right) {
-+		  // Draw the descender and bottom-right corner.
-+		  //   ╭─────────╮
-+		  //   │ Content ┃
-+		  // ┌─╯         ╚━┐
-+		  if (extend_right_to_bottom) {
-+			path.lineTo(tab_right, tab_bottom);
-+		  } else {
-+			path.lineTo(tab_right, tab_bottom - extension_corner_radius);
-+			path.arcTo(extension_corner_radius, extension_corner_radius, 0,
-+					   SkPath::kSmall_ArcSize, SkPathDirection::kCCW,
-+					   tab_right + extension_corner_radius, tab_bottom);
-+		  }
-+		  if (tab_bottom != extended_bottom)
-+			path.lineTo(right, tab_bottom);
-+		}
-+
-+		// Draw anything remaining: the descender, the bottom right horizontal
-+		// stroke, or the right edge of the extension, depending on which
-+		// conditions fired above.
-+		//   ╭─────────╮
-+		//   │ Content │
-+		// ┌─╯         ╰─┓
-+		path.lineTo(right, extended_bottom);
-     }
--
--    if (tab_right != right) {
--      // Draw the descender and bottom-right corner.
--      //   ╭─────────╮
--      //   │ Content ┃
--      // ┌─╯         ╚━┐
--      if (extend_right_to_bottom) {
--        path.lineTo(tab_right, tab_bottom);
--      } else {
--        path.lineTo(tab_right, tab_bottom - extension_corner_radius);
--        path.arcTo(extension_corner_radius, extension_corner_radius, 0,
--                   SkPath::kSmall_ArcSize, SkPathDirection::kCCW,
--                   tab_right + extension_corner_radius, tab_bottom);
--      }
--      if (tab_bottom != extended_bottom)
--        path.lineTo(right, tab_bottom);
--    }
--
--    // Draw anything remaining: the descender, the bottom right horizontal
--    // stroke, or the right edge of the extension, depending on which
--    // conditions fired above.
--    //   ╭─────────╮
--    //   │ Content │
--    // ┌─╯         ╰─┓
--    path.lineTo(right, extended_bottom);
--
-+	else {
-+		path.moveTo(left, extended_bottom);
-+		if (extend_to_top) {
-+		  // Create the vertical extension by extending the side diagonals until
-+		  // they reach the top of the bounds.
-+			path.cubicTo(left, extended_bottom, (((tab_left + 10) + left) / 2), ((tab_top + extended_bottom) / 2), tab_left + 10,
-+						  tab_top);
-+			path.lineTo(tab_right - 10, tab_top);
-+			path.cubicTo(tab_right - 10, tab_top, (((tab_right - 10) + right) / 2), ((tab_top + extended_bottom) / 2), right,
-+					  extended_bottom);
-+		} else {
-+			path.cubicTo(left, extended_bottom, (((tab_left + 10) + left) / 2), (((tab_top * 0.5) + extended_bottom) / 2), tab_left + 10,
-+						(tab_top * 0.5));
-+			path.cubicTo(tab_left + 10, (tab_top * 0.5), ((tab_left + 10) + (tab_right - 10) /2), tab_top * 0.5, tab_right - 10, tab_top * 0.5);
-+			path.cubicTo(tab_right - 10, (tab_top * 0.5), (((tab_right - 10) + right) / 2), (((tab_top * 0.5) + extended_bottom) / 2), right,
-+					  extended_bottom);
-+		}
-+	}
-     if (path_type != TabStyle::PathType::kBorder) {
-       path.close();
-     }
 diff --git a/chrome/browser/webshare/win/fake_storage_file_statics.cc b/chrome/browser/webshare/win/fake_storage_file_statics.cc
 index 6308ccec3a576..f17033b2d1ec7 100644
 --- a/chrome/browser/webshare/win/fake_storage_file_statics.cc
@@ -3318,39 +2641,6 @@ index 48f413792d5aa..596d9ad041c21 100644
 +bool SystemTitlebarSupportsDarkMode();
 +
  #endif  // CHROME_BROWSER_WIN_TITLEBAR_CONFIG_H_
-diff --git a/chrome/chrome_elf/chrome_elf_main.cc b/chrome/chrome_elf/chrome_elf_main.cc
-index 7ccdb12bf2258..a29a3474597f6 100644
---- a/chrome/chrome_elf/chrome_elf_main.cc
-+++ b/chrome/chrome_elf/chrome_elf_main.cc
-@@ -49,6 +49,14 @@ bool GetUserDataDirectoryThunk(wchar_t* user_data_dir,
-   return true;
- }
- 
-+extern "C" {
-+
-+VOID __stdcall TLSInit_DllMain_ProcessAttach(HMODULE DllBase);
-+
-+VOID __stdcall TLSInit_DllMain_ThreadAttach(HMODULE DllBase);
-+
-+}
-+
- // DllMain
- // -------
- // Warning: The OS loader lock is held during DllMain.  Be careful.
-@@ -59,6 +67,13 @@ bool GetUserDataDirectoryThunk(wchar_t* user_data_dir,
- //         that will blow up with the loader lock held.
- //         https://bugs.chromium.org/p/chromium/issues/detail?id=748949#c18
- BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID reserved) {
-+	
-+  if (DLL_PROCESS_ATTACH == reason) 
-+	  TLSInit_DllMain_ProcessAttach(module); // Implicit TLS initialization code for Windows XP and below
-+                                             // Implemented in progwrp.dll.
-+  if (DLL_THREAD_ATTACH == reason)
-+	  TLSInit_DllMain_ThreadAttach(module);
-+	
-   if (reason == DLL_PROCESS_ATTACH) {
-     install_static::InitializeProductDetailsForPrimaryModule();
-     install_static::InitializeProcessType();
 diff --git a/chrome/chrome_elf/chrome_elf_security.cc b/chrome/chrome_elf/chrome_elf_security.cc
 index ea44babfb52ea..045b3a6221712 100644
 --- a/chrome/chrome_elf/chrome_elf_security.cc
@@ -3552,8 +2842,6 @@ index 203854c109335..c287212aa9e7a 100644
  
 +const char kDisableDownloadUpload[] = "disable-download-upload";
 +
-+
-+
  #if BUILDFLAG(IS_WIN)
 +// Disables custom-drawing the window titlebar on Windows 10.
 +const char kDisableWindows10CustomTitlebar[] =
@@ -3571,7 +2859,6 @@ index 3939a1c43cff2..d2db193cad1a6 100644
  #endif  // BUILDFLAG(IS_MAC)
  
 +extern const char kDisableDownloadUpload[];
-+
 +
  #if BUILDFLAG(IS_WIN)
 +extern const char kDisableWindows10CustomTitlebar[];
@@ -3959,279 +3246,6 @@ index 649d8af0f3cb0..7d1945fb57275 100644
      return ProcessExitResult(UNSUPPORTED_WINDOWS_VERSION);
    }
  
-diff --git a/components/crash/core/app/crashpad.cc b/components/crash/core/app/crashpad.cc
-index 9ea9021f16006..bc737d6b77bde 100644
---- a/components/crash/core/app/crashpad.cc
-+++ b/components/crash/core/app/crashpad.cc
-@@ -249,7 +249,6 @@ void SetUploadConsent(bool consent) {
-     // if consent is present.
-     enable_uploads = consent && !crash_reporter_client->IsRunningUnattended();
-   }
--
-   crashpad::Settings* settings = g_database->GetSettings();
-   settings->SetUploadsEnabled(enable_uploads &&
-                               crash_reporter_client->GetCollectStatsInSample());
-diff --git a/components/download/internal/common/base_file_win.cc b/components/download/internal/common/base_file_win.cc
-index afc97218f731b..fd8eddc7f2dc3 100644
---- a/components/download/internal/common/base_file_win.cc
-+++ b/components/download/internal/common/base_file_win.cc
-@@ -14,6 +14,7 @@
- 
- #include "base/threading/scoped_blocking_call.h"
- #include "base/win/com_init_util.h"
-+#include "base/win/windows_version.h"
- #include "components/download/public/common/download_interrupt_reasons_utils.h"
- #include "components/download/public/common/download_stats.h"
- 
-@@ -143,6 +144,212 @@ DownloadInterruptReason HRESULTToDownloadInterruptReason(HRESULT hr) {
-   return DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
- }
- 
-+// Maps the result of a call to |SHFileOperation()| onto a
-+// |DownloadInterruptReason|.
-+//
-+// These return codes are *old* (as in, DOS era), and specific to
-+// |SHFileOperation()|.
-+// They do not appear in any windows header.
-+//
-+// See http://msdn.microsoft.com/en-us/library/bb762164(VS.85).aspx.
-+DownloadInterruptReason MapShFileOperationCodes(int code) {
-+  DownloadInterruptReason result = DOWNLOAD_INTERRUPT_REASON_NONE;
-+
-+  // Check these pre-Win32 error codes first, then check for matches
-+  // in Winerror.h.
-+  // This switch statement should be kept in sync with the list of codes
-+  // above.
-+  switch (code) {
-+    // Not a pre-Win32 error code; here so that this particular case shows up in
-+    // our histograms. Unfortunately, it is used not just to signal actual
-+    // ACCESS_DENIED errors, but many other errors as well. So we treat it as a
-+    // transient error.
-+    case ERROR_ACCESS_DENIED:  // Access is denied.
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_TRANSIENT_ERROR;
-+      break;
-+
-+    // This isn't documented but returned from SHFileOperation. Sharing
-+    // violations indicate that another process had the file open while we were
-+    // trying to rename. Anti-virus is believed to be the cause of this error in
-+    // the wild. Treated as a transient error on the assumption that the file
-+    // will be made available for renaming at a later time.
-+    case ERROR_SHARING_VIOLATION:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_TRANSIENT_ERROR;
-+      break;
-+
-+    // This is also not a documented return value of SHFileOperation, but has
-+    // been observed in the wild. We are treating it as a transient error based
-+    // on the cases we have seen so far.  See http://crbug.com/368455.
-+    case ERROR_INVALID_PARAMETER:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_TRANSIENT_ERROR;
-+      break;
-+
-+    // The source and destination files are the same file.
-+    // DE_SAMEFILE == 0x71
-+    case 0x71:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // The operation was canceled by the user, or silently canceled if the
-+    // appropriate flags were supplied to SHFileOperation.
-+    // DE_OPCANCELLED == 0x75
-+    case 0x75:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // Security settings denied access to the source.
-+    // DE_ACCESSDENIEDSRC == 0x78
-+    case 0x78:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_ACCESS_DENIED;
-+      break;
-+
-+    // The source or destination path exceeded or would exceed MAX_PATH.
-+    // DE_PATHTOODEEP == 0x79
-+    case 0x79:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_NAME_TOO_LONG;
-+      break;
-+
-+    // The path in the source or destination or both was invalid.
-+    // DE_INVALIDFILES == 0x7C
-+    case 0x7C:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // The destination path is an existing file.
-+    // DE_FLDDESTISFILE == 0x7E
-+    case 0x7E:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // The destination path is an existing folder.
-+    // DE_FILEDESTISFLD == 0x80
-+    case 0x80:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // The name of the file exceeds MAX_PATH.
-+    // DE_FILENAMETOOLONG == 0x81
-+    case 0x81:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_NAME_TOO_LONG;
-+      break;
-+
-+    // The destination is a read-only CD-ROM, possibly unformatted.
-+    // DE_DEST_IS_CDROM == 0x82
-+    case 0x82:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_ACCESS_DENIED;
-+      break;
-+
-+    // The destination is a read-only DVD, possibly unformatted.
-+    // DE_DEST_IS_DVD == 0x83
-+    case 0x83:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_ACCESS_DENIED;
-+      break;
-+
-+    // The destination is a writable CD-ROM, possibly unformatted.
-+    // DE_DEST_IS_CDRECORD == 0x84
-+    case 0x84:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_ACCESS_DENIED;
-+      break;
-+
-+    // The file involved in the operation is too large for the destination
-+    // media or file system.
-+    // DE_FILE_TOO_LARGE == 0x85
-+    case 0x85:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_TOO_LARGE;
-+      break;
-+
-+    // The source is a read-only CD-ROM, possibly unformatted.
-+    // DE_SRC_IS_CDROM == 0x86
-+    case 0x86:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_ACCESS_DENIED;
-+      break;
-+
-+    // The source is a read-only DVD, possibly unformatted.
-+    // DE_SRC_IS_DVD == 0x87
-+    case 0x87:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_ACCESS_DENIED;
-+      break;
-+
-+    // The source is a writable CD-ROM, possibly unformatted.
-+    // DE_SRC_IS_CDRECORD == 0x88
-+    case 0x88:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_ACCESS_DENIED;
-+      break;
-+
-+    // MAX_PATH was exceeded during the operation.
-+    // DE_ERROR_MAX == 0xB7
-+    case 0xB7:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_NAME_TOO_LONG;
-+      break;
-+
-+    // An unspecified error occurred on the destination.
-+    // XE_ERRORONDEST == 0x10000
-+    case 0x10000:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // Multiple file paths were specified in the source buffer, but only one
-+    // destination file path.
-+    // DE_MANYSRC1DEST == 0x72
-+    case 0x72:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // Rename operation was specified but the destination path is
-+    // a different directory. Use the move operation instead.
-+    // DE_DIFFDIR == 0x73
-+    case 0x73:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // The source is a root directory, which cannot be moved or renamed.
-+    // DE_ROOTDIR == 0x74
-+    case 0x74:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // The destination is a subtree of the source.
-+    // DE_DESTSUBTREE == 0x76
-+    case 0x76:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // The operation involved multiple destination paths,
-+    // which can fail in the case of a move operation.
-+    // DE_MANYDEST == 0x7A
-+    case 0x7A:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // The source and destination have the same parent folder.
-+    // DE_DESTSAMETREE == 0x7D
-+    case 0x7D:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // An unknown error occurred.  This is typically due to an invalid path in
-+    // the source or destination.  This error does not occur on Windows Vista
-+    // and later.
-+    // DE_UNKNOWN_ERROR == 0x402
-+    case 0x402:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+
-+    // Destination is a root directory and cannot be renamed.
-+    // DE_ROOTDIR | ERRORONDEST == 0x10074
-+    case 0x10074:
-+      result = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+      break;
-+  }
-+
-+  if (result != DOWNLOAD_INTERRUPT_REASON_NONE)
-+    return result;
-+
-+  // If not one of the above codes, it should be a standard Windows error code.
-+  return ConvertFileErrorToInterruptReason(
-+      base::File::OSErrorToFileError(code));
-+}
-+
- class FileOperationProgressSink
-     : public Microsoft::WRL::RuntimeClass<
-           Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>,
-@@ -244,6 +451,35 @@ DownloadInterruptReason BaseFile::MoveFileAndAdjustPermissions(
-     const base::FilePath& new_path) {
-   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
-                                                 base::BlockingType::MAY_BLOCK);
-+												
-+  if(base::win::GetVersion() < base::win::Version::VISTA) {	  
-+	  // The parameters to SHFileOperation must be terminated with 2 NULL chars.
-+	  base::FilePath::StringType source = full_path_.value();
-+	  base::FilePath::StringType target = new_path.value();
-+
-+	  source.append(1, L'\0');
-+	  target.append(1, L'\0');
-+
-+	  SHFILEOPSTRUCT move_info = {nullptr};
-+	  move_info.wFunc = FO_MOVE;
-+	  move_info.pFrom = source.c_str();
-+	  move_info.pTo = target.c_str();
-+	  move_info.fFlags = FOF_SILENT | FOF_NOCONFIRMATION | FOF_NOERRORUI |
-+						 FOF_NOCONFIRMMKDIR | FOF_NOCOPYSECURITYATTRIBS;
-+
-+	  int result = SHFileOperation(&move_info);
-+	  DownloadInterruptReason interrupt_reason = DOWNLOAD_INTERRUPT_REASON_NONE;
-+
-+	  if (result == 0 && move_info.fAnyOperationsAborted)
-+		interrupt_reason = DOWNLOAD_INTERRUPT_REASON_FILE_FAILED;
-+	  else if (result != 0)
-+		interrupt_reason = MapShFileOperationCodes(result);
-+
-+	  if (interrupt_reason != DOWNLOAD_INTERRUPT_REASON_NONE)
-+		return LogInterruptReason("SHFileOperation", result, interrupt_reason);	
-+
-+	  return interrupt_reason;	
-+  }
- 
-   base::win::AssertComInitialized();
-   Microsoft::WRL::ComPtr<IShellItem> original_path;
 diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
 index c957a691efcac..59bcdbb763bc2 100644
 --- a/components/embedder_support/user_agent_utils.cc
@@ -6040,7 +5054,7 @@ index e7b8caa9ab118..430b6371d4f00 100644
    // malicious code if the renderer gets compromised.
 -  bool no_sandbox =
 -      command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
-+  bool no_sandbox = command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
++  bool no_sandbox =command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
 +
 +  bool use_direct_write = gfx::win::ShouldUseDirectWrite();
 +
@@ -6152,58 +5166,6 @@ index 645c22bc8340b..d82ce2567048a 100644
      prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kDark;
    } else {
      prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kLight;
-diff --git a/crypto/unexportable_key_win.cc b/crypto/unexportable_key_win.cc
-index 58d1441f03061..a1935145ffc52 100644
---- a/crypto/unexportable_key_win.cc
-+++ b/crypto/unexportable_key_win.cc
-@@ -367,6 +367,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+	  
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return absl::nullopt;
-+	  }
-+	  
-       if (FAILED(NCryptOpenStorageProvider(
-               ScopedNCryptProvider::Receiver(provider).get(),
-               MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
-@@ -386,6 +391,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+	  
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return nullptr;
-+	  }
-+	  
-       if (FAILED(NCryptOpenStorageProvider(
-               ScopedNCryptProvider::Receiver(provider).get(),
-               MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
-@@ -612,6 +622,11 @@ class VirtualUnexportableKeyProviderWin
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return absl::nullopt;
-+	  }
-+	  
-       SECURITY_STATUS status = NCryptOpenStorageProvider(
-           ScopedNCryptProvider::Receiver(provider).get(),
-           MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
-@@ -634,6 +649,11 @@ class VirtualUnexportableKeyProviderWin
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+	  
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return nullptr;
-+	  }
-+	  
-       SECURITY_STATUS status = NCryptOpenStorageProvider(
-           ScopedNCryptProvider::Receiver(provider).get(),
-           MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
 diff --git a/device/bluetooth/bluetooth_adapter_winrt.cc b/device/bluetooth/bluetooth_adapter_winrt.cc
 index a2ba812053fa5..195ec4ee6afe8 100644
 --- a/device/bluetooth/bluetooth_adapter_winrt.cc
@@ -6369,19 +5331,6 @@ index b3fc392c7b8fc..14992248d8ac6 100644
    Microsoft::WRL::ComPtr<IDXGIFactory1> dxgi_factory;
    HRESULT hr = ::CreateDXGIFactory1(IID_PPV_ARGS(&dxgi_factory));
    if (FAILED(hr))
-diff --git a/media/audio/BUILD.gn b/media/audio/BUILD.gn
-index e938775a9f4ec..4986c1071faac 100644
---- a/media/audio/BUILD.gn
-+++ b/media/audio/BUILD.gn
-@@ -238,6 +238,8 @@ source_set("audio") {
-       "win/core_audio_util_win.h",
-       "win/device_enumeration_win.cc",
-       "win/device_enumeration_win.h",
-+      "win/wavein_input_win.cc",
-+      "win/wavein_input_win.h",
-       "win/waveout_output_win.cc",
-       "win/waveout_output_win.h",
-     ]
 diff --git a/media/audio/win/audio_low_latency_input_win.cc b/media/audio/win/audio_low_latency_input_win.cc
 index cb3f192994152..ab1a511b5df45 100644
 --- a/media/audio/win/audio_low_latency_input_win.cc
@@ -6400,931 +5349,6 @@ index cb3f192994152..ab1a511b5df45 100644
      return true;
    }();
  
-diff --git a/media/audio/win/audio_manager_win.cc b/media/audio/win/audio_manager_win.cc
-index b160875beda79..8e340c1065af6 100644
---- a/media/audio/win/audio_manager_win.cc
-+++ b/media/audio/win/audio_manager_win.cc
-@@ -28,6 +28,7 @@
- #include "media/audio/win/audio_low_latency_output_win.h"
- #include "media/audio/win/core_audio_util_win.h"
- #include "media/audio/win/device_enumeration_win.h"
-+#include "media/audio/win/wavein_input_win.h"
- #include "media/audio/win/waveout_output_win.h"
- #include "media/base/audio_parameters.h"
- #include "media/base/channel_layout.h"
-@@ -61,6 +62,13 @@ constexpr int kMaxOutputStreams = 50;
- // right drivers, but graceful error handling is needed.
- constexpr int kWinMaxChannels = 8;
- 
-+// We use 3 buffers for recording audio so that if a recording callback takes
-+// some time to return we won't lose audio. More buffers while recording are
-+// ok because they don't introduce any delay in recording, unlike in playback
-+// where you first need to fill in that number of buffers before starting to
-+// play.
-+static const int kNumInputBuffers = 3;
-+
- // Buffer size to use for input and output stream when a proper size can't be
- // determined from the system
- constexpr int kFallbackBufferSize = 2048;
-@@ -157,24 +165,35 @@ void AudioManagerWin::InitializeOnAudioThread() {
-   // callback to a WeakPtr: NotifyAllOutputDeviceChangeListeners() will be
-   // posted to the audio thread instead of being run synchronously, since we use
-   // BindPostTaskToCurrentDefault().
-+  if (CoreAudioUtil::IsSupported()) {
-   output_device_listener_ = std::make_unique<AudioDeviceListenerWin>(
-       base::BindPostTaskToCurrentDefault(base::BindRepeating(
-           &AudioManagerWin::NotifyAllOutputDeviceChangeListeners,
-           weak_this_on_audio_thread_)));
-+  }
- }
- 
- void AudioManagerWin::GetAudioDeviceNamesImpl(bool input,
-                                               AudioDeviceNames* device_names) {
-   DCHECK(device_names->empty());
-   // Enumerate all active audio-endpoint capture devices.
--  if (input)
--    GetInputDeviceNamesWin(device_names);
--  else
--    GetOutputDeviceNamesWin(device_names);
--
-+  if (!CoreAudioUtil::IsSupported()) {
-+    // Utilize the Wave API for Windows 2000/XP.
-+    if (input)
-+      GetInputDeviceNamesWinXP(device_names);
-+    else
-+      GetOutputDeviceNamesWinXP(device_names);
-+  } else {
-+    // Utilize the MMDevice API (part of Core Audio) for Vista and higher.
-+    if (input)
-+      GetInputDeviceNamesWin(device_names);
-+    else
-+      GetOutputDeviceNamesWin(device_names);
-+  }
-   if (!device_names->empty()) {
--    device_names->push_front(AudioDeviceName::CreateCommunications());
--
-+	  if (CoreAudioUtil::IsSupported()) {
-+		device_names->push_front(AudioDeviceName::CreateCommunications());
-+	  }
-     // Always add default device parameters as first element.
-     device_names->push_front(AudioDeviceName::CreateDefault());
-   }
-@@ -192,18 +211,22 @@ void AudioManagerWin::GetAudioOutputDeviceNames(
- AudioParameters AudioManagerWin::GetInputStreamParameters(
-     const std::string& device_id) {
-   AudioParameters parameters;
--  HRESULT hr =
--      CoreAudioUtil::GetPreferredAudioParameters(device_id, false, &parameters);
-+  HRESULT hr = E_FAIL;
-+  if (CoreAudioUtil::IsSupported()) {
-+	hr = CoreAudioUtil::GetPreferredAudioParameters(device_id, false, &parameters);
-+  }
- 
-   if (FAILED(hr) || !parameters.IsValid()) {
-+	if (CoreAudioUtil::IsSupported()) {
-     LOG(WARNING) << "Unable to get preferred audio params for " << device_id
-                  << " 0x" << std::hex << hr;
-+	}
-     // TODO(tommi): We appear to have callers to GetInputStreamParameters that
-     // rely on getting valid audio parameters returned for an invalid or
-     // unavailable device. We should track down those code paths (it is likely
-     // that they actually don't need a real device but depend on the audio
-     // code path somehow for a configuration - e.g. tab capture).
--    parameters = AudioParameters(AudioParameters::AUDIO_PCM_LINEAR,
-+    parameters = AudioParameters(AudioParameters::AUDIO_PCM_LOW_LATENCY,
-                                  ChannelLayoutConfig::Stereo(), 48000,
-                                  kFallbackBufferSize);
-   }
-@@ -217,6 +240,11 @@ AudioParameters AudioManagerWin::GetInputStreamParameters(
- 
- std::string AudioManagerWin::GetAssociatedOutputDeviceID(
-     const std::string& input_device_id) {
-+  if (!CoreAudioUtil::IsSupported()) {
-+		    NOTIMPLEMENTED()
-+        << "GetAssociatedOutputDeviceID is not supported on this OS";
-+    return std::string();
-+  }
-   return CoreAudioUtil::GetMatchingOutputDeviceID(input_device_id);
- }
- 
-@@ -270,9 +298,14 @@ AudioOutputStream* AudioManagerWin::MakeLowLatencyOutputStream(
-     return nullptr;
- 
-   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
--          switches::kForceWaveAudio)) {
--    DLOG(WARNING) << "Forcing usage of Windows WaveXxx APIs";
--    return nullptr;
-+          switches::kForceWaveAudio) || !CoreAudioUtil::IsSupported()) {
-+		// Fall back to Windows Wave implementation on Windows XP or lower.
-+		DLOG_IF(ERROR, !device_id.empty() &&
-+						   device_id != AudioDeviceDescription::kDefaultDeviceId)
-+			<< "Opening by device id not supported by PCMWaveOutAudioOutputStream";
-+		DVLOG(1) << "Using WaveOut since WASAPI requires at least Vista.";
-+		return new PCMWaveOutAudioOutputStream(
-+			this, params, NumberOfWaveOutBuffers(), WAVE_MAPPER);
-   }
- 
-   // Pass an empty string to indicate that we want the default device
-@@ -305,7 +338,16 @@ AudioInputStream* AudioManagerWin::MakeLowLatencyInputStream(
-     const std::string& device_id,
-     const LogCallback& log_callback) {
-   // Used for both AUDIO_PCM_LOW_LATENCY and AUDIO_PCM_LINEAR.
--  return new WASAPIAudioInputStream(this, params, device_id, log_callback);
-+    AudioInputStream* stream = NULL;
-+    if (!CoreAudioUtil::IsSupported()) {
-+      // Fall back to Windows Wave implementation on Windows XP or lower.
-+      DVLOG(1) << "Using WaveIn since WASAPI requires at least Vista.";
-+      stream = CreatePCMWaveInAudioInputStream(params, device_id);
-+    } else {
-+      stream = new WASAPIAudioInputStream(this, params, device_id, log_callback);
-+    }
-+
-+  return stream;
- }
- 
- std::string AudioManagerWin::GetDefaultInputDeviceID() {
-@@ -313,6 +355,8 @@ std::string AudioManagerWin::GetDefaultInputDeviceID() {
- }
- 
- std::string AudioManagerWin::GetDefaultOutputDeviceID() {
-+  if (!CoreAudioUtil::IsSupported())
-+    return std::string();
-   return CoreAudioUtil::GetDefaultOutputDeviceID();
- }
- 
-@@ -335,78 +379,90 @@ AudioParameters AudioManagerWin::GetPreferredOutputStreamParameters(
-   int min_buffer_size = 0;
-   int max_buffer_size = 0;
- 
--  if (cmd_line->HasSwitch(switches::kEnableExclusiveAudio)) {
--    // TODO(rtoy): tune these values for best possible WebAudio
--    // performance. WebRTC works well at 48kHz and a buffer size of 480
--    // samples will be used for this case. Note that exclusive mode is
--    // experimental. This sample rate will be combined with a buffer size of
--    // 256 samples, which corresponds to an output delay of ~5.33ms.
--    sample_rate = 48000;
--    buffer_size = 256;
--    if (input_params.IsValid())
--      channel_layout_config = input_params.channel_layout_config();
--  } else {
--    AudioParameters params;
--    HRESULT hr = CoreAudioUtil::GetPreferredAudioParameters(
--        output_device_id.empty() ? GetDefaultOutputDeviceID()
--                                 : output_device_id,
--        true, &params);
--    if (FAILED(hr)) {
--      // This can happen when CoreAudio isn't supported or available
--      // (e.g. certain installations of Windows Server 2008 R2).
--      // Instead of returning the input_params, we'll return invalid
--      // AudioParameters to make sure that an attempt to create this output
--      // stream, won't succeed. This behavior is also consistent with
--      // GetInputStreamParameters.
--      DLOG(ERROR) << "GetPreferredAudioParameters failed: " << std::hex << hr;
--      return AudioParameters();
--    }
--    DVLOG(1) << params.AsHumanReadableString();
--    DCHECK(params.IsValid());
--
--    channel_layout_config = params.channel_layout_config();
--    buffer_size = params.frames_per_buffer();
--    sample_rate = params.sample_rate();
--    effects = params.effects();
--
--    AudioParameters::HardwareCapabilities hardware_capabilities =
--        params.hardware_capabilities().value_or(
--            AudioParameters::HardwareCapabilities());
--    min_buffer_size = hardware_capabilities.min_frames_per_buffer;
--    max_buffer_size = hardware_capabilities.max_frames_per_buffer;
--  }
--
--  if (input_params.IsValid()) {
--    // If the user has enabled checking supported channel layouts or we don't
--    // have a valid channel layout yet, try to use the input layout.  See bugs
--    // http://crbug.com/259165 and http://crbug.com/311906 for more details.
--    if (cmd_line->HasSwitch(switches::kTrySupportedChannelLayouts) ||
--        channel_layout_config.channel_layout() == CHANNEL_LAYOUT_UNSUPPORTED) {
--      // Check if it is possible to open up at the specified input channel
--      // layout but avoid checking if the specified layout is the same as the
--      // hardware (preferred) layout. We do this extra check to avoid the
--      // CoreAudioUtil::IsChannelLayoutSupported() overhead in most cases.
--      if (input_params.channel_layout() !=
--          channel_layout_config.channel_layout()) {
--        // TODO(henrika): Internally, IsChannelLayoutSupported does many of the
--        // operations that have already been done such as opening up a client
--        // and fetching the WAVEFORMATPCMEX format.  Ideally we should only do
--        // that once.  Then here, we can check the layout from the data we
--        // already hold.
--        if (CoreAudioUtil::IsChannelLayoutSupported(
--                output_device_id, eRender, eConsole,
--                input_params.channel_layout())) {
--          // Open up using the same channel layout as the source if it is
--          // supported by the hardware.
--          channel_layout_config = input_params.channel_layout_config();
--          DVLOG(1) << "Hardware channel layout is not used; using same layout"
--                   << " as the source instead ("
--                   << channel_layout_config.channel_layout() << ")";
--        }
--      }
-+  if (CoreAudioUtil::IsSupported()) {
-+	  if (cmd_line->HasSwitch(switches::kEnableExclusiveAudio)) {
-+		// TODO(rtoy): tune these values for best possible WebAudio
-+		// performance. WebRTC works well at 48kHz and a buffer size of 480
-+		// samples will be used for this case. Note that exclusive mode is
-+		// experimental. This sample rate will be combined with a buffer size of
-+		// 256 samples, which corresponds to an output delay of ~5.33ms.
-+		sample_rate = 48000;
-+		buffer_size = 256;
-+		if (input_params.IsValid())
-+		  channel_layout_config = input_params.channel_layout_config();
-+	  } else {
-+		AudioParameters params;
-+		HRESULT hr = CoreAudioUtil::GetPreferredAudioParameters(
-+			output_device_id.empty() ? GetDefaultOutputDeviceID()
-+									 : output_device_id,
-+			true, &params);
-+		if (FAILED(hr)) {
-+		  // This can happen when CoreAudio isn't supported or available
-+		  // (e.g. certain installations of Windows Server 2008 R2).
-+		  // Instead of returning the input_params, we'll return invalid
-+		  // AudioParameters to make sure that an attempt to create this output
-+		  // stream, won't succeed. This behavior is also consistent with
-+		  // GetInputStreamParameters.
-+		  DLOG(ERROR) << "GetPreferredAudioParameters failed: " << std::hex << hr;
-+		  return AudioParameters();
-+		}
-+		DVLOG(1) << params.AsHumanReadableString();
-+		DCHECK(params.IsValid());
-+
-+		channel_layout_config = params.channel_layout_config();
-+		buffer_size = params.frames_per_buffer();
-+		sample_rate = params.sample_rate();
-+		effects = params.effects();
-+
-+		AudioParameters::HardwareCapabilities hardware_capabilities =
-+			params.hardware_capabilities().value_or(
-+				AudioParameters::HardwareCapabilities());
-+		min_buffer_size = hardware_capabilities.min_frames_per_buffer;
-+		max_buffer_size = hardware_capabilities.max_frames_per_buffer;
-+	  }
-+
-+	  if (input_params.IsValid()) {
-+		// If the user has enabled checking supported channel layouts or we don't
-+		// have a valid channel layout yet, try to use the input layout.  See bugs
-+		// http://crbug.com/259165 and http://crbug.com/311906 for more details.
-+		if (cmd_line->HasSwitch(switches::kTrySupportedChannelLayouts) ||
-+			channel_layout_config.channel_layout() == CHANNEL_LAYOUT_UNSUPPORTED) {
-+		  // Check if it is possible to open up at the specified input channel
-+		  // layout but avoid checking if the specified layout is the same as the
-+		  // hardware (preferred) layout. We do this extra check to avoid the
-+		  // CoreAudioUtil::IsChannelLayoutSupported() overhead in most cases.
-+		  if (input_params.channel_layout() !=
-+			  channel_layout_config.channel_layout()) {
-+			// TODO(henrika): Internally, IsChannelLayoutSupported does many of the
-+			// operations that have already been done such as opening up a client
-+			// and fetching the WAVEFORMATPCMEX format.  Ideally we should only do
-+			// that once.  Then here, we can check the layout from the data we
-+			// already hold.
-+			if (CoreAudioUtil::IsChannelLayoutSupported(
-+					output_device_id, eRender, eConsole,
-+					input_params.channel_layout())) {
-+			  // Open up using the same channel layout as the source if it is
-+			  // supported by the hardware.
-+			  channel_layout_config = input_params.channel_layout_config();
-+			  DVLOG(1) << "Hardware channel layout is not used; using same layout"
-+					   << " as the source instead ("
-+					   << channel_layout_config.channel_layout() << ")";
-+			}
-+		  }
-+		}
-     }
--
-     effects |= input_params.effects();
-+	
-+    if (!CoreAudioUtil::IsSupported()) {
-+      // If WASAPI isn't supported we'll fallback to WaveOut, which will take
-+      // care of resampling and bits per sample changes.  By setting these
-+      // equal to the input values, AudioOutputResampler will skip resampling
-+      // and bit per sample differences (since the input parameters will match
-+      // the output parameters).
-+      buffer_size = input_params.frames_per_buffer();
-+      sample_rate = input_params.sample_rate();
-+	  channel_layout_config = input_params.channel_layout_config();
-+    }
- 
-     // Allow non-default buffer sizes if we have a valid min and max.
-     if (min_buffer_size > 0 && max_buffer_size > 0) {
-@@ -438,6 +494,23 @@ AudioParameters AudioManagerWin::GetPreferredOutputStreamParameters(
-   return params;
- }
- 
-+AudioInputStream* AudioManagerWin::CreatePCMWaveInAudioInputStream(
-+    const AudioParameters& params,
-+    const std::string& device_id) {
-+  std::string xp_device_id = device_id;
-+  if (device_id != AudioDeviceDescription::kDefaultDeviceId) {
-+    xp_device_id = ConvertToWinXPInputDeviceId(device_id);
-+    if (xp_device_id.empty()) {
-+      DLOG(ERROR) << "Cannot find a waveIn device which matches the device ID "
-+                  << device_id;
-+      return NULL;
-+    }
-+  }
-+
-+  return new PCMWaveInAudioInputStream(this, params, kNumInputBuffers,
-+                                       xp_device_id);
-+}
-+
- // static
- std::unique_ptr<AudioManager> CreateAudioManager(
-     std::unique_ptr<AudioThread> audio_thread,
-diff --git a/media/audio/win/audio_manager_win.h b/media/audio/win/audio_manager_win.h
-index 0a53e62efa795..f0370bf026081 100644
---- a/media/audio/win/audio_manager_win.h
-+++ b/media/audio/win/audio_manager_win.h
-@@ -73,6 +73,15 @@ class MEDIA_EXPORT AudioManagerWin : public AudioManagerBase {
-  private:
-   // Allow unit test to modify the utilized enumeration API.
-   friend class AudioManagerTest;
-+  
-+  // Returns a PCMWaveInAudioInputStream instance or NULL on failure.
-+  // This method converts MMDevice-style device ID to WaveIn-style device ID if
-+  // necessary.
-+  // (Please see device_enumeration_win.h for more info about the two kinds of
-+  // device IDs.)
-+  AudioInputStream* CreatePCMWaveInAudioInputStream(
-+      const AudioParameters& params,
-+      const std::string& device_id);
- 
-   // Helper methods for performing expensive initialization tasks on the audio
-   // thread instead of on the UI thread which AudioManager is constructed on.
-diff --git a/media/audio/win/device_enumeration_win.cc b/media/audio/win/device_enumeration_win.cc
-index 11b1678768a10..b72c5e3a6385c 100644
---- a/media/audio/win/device_enumeration_win.cc
-+++ b/media/audio/win/device_enumeration_win.cc
-@@ -165,6 +165,54 @@ bool GetOutputDeviceNamesWinXP(AudioDeviceNames* device_names) {
-                                  waveOutGetDevCapsW>(device_names);
- }
- 
-+std::string ConvertToWinXPInputDeviceId(const std::string& device_id) {
-+  UINT number_of_active_devices = waveInGetNumDevs();
-+  MMRESULT result = MMSYSERR_NOERROR;
-+
-+  UINT i = 0;
-+  for (; i < number_of_active_devices; ++i) {
-+    size_t size = 0;
-+    // Get the size (including the terminating NULL) of the endpoint ID of the
-+    // waveIn device.
-+    result = waveInMessage(reinterpret_cast<HWAVEIN>(i),
-+                           DRV_QUERYFUNCTIONINSTANCEIDSIZE,
-+                           reinterpret_cast<DWORD_PTR>(&size), NULL);
-+    if (result != MMSYSERR_NOERROR)
-+      continue;
-+
-+    ScopedCoMem<WCHAR> id;
-+    id.Reset(static_cast<WCHAR*>(CoTaskMemAlloc(size)));
-+    if (!id)
-+      continue;
-+
-+    // Get the endpoint ID string for this waveIn device.
-+    result = waveInMessage(
-+        reinterpret_cast<HWAVEIN>(i), DRV_QUERYFUNCTIONINSTANCEID,
-+        reinterpret_cast<DWORD_PTR>(static_cast<WCHAR*>(id)), size);
-+    if (result != MMSYSERR_NOERROR)
-+      continue;
-+
-+    std::string utf8_id = base::WideToUTF8(static_cast<WCHAR*>(id));
-+    // Check whether the endpoint ID string of this waveIn device matches that
-+    // of the audio endpoint device.
-+    if (device_id == utf8_id)
-+      break;
-+  }
-+
-+  // If a matching waveIn device was found, convert the unique endpoint ID
-+  // string to a standard friendly name with max 32 characters.
-+  if (i < number_of_active_devices) {
-+    WAVEINCAPS capabilities;
-+
-+    result = waveInGetDevCaps(i, &capabilities, sizeof(capabilities));
-+    if (result == MMSYSERR_NOERROR)
-+      return base::WideToUTF8(capabilities.szPname);
-+  }
-+
-+  return std::string();
-+  
-+}
-+
- std::string GetDeviceSuffixWin(const std::string& controller_id) {
-   std::string suffix;
-   if (controller_id.size() >= 21 && controller_id.substr(0, 8) == "USB\\VID_" &&
-diff --git a/media/audio/win/device_enumeration_win.h b/media/audio/win/device_enumeration_win.h
-index d6f73a8424496..0c3eed8ce4e03 100644
---- a/media/audio/win/device_enumeration_win.h
-+++ b/media/audio/win/device_enumeration_win.h
-@@ -28,8 +28,17 @@ bool GetOutputDeviceNamesWin(media::AudioDeviceNames* device_names);
- // Example record in the output list:
- // - device_name: "Microphone (Realtek High Defini".
- // - unique_id: "Microphone (Realtek High Defini" (same as friendly name).
-+bool GetInputDeviceNamesWinXP(media::AudioDeviceNames* device_names);
- bool GetOutputDeviceNamesWinXP(media::AudioDeviceNames* device_names);
- 
-+// Converts an input device ID generated by |GetInputDeviceNamesWin()| to the
-+// corresponding ID by |GetInputDeviceNamesWinXP()|. Returns an empty string on
-+// failure.
-+// Example input and output:
-+// - input ID: "{0.0.1.00000000}.{8db6020f-18e3-4f25-b6f5-7726c9122574}"
-+// - output ID: "Microphone (Realtek High Defini"
-+std::string ConvertToWinXPInputDeviceId(const std::string& device_id);
-+
- // Given a string |controller_id| with the controller ID of an audio device,
- // returns a string containing extra information about the device.
- // If the device is a USB device, the format of the returned string is
-diff --git a/media/audio/win/wavein_input_win.cc b/media/audio/win/wavein_input_win.cc
-new file mode 100644
-index 0000000000000..3c42508274554
---- /dev/null
-+++ b/media/audio/win/wavein_input_win.cc
-@@ -0,0 +1,332 @@
-+// Copyright (c) 2012 The Chromium Authors. All rights reserved.
-+// Use of this source code is governed by a BSD-style license that can be
-+// found in the LICENSE file.
-+
-+#include "media/audio/win/wavein_input_win.h"
-+
-+#include "base/logging.h"
-+#include "base/time/time.h"
-+#include "media/audio/audio_device_description.h"
-+#include "media/audio/audio_io.h"
-+#include "media/audio/win/audio_manager_win.h"
-+#include "media/audio/win/device_enumeration_win.h"
-+#include "media/base/audio_bus.h"
-+
-+namespace media {
-+
-+// Our sound buffers are allocated once and kept in a linked list using the
-+// the WAVEHDR::dwUser variable. The last buffer points to the first buffer.
-+static WAVEHDR* GetNextBuffer(WAVEHDR* current) {
-+  return reinterpret_cast<WAVEHDR*>(current->dwUser);
-+}
-+
-+constexpr SampleFormat kSampleFormat = kSampleFormatS16;
-+
-+PCMWaveInAudioInputStream::PCMWaveInAudioInputStream(
-+    AudioManagerWin* manager,
-+    const AudioParameters& params,
-+    int num_buffers,
-+    const std::string& device_id)
-+    : state_(kStateEmpty),
-+      manager_(manager),
-+      callback_(NULL),
-+      num_buffers_(num_buffers),
-+      channels_(params.channels()),
-+      device_id_(device_id),
-+      wavein_(NULL),
-+      buffer_(NULL),
-+      audio_bus_(media::AudioBus::Create(params)) {
-+  DCHECK_GT(num_buffers_, 0);
-+  format_.wFormatTag = WAVE_FORMAT_PCM;
-+  format_.nChannels = params.channels() > 2 ? 2 : params.channels();
-+  format_.nSamplesPerSec = params.sample_rate();
-+  format_.wBitsPerSample = SampleFormatToBitsPerChannel(kSampleFormat);
-+  format_.cbSize = 0;
-+  format_.nBlockAlign = (format_.nChannels * format_.wBitsPerSample) / 8;
-+  format_.nAvgBytesPerSec = format_.nBlockAlign * format_.nSamplesPerSec;
-+  buffer_size_ = params.frames_per_buffer() * format_.nBlockAlign;
-+  // If we don't have a packet size we use 100ms.
-+  if (!buffer_size_)
-+    buffer_size_ = format_.nAvgBytesPerSec / 10;
-+  // The event is auto-reset.
-+  stopped_event_.Set(::CreateEventW(NULL, FALSE, FALSE, NULL));
-+}
-+
-+PCMWaveInAudioInputStream::~PCMWaveInAudioInputStream() {
-+  DCHECK(NULL == wavein_);
-+}
-+
-+AudioInputStream::OpenOutcome PCMWaveInAudioInputStream::Open() {
-+  DCHECK(thread_checker_.CalledOnValidThread());
-+  if (state_ != kStateEmpty)
-+    return AudioInputStream::OpenOutcome::kFailed;
-+  if (num_buffers_ < 2 || num_buffers_ > 10)
-+    return AudioInputStream::OpenOutcome::kFailed;
-+
-+  // Convert the stored device id string into an unsigned integer
-+  // corresponding to the selected device.
-+  UINT device_id = WAVE_MAPPER;
-+  if (!GetDeviceId(&device_id)) {
-+    return AudioInputStream::OpenOutcome::kFailed;
-+  }
-+
-+  // Open the specified input device for recording.
-+  MMRESULT result = MMSYSERR_NOERROR;
-+  result = ::waveInOpen(&wavein_, device_id, &format_,
-+                        reinterpret_cast<DWORD_PTR>(WaveCallback),
-+                        reinterpret_cast<DWORD_PTR>(this),
-+                        CALLBACK_FUNCTION);
-+  if (result != MMSYSERR_NOERROR)
-+    return AudioInputStream::OpenOutcome::kFailed;
-+
-+  SetupBuffers();
-+  state_ = kStateReady;
-+  return AudioInputStream::OpenOutcome::kSuccess;
-+}
-+
-+void PCMWaveInAudioInputStream::SetupBuffers() {
-+  WAVEHDR* last = NULL;
-+  WAVEHDR* first = NULL;
-+  for (int ix = 0; ix != num_buffers_; ++ix) {
-+    uint32_t sz = sizeof(WAVEHDR) + buffer_size_;
-+    buffer_ =  reinterpret_cast<WAVEHDR*>(new char[sz]);
-+    buffer_->lpData = reinterpret_cast<char*>(buffer_) + sizeof(WAVEHDR);
-+    buffer_->dwBufferLength = buffer_size_;
-+    buffer_->dwBytesRecorded = 0;
-+    buffer_->dwUser = reinterpret_cast<DWORD_PTR>(last);
-+    buffer_->dwFlags = WHDR_DONE;
-+    buffer_->dwLoops = 0;
-+    if (ix == 0)
-+      first = buffer_;
-+    last = buffer_;
-+    ::waveInPrepareHeader(wavein_, buffer_, sizeof(WAVEHDR));
-+  }
-+  // Fix the first buffer to point to the last one.
-+  first->dwUser = reinterpret_cast<DWORD_PTR>(last);
-+}
-+
-+void PCMWaveInAudioInputStream::FreeBuffers() {
-+  WAVEHDR* current = buffer_;
-+  for (int ix = 0; ix != num_buffers_; ++ix) {
-+    WAVEHDR* next = GetNextBuffer(current);
-+    if (current->dwFlags & WHDR_PREPARED)
-+      ::waveInUnprepareHeader(wavein_, current, sizeof(WAVEHDR));
-+    delete[] reinterpret_cast<char*>(current);
-+    current = next;
-+  }
-+  buffer_ = NULL;
-+}
-+
-+void PCMWaveInAudioInputStream::Start(AudioInputCallback* callback) {
-+  DCHECK(thread_checker_.CalledOnValidThread());
-+  if (state_ != kStateReady)
-+    return;
-+
-+  DCHECK(!callback_);
-+  callback_ = callback;
-+  state_ = kStateRecording;
-+
-+  WAVEHDR* buffer = buffer_;
-+  for (int ix = 0; ix != num_buffers_; ++ix) {
-+    QueueNextPacket(buffer);
-+    buffer = GetNextBuffer(buffer);
-+  }
-+  buffer = buffer_;
-+
-+  MMRESULT result = ::waveInStart(wavein_);
-+  if (result != MMSYSERR_NOERROR) {
-+    HandleError(result);
-+    state_ = kStateReady;
-+    callback_ = NULL;
-+  }
-+}
-+
-+// Stopping is tricky. First, no buffer should be locked by the audio driver
-+// or else the waveInReset() will deadlock and secondly, the callback should
-+// not be inside the AudioInputCallback's OnData because waveInReset()
-+// forcefully kills the callback thread.
-+void PCMWaveInAudioInputStream::Stop() {
-+  DVLOG(1) << "PCMWaveInAudioInputStream::Stop()";
-+  DCHECK(thread_checker_.CalledOnValidThread());
-+  if (state_ != kStateRecording)
-+    return;
-+
-+  bool already_stopped = false;
-+  {
-+    // Tell the callback that we're stopping.
-+    // As a result, |stopped_event_| will be signaled in callback method.
-+    base::AutoLock auto_lock(lock_);
-+    already_stopped = (callback_ == NULL);
-+    callback_ = NULL;
-+  }
-+
-+  if (already_stopped)
-+    return;
-+
-+  // Wait for the callback to finish, it will signal us when ready to be reset.
-+  DWORD wait = ::WaitForSingleObject(stopped_event_.Get(), INFINITE);
-+  DCHECK_EQ(wait, WAIT_OBJECT_0);
-+
-+  // Stop input and reset the current position to zero for |wavein_|.
-+  // All pending buffers are marked as done and returned to the application.
-+  MMRESULT res = ::waveInReset(wavein_);
-+  DCHECK_EQ(res, static_cast<MMRESULT>(MMSYSERR_NOERROR));
-+
-+  state_ = kStateReady;
-+}
-+
-+void PCMWaveInAudioInputStream::Close() {
-+  DVLOG(1) << "PCMWaveInAudioInputStream::Close()";
-+  DCHECK(thread_checker_.CalledOnValidThread());
-+
-+  // We should not call Close() while recording. Catch it with DCHECK and
-+  // implement auto-stop just in case.
-+  DCHECK_NE(state_, kStateRecording);
-+  Stop();
-+
-+  if (wavein_) {
-+    FreeBuffers();
-+
-+    // waveInClose() generates a WIM_CLOSE callback.  In case Start() was never
-+    // called, force a reset to ensure close succeeds.
-+    MMRESULT res = ::waveInReset(wavein_);
-+    DCHECK_EQ(res, static_cast<MMRESULT>(MMSYSERR_NOERROR));
-+    res = ::waveInClose(wavein_);
-+    DCHECK_EQ(res, static_cast<MMRESULT>(MMSYSERR_NOERROR));
-+    state_ = kStateClosed;
-+    wavein_ = NULL;
-+  }
-+
-+  // Tell the audio manager that we have been released. This can result in
-+  // the manager destroying us in-place so this needs to be the last thing
-+  // we do on this function.
-+  manager_->ReleaseInputStream(this);
-+}
-+
-+double PCMWaveInAudioInputStream::GetMaxVolume() {
-+  // TODO(henrika): Add volume support using the Audio Mixer API.
-+  return 0.0;
-+}
-+
-+void PCMWaveInAudioInputStream::SetVolume(double volume) {
-+  // TODO(henrika): Add volume support using the Audio Mixer API.
-+}
-+
-+double PCMWaveInAudioInputStream::GetVolume() {
-+  // TODO(henrika): Add volume support using the Audio Mixer API.
-+  return 0.0;
-+}
-+
-+bool PCMWaveInAudioInputStream::SetAutomaticGainControl(bool enabled) {
-+  // TODO(henrika): Add AGC support when volume control has been added.
-+  NOTIMPLEMENTED();
-+  return false;
-+}
-+
-+bool PCMWaveInAudioInputStream::GetAutomaticGainControl() {
-+  // TODO(henrika): Add AGC support when volume control has been added.
-+  NOTIMPLEMENTED();
-+  return false;
-+}
-+
-+bool PCMWaveInAudioInputStream::IsMuted() {
-+  NOTIMPLEMENTED();
-+  return false;
-+}
-+
-+void PCMWaveInAudioInputStream::HandleError(MMRESULT error) {
-+  DLOG(WARNING) << "PCMWaveInAudio error " << error;
-+  if (callback_)
-+    callback_->OnError();
-+}
-+
-+void PCMWaveInAudioInputStream::QueueNextPacket(WAVEHDR *buffer) {
-+  MMRESULT res = ::waveInAddBuffer(wavein_, buffer, sizeof(WAVEHDR));
-+  if (res != MMSYSERR_NOERROR)
-+    HandleError(res);
-+}
-+
-+bool PCMWaveInAudioInputStream::GetDeviceId(UINT* device_index) {
-+  // Deliver the default input device id (WAVE_MAPPER) if the default
-+  // device has been selected.
-+  if (device_id_ == AudioDeviceDescription::kDefaultDeviceId) {
-+    *device_index = WAVE_MAPPER;
-+    return true;
-+  }
-+
-+  // Get list of all available and active devices.
-+  AudioDeviceNames device_names;
-+  if (!media::GetInputDeviceNamesWinXP(&device_names))
-+    return false;
-+
-+  if (device_names.empty())
-+    return false;
-+
-+  // Search the full list of devices and compare with the specified
-+  // device id which was specified in the constructor. Stop comparing
-+  // when a match is found and return the corresponding index.
-+  UINT index = 0;
-+  bool found_device = false;
-+  AudioDeviceNames::const_iterator it = device_names.begin();
-+  while (it != device_names.end()) {
-+    if (it->unique_id.compare(device_id_) == 0) {
-+      *device_index = index;
-+      found_device = true;
-+      break;
-+    }
-+    ++index;
-+    ++it;
-+  }
-+
-+  return found_device;
-+}
-+
-+// Windows calls us back in this function when some events happen. Most notably
-+// when it has an audio buffer with recorded data.
-+void PCMWaveInAudioInputStream::WaveCallback(HWAVEIN hwi, UINT msg,
-+                                             DWORD_PTR instance,
-+                                             DWORD_PTR param1, DWORD_PTR) {
-+  PCMWaveInAudioInputStream* obj =
-+      reinterpret_cast<PCMWaveInAudioInputStream*>(instance);
-+
-+  // The lock ensures that Stop() can't be called during a callback.
-+  base::AutoLock auto_lock(obj->lock_);
-+
-+  if (msg == WIM_DATA) {
-+    // The WIM_DATA message is sent when waveform-audio data is present in
-+    // the input buffer and the buffer is being returned to the application.
-+    // The message can be sent when the buffer is full or after the
-+    // waveInReset function is called.
-+    if (obj->callback_) {
-+      // TODO(henrika): the |volume| parameter is always set to zero since
-+      // there is currently no support for controlling the microphone volume
-+      // level.
-+      WAVEHDR* buffer = reinterpret_cast<WAVEHDR*>(param1);
-+      obj->audio_bus_->FromInterleaved<SignedInt16SampleTypeTraits>(
-+          reinterpret_cast<int16_t*>(buffer->lpData), obj->audio_bus_->frames());
-+      obj->callback_->OnData(obj->audio_bus_.get(), base::TimeTicks::Now(), 0.0, {});
-+
-+      // Queue the finished buffer back with the audio driver. Since we are
-+      // reusing the same buffers we can get away without calling
-+      // waveInPrepareHeader.
-+      obj->QueueNextPacket(buffer);
-+    } else {
-+      // Main thread has called Stop() and set |callback_| to NULL and is
-+      // now waiting to issue waveInReset which will kill this thread.
-+      // We should not call AudioSourceCallback code anymore.
-+      ::SetEvent(obj->stopped_event_.Get());
-+    }
-+  } else if (msg == WIM_CLOSE) {
-+    // Intentionaly no-op for now.
-+  } else if (msg == WIM_OPEN) {
-+    // Intentionaly no-op for now.
-+  }
-+}
-+
-+void PCMWaveInAudioInputStream::SetOutputDeviceForAec(
-+    const std::string& output_device_id) {
-+  // Not supported. Do nothing.
-+}
-+
-+
-+}  // namespace media
-\ No newline at end of file
-diff --git a/media/audio/win/wavein_input_win.h b/media/audio/win/wavein_input_win.h
-new file mode 100644
-index 0000000000000..8ec6aaad6725c
---- /dev/null
-+++ b/media/audio/win/wavein_input_win.h
-@@ -0,0 +1,141 @@
-+// Copyright (c) 2012 The Chromium Authors. All rights reserved.
-+// Use of this source code is governed by a BSD-style license that can be
-+// found in the LICENSE file.
-+
-+#ifndef MEDIA_AUDIO_WIN_WAVEIN_INPUT_WIN_H_
-+#define MEDIA_AUDIO_WIN_WAVEIN_INPUT_WIN_H_
-+
-+#include <windows.h>
-+#include <mmsystem.h>
-+#include <stdint.h>
-+
-+#include <memory>
-+#include <string>
-+
-+#include "base/compiler_specific.h"
-+#include "base/synchronization/lock.h"
-+#include "base/threading/thread_checker.h"
-+#include "base/win/scoped_handle.h"
-+#include "media/audio/audio_io.h"
-+#include "media/audio/audio_manager_base.h"
-+#include "media/base/audio_parameters.h"
-+
-+// Put this in the declarations for a class to be uncopyable and unassignable.
-+
-+
-+namespace media {
-+
-+class AudioBus;
-+class AudioManagerWin;
-+
-+class PCMWaveInAudioInputStream : public  AudioInputStream {
-+ public:
-+  // The ctor takes all the usual parameters, plus |manager| which is the
-+  // the audio manager who is creating this object and |device_id| which
-+  // is provided by the operating system.
-+  PCMWaveInAudioInputStream(AudioManagerWin* manager,
-+                            const AudioParameters& params,
-+                            int num_buffers,
-+                            const std::string& device_id);
-+  ~PCMWaveInAudioInputStream() override;
-+
-+  // Implementation of AudioInputStream.
-+  OpenOutcome Open() override;
-+  void Start(AudioInputCallback* callback) override;
-+  void Stop() override;
-+  void Close() override;
-+  // TODO(henrika): Add volume support using the Audio Mixer API.
-+  double GetMaxVolume() override;
-+  void SetVolume(double volume) override;
-+  double GetVolume() override;
-+  bool SetAutomaticGainControl(bool enabled) override;
-+  bool GetAutomaticGainControl() override;
-+  bool IsMuted() override;
-+  void SetOutputDeviceForAec(const std::string& output_device_id) override;
-+
-+ private:
-+  enum State {
-+    kStateEmpty,      // Initial state.
-+    kStateReady,      // Device obtained and ready to record.
-+    kStateRecording,  // Recording audio.
-+    kStateStopping,   // Trying to stop, waiting for callback to finish.
-+    kStateStopped,    // Stopped. Device was reset.
-+    kStateClosed      // Device has been released.
-+  };
-+
-+  // Allow unit tests to query the device ID.
-+  friend class AudioManagerTest;
-+
-+  // Windows calls us back with the recorded audio data here. See msdn
-+  // documentation for 'waveInProc' for details about the parameters.
-+  static void CALLBACK WaveCallback(HWAVEIN hwi, UINT msg, DWORD_PTR instance,
-+                                    DWORD_PTR param1, DWORD_PTR param2);
-+
-+  // If windows reports an error this function handles it and passes it to
-+  // the attached AudioInputCallback::OnError().
-+  void HandleError(MMRESULT error);
-+
-+  // Allocates and prepares the memory that will be used for recording.
-+  void SetupBuffers();
-+
-+  // Deallocates the memory allocated in SetupBuffers.
-+  void FreeBuffers();
-+
-+  // Sends a buffer to the audio driver for recording.
-+  void QueueNextPacket(WAVEHDR* buffer);
-+
-+  // Converts the stored device id string into an unsigned integer which
-+  // can be used by waveInOpen() to open the specified capture device.
-+  bool GetDeviceId(UINT* device_index);
-+
-+  base::ThreadChecker thread_checker_;
-+
-+  // Reader beware. Visual C has stronger guarantees on volatile vars than
-+  // most people expect. In fact, it has release semantics on write and
-+  // acquire semantics on reads. See the msdn documentation.
-+  volatile State state_;
-+
-+  // The audio manager that created this input stream. We notify it when
-+  // we close so it can release its own resources.
-+  AudioManagerWin* manager_;
-+
-+  // We use the callback mostly to periodically give the recorded audio data.
-+  AudioInputCallback* callback_;
-+
-+  // The number of buffers of size |buffer_size_| each to use.
-+  const int num_buffers_;
-+
-+  // The size in bytes of each audio buffer.
-+  uint32_t buffer_size_;
-+
-+  // Channels, 1 or 2.
-+  const int channels_;
-+
-+  // Contains the unique name of the selected endpoint device.
-+  // Note that AudioDeviceDescription::kDefaultDeviceId represents the default
-+  // device role and is not a valid ID as such.
-+  std::string device_id_;
-+
-+  // Windows native structure to encode the format parameters.
-+  WAVEFORMATEX format_;
-+
-+  // Handle to the instance of the wave device.
-+  HWAVEIN wavein_;
-+
-+  // Pointer to the first allocated audio buffer. This object owns it.
-+  WAVEHDR* buffer_;
-+
-+  // An event that is signaled when the callback thread is ready to stop.
-+  base::win::ScopedHandle stopped_event_;
-+
-+  // Lock used to avoid conflicts when Stop() is called during a callback.
-+  base::Lock lock_;
-+
-+  // Extra audio bus used for storage of deinterleaved data for the OnData
-+  // callback.
-+  std::unique_ptr<media::AudioBus> audio_bus_;
-+};
-+
-+}  // namespace media
-+
-+#endif  // MEDIA_AUDIO_WIN_WAVEIN_INPUT_WIN_H_
-\ No newline at end of file
 diff --git a/media/capture/video/win/video_capture_device_factory_win.cc b/media/capture/video/win/video_capture_device_factory_win.cc
 index f38fb0b766ab5..2221294f35c7b 100644
 --- a/media/capture/video/win/video_capture_device_factory_win.cc
@@ -7771,7 +5795,7 @@ index 11f19502adc0f..0c922b0599314 100644
    for (const HandleMap::value_type& handle_to_close : handles_to_close_) {
      ProcessHandleMap::iterator result = handle_map->find(handle_to_close.first);
 diff --git a/sandbox/win/src/interception.cc b/sandbox/win/src/interception.cc
-index f9f4f061aeec0..cbe8f418de703 100644
+index f9f4f061aeec0..a8edb9ef8a774 100644
 --- a/sandbox/win/src/interception.cc
 +++ b/sandbox/win/src/interception.cc
 @@ -19,6 +19,7 @@
@@ -7782,15 +5806,7 @@ index f9f4f061aeec0..cbe8f418de703 100644
  #include "sandbox/win/src/interception_internal.h"
  #include "sandbox/win/src/interceptors.h"
  #include "sandbox/win/src/internal_types.h"
-@@ -422,12 +423,45 @@ ResultCode InterceptionManager::PatchClientFunctions(
-     DllInterceptionData* dll_data) {
-   DCHECK(thunks);
-   DCHECK(dll_data);
-+  
-+  DWORD base_code = 0;
-+  DWORD bytes_read = 0;
- 
-   HMODULE ntdll_base = ::GetModuleHandle(kNtdllName);
+@@ -427,7 +428,25 @@ ResultCode InterceptionManager::PatchClientFunctions(
    if (!ntdll_base)
      return SBOX_ERROR_NO_HANDLE;
  
@@ -7806,20 +5822,8 @@ index f9f4f061aeec0..cbe8f418de703 100644
 +      thunk.reset(new Wow64W10ResolverThunk(child_->Process(), true));
 +    else if (real_os_version >= base::win::Version::WIN8)
 +      thunk.reset(new Wow64W8ResolverThunk(child_->Process(), true));
-+    else {
++    else
 +      thunk.reset(new Wow64ResolverThunk(child_->Process(), true));
-+	  if(!::ReadProcessMemory(child_->Process(), ntdll_base, &base_code,
-+			sizeof(base_code), &bytes_read)) {
-+				if(::GetLastError() == ERROR_PARTIAL_COPY) {
-+					::ResumeThread(child_->MainThread());
-+					while(!::ReadProcessMemory(child_->Process(), ntdll_base, &base_code,
-+						sizeof(base_code), &bytes_read)) {
-+						;
-+					}
-+					::SuspendThread(child_->MainThread());
-+					}
-+			}
-+	}
 +  } else if (real_os_version >= base::win::Version::WIN8) {
 +    thunk.reset(new Win8ResolverThunk(child_->Process(), true));
 +  } else {
@@ -7829,7 +5833,7 @@ index f9f4f061aeec0..cbe8f418de703 100644
  
    for (auto interception : interceptions_) {
      const std::wstring ntdll(kNtdllName);
-@@ -437,7 +471,7 @@ ResultCode InterceptionManager::PatchClientFunctions(
+@@ -437,7 +456,7 @@ ResultCode InterceptionManager::PatchClientFunctions(
      if (INTERCEPTION_SERVICE_CALL != interception.type)
        return SBOX_ERROR_BAD_PARAMS;
  
@@ -8600,36 +6604,6 @@ index 9db65890caaa0..2ac227bb2bf56 100644
      return;
    }
  
-diff --git a/sandbox/win/src/restricted_token.cc b/sandbox/win/src/restricted_token.cc
-index ffaa72573e68b..a35234c9b1eef 100644
---- a/sandbox/win/src/restricted_token.cc
-+++ b/sandbox/win/src/restricted_token.cc
-@@ -16,6 +16,7 @@
- #include "base/ranges/algorithm.h"
- #include "base/win/access_token.h"
- #include "base/win/security_util.h"
-+#include "base/win/windows_version.h"
- #include "sandbox/win/src/acl.h"
- 
- namespace sandbox {
-@@ -184,7 +185,7 @@ absl::optional<base::win::AccessToken> RestrictedToken::CreateRestricted(
-     return absl::nullopt;
-   }
- 
--  if (lockdown_default_dacl_) {
-+  if (lockdown_default_dacl_ && base::win::GetVersion() >= base::win::Version::VISTA) {
-     // Don't add Restricted sid and also remove logon sid access.
-     absl::optional<base::win::Sid> logon_sid = new_token->LogonId();
-     if (logon_sid.has_value()) {
-@@ -217,7 +218,7 @@ absl::optional<base::win::AccessToken> RestrictedToken::CreateRestricted(
-     return absl::nullopt;
-   }
- 
--  if (integrity_rid_.has_value()) {
-+  if (integrity_rid_.has_value() && base::win::GetVersion() >= base::win::Version::VISTA) {
-     if (!new_token->SetIntegrityLevel(*integrity_rid_)) {
-       return absl::nullopt;
-     }
 diff --git a/sandbox/win/src/restricted_token_utils.cc b/sandbox/win/src/restricted_token_utils.cc
 index 050d9d585a622..aa7ab4f0dda32 100644
 --- a/sandbox/win/src/restricted_token_utils.cc
@@ -9545,27 +7519,6 @@ index b7688c6b74d9c..dab303f872b1e 100644
    return true;
  }
  
-diff --git a/sandbox/win/src/target_services.cc b/sandbox/win/src/target_services.cc
-index 4429a2d58dd5d..3973e30c17803 100644
---- a/sandbox/win/src/target_services.cc
-+++ b/sandbox/win/src/target_services.cc
-@@ -15,6 +15,7 @@
- #include "base/containers/span.h"
- #include "base/logging.h"
- #include "base/win/access_token.h"
-+#include "base/win/windows_version.h"
- #include "sandbox/win/src/acl.h"
- #include "sandbox/win/src/crosscall_client.h"
- #include "sandbox/win/src/handle_closer_agent.h"
-@@ -115,6 +116,8 @@ bool WarmupWindowsLocales() {
- }
- 
- bool SetProcessIntegrityLevel(IntegrityLevel integrity_level) {
-+  if (base::win::GetVersion() < base::win::Version::VISTA)
-+    return true;
-   absl::optional<DWORD> rid = GetIntegrityLevelRid(integrity_level);
-   if (!rid) {
-     // No mandatory level specified, we don't change it.
 diff --git a/sandbox/win/src/win_utils.cc b/sandbox/win/src/win_utils.cc
 index afdddac091985..35c9cf95fb772 100644
 --- a/sandbox/win/src/win_utils.cc
@@ -11130,35 +9083,6 @@ index e079f9ccd09d2..ed9cb666ff09b 100644
      base::win::AssertComApartmentType(base::win::ComApartmentType::STA);
  
      base::win::ScopedHString input_pane_guid = base::win::ScopedHString::Create(
-diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
-index 1efd4d1804251..7911f274cde4e 100644
---- a/ui/base/ui_base_features.cc
-+++ b/ui/base/ui_base_features.cc
-@@ -603,6 +603,10 @@ ChromeRefresh2023Level GetChromeRefresh2023Level() {
- BASE_FEATURE(kBubbleMetricsApi,
-              "BubbleMetricsApi",
-              base::FEATURE_DISABLED_BY_DEFAULT);
-+			 
-+BASE_FEATURE(kThoriumCustomTabs,
-+             "ThoriumCustomTabs",
-+             base::FEATURE_ENABLED_BY_DEFAULT);
- 
- #if !BUILDFLAG(IS_LINUX)
- BASE_FEATURE(kWebUiSystemFont,
-diff --git a/ui/base/ui_base_features.h b/ui/base/ui_base_features.h
-index 595e592b9d6c6..f9313c29aafc8 100644
---- a/ui/base/ui_base_features.h
-+++ b/ui/base/ui_base_features.h
-@@ -287,6 +287,9 @@ ChromeRefresh2023Level GetChromeRefresh2023Level();
- COMPONENT_EXPORT(UI_BASE_FEATURES)
- BASE_DECLARE_FEATURE(kBubbleMetricsApi);
- 
-+// Enables customization of the shape of the browser tabs.
-+COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kThoriumCustomTabs);
-+
- #if !BUILDFLAG(IS_LINUX)
- COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kWebUiSystemFont);
- #endif
 diff --git a/ui/display/win/screen_win.cc b/ui/display/win/screen_win.cc
 index 773fbb8e90276..4cb727542c2f9 100644
 --- a/ui/display/win/screen_win.cc
@@ -11255,26 +9179,10 @@ index 4769c5853ee61..825b5f901c60e 100644
        UINT type = 0;
        if (SystemParametersInfo(SPI_GETFONTSMOOTHINGTYPE, 0, &type, 0) &&
 diff --git a/ui/gfx/render_text.cc b/ui/gfx/render_text.cc
-index dab8c9be8d902..6bb60bd6a41c2 100644
+index dab8c9be8d902..94d1db4b533ac 100644
 --- a/ui/gfx/render_text.cc
 +++ b/ui/gfx/render_text.cc
-@@ -11,6 +11,7 @@
- 
- #include "base/check_op.h"
- #include "base/command_line.h"
-+#include "base/feature_list.h"
- #include "base/i18n/break_iterator.h"
- #include "base/i18n/char_iterator.h"
- #include "base/i18n/rtl.h"
-@@ -31,6 +32,7 @@
- #include "third_party/skia/include/core/SkTextBlob.h"
- #include "third_party/skia/include/core/SkTypeface.h"
- #include "third_party/skia/include/effects/SkGradientShader.h"
-+#include "ui/base/ui_base_features.h"
- #include "ui/gfx/canvas.h"
- #include "ui/gfx/geometry/insets.h"
- #include "ui/gfx/geometry/size_conversions.h"
-@@ -44,6 +46,10 @@
+@@ -44,6 +44,10 @@
  #include "ui/gfx/text_utils.h"
  #include "ui/gfx/utf16_indexing.h"
  
@@ -11285,7 +9193,7 @@ index dab8c9be8d902..6bb60bd6a41c2 100644
  namespace gfx {
  
  namespace {
-@@ -255,23 +261,25 @@ UChar32 ReplaceControlCharacter(UChar32 codepoint) {
+@@ -255,23 +259,25 @@ UChar32 ReplaceControlCharacter(UChar32 codepoint) {
      // Support Microsoft defined PUA on Windows.
      // see:
      // https://docs.microsoft.com/en-us/windows/uwp/design/style/segoe-ui-symbol-font
@@ -11328,7 +9236,7 @@ index dab8c9be8d902..6bb60bd6a41c2 100644
      }
  #endif
      const int8_t codepoint_category = u_charType(codepoint);
-@@ -996,12 +1004,19 @@ int RenderText::GetContentWidth() {
+@@ -996,12 +1002,14 @@ int RenderText::GetContentWidth() {
  int RenderText::GetBaseline() {
    if (baseline_ == kInvalidBaseline) {
      const int centering_height =
@@ -11339,17 +9247,12 @@ index dab8c9be8d902..6bb60bd6a41c2 100644
      baseline_ = DetermineBaselineCenteringText(centering_height, font_list());
      if (vertical_alignment_ == ALIGN_BOTTOM)
        baseline_ += display_rect().height() - centering_height;
-+	if (vertical_alignment_ == ALIGN_SPECIAL) {
-+		if (base::FeatureList::IsEnabled(features::kChromeRefresh2023)) {
-+			baseline_ *= 1.40; // This will push down the offending labels in GDI to the point that they will appear centred
-+		}
-+		else
-+			baseline_ *= 1.30;
-+	}
++	if (vertical_alignment_ == ALIGN_SPECIAL)
++	  baseline_ *= 1.33; // This will push down the offending labels in GDI to the point that they will appear centred
    }
    DCHECK_NE(kInvalidBaseline, baseline_);
    return baseline_;
-@@ -1851,6 +1866,7 @@ Vector2d RenderText::GetAlignmentOffset(size_t line_number) {
+@@ -1851,6 +1859,7 @@ Vector2d RenderText::GetAlignmentOffset(size_t line_number) {
        offset.set_y(0);
        break;
      case ALIGN_MIDDLE:
@@ -11806,7 +9709,7 @@ index da848fcdc1784..4184e62a9d93f 100644
           (contents_size_ - viewport_size_);
  }
 diff --git a/ui/views/controls/textfield/textfield.cc b/ui/views/controls/textfield/textfield.cc
-index 562d300d13db4..b7ee33b25ef19 100644
+index 562d300d13db4..0b72e7ba5a369 100644
 --- a/ui/views/controls/textfield/textfield.cc
 +++ b/ui/views/controls/textfield/textfield.cc
 @@ -79,6 +79,7 @@
@@ -11817,76 +9720,20 @@ index 562d300d13db4..b7ee33b25ef19 100644
  #endif
  
  #if BUILDFLAG(IS_LINUX)
-@@ -615,6 +616,12 @@ void Textfield::FitToLocalBounds() {
+@@ -615,7 +616,13 @@ void Textfield::FitToLocalBounds() {
    } else {
      // The text will draw with the correct vertical alignment if we don't apply
      // the vertical insets.
-+	
 +	#if BUILDFLAG(IS_WIN)
 +    if (!gfx::win::IsDirectWriteEnabled()) {
-+	  GetRenderText()->SetVerticalAlignment(gfx::ALIGN_SPECIAL);    
-+	}
-+	#endif
++	  bounds.Inset(gfx::Insets::TLBR(8, insets.left(), 0, insets.right()));
++    }
++	#else
      bounds.Inset(gfx::Insets::TLBR(0, insets.left(), 0, insets.right()));
++	#endif
    }
  
-@@ -1785,6 +1792,7 @@ bool Textfield::ChangeTextDirectionAndLayoutAlignment(
-       modes_match && GetHorizontalAlignment() == gfx::ALIGN_TO_HEAD;
-   if (!dir_from_text && GetHorizontalAlignment() != gfx::ALIGN_CENTER)
-     SetHorizontalAlignment(default_rtl ? gfx::ALIGN_RIGHT : gfx::ALIGN_LEFT);
-+
-   SchedulePaint();
-   return true;
- }
-diff --git a/ui/views/views_features.cc b/ui/views/views_features.cc
-index 9c296ba65e0b7..fb9aba323cdba 100644
---- a/ui/views/views_features.cc
-+++ b/ui/views/views_features.cc
-@@ -28,5 +28,9 @@ BASE_FEATURE(kEnableViewPaintOptimization,
- BASE_FEATURE(kWidgetLayering,
-              "WidgetLayering",
-              base::FEATURE_ENABLED_BY_DEFAULT);
-+			 
-+// When enabled, widgets inherit the theme from their parent widget.
-+const base::Feature kInheritNativeThemeFromParentWidget{
-+    "InheritNativeThemeFromParentWidget", base::FEATURE_ENABLED_BY_DEFAULT};
- 
- }  // namespace views::features
-diff --git a/ui/views/views_features.h b/ui/views/views_features.h
-index 3aa4134a57bfd..1ce27ec6af709 100644
---- a/ui/views/views_features.h
-+++ b/ui/views/views_features.h
-@@ -15,6 +15,7 @@ namespace views::features {
- VIEWS_EXPORT BASE_DECLARE_FEATURE(kEnablePlatformHighContrastInkDrop);
- VIEWS_EXPORT BASE_DECLARE_FEATURE(kEnableViewPaintOptimization);
- VIEWS_EXPORT BASE_DECLARE_FEATURE(kWidgetLayering);
-+VIEWS_EXPORT BASE_DECLARE_FEATURE(kInheritNativeThemeFromParentWidget);
- 
- }  // namespace views::features
- 
-diff --git a/ui/views/widget/widget.cc b/ui/views/widget/widget.cc
-index 2f552f72074e3..c8f8615036096 100644
---- a/ui/views/widget/widget.cc
-+++ b/ui/views/widget/widget.cc
-@@ -11,6 +11,7 @@
- #include "base/auto_reset.h"
- #include "base/check_op.h"
- #include "base/containers/adapters.h"
-+#include "base/feature_list.h"
- #include "base/functional/bind.h"
- #include "base/i18n/rtl.h"
- #include "base/notreached.h"
-@@ -2058,7 +2059,9 @@ const ui::NativeTheme* Widget::GetNativeTheme() const {
-   if (native_theme_)
-     return native_theme_;
- 
--  if (parent_)
-+if (base::FeatureList::IsEnabled(
-+          features::kInheritNativeThemeFromParentWidget) &&
-+      parent_)
-     return parent_->GetNativeTheme();
- 
- #if BUILDFLAG(IS_LINUX)
+   bounds.set_x(GetMirroredXForRect(bounds));
 diff --git a/ui/views/win/hwnd_message_handler.cc b/ui/views/win/hwnd_message_handler.cc
 index f43aa724b2a8e..8956e92107f0a 100644
 --- a/ui/views/win/hwnd_message_handler.cc

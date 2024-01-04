@@ -31,3 +31,8 @@
 &#45; Compile pak for ARM64 targets (possibly ship with mac builds?)
 
  - Use GCC armgnuabi flags or compile natively on a rapi
+
+
+# git apply --reject --ignore-space-change --recount --ignore-whitespace win7-8-8.1-support.patch
+# https://github.com/Alex313031/cr-win7/tree/c7f6d3a846d638e76e8c6dced53f0b183e70c3d4
+
