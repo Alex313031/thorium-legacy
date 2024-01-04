@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031.
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -13,13 +13,14 @@
 #include <utility>
 #include <vector>
 
-#include "base/bind.h"
-#include "base/callback.h"
-#include "base/callback_helpers.h"
 #include "base/command_line.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
 #include "base/format_macros.h"
+#include "base/functional/bind.h"
+#include "base/functional/callback.h"
+#include "base/functional/callback_helpers.h"
+#include "base/memory/raw_ptr.h"
 #include "base/memory/ref_counted_memory.h"
 #include "base/strings/escape.h"
 #include "base/strings/string_split.h"
@@ -32,14 +33,12 @@
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/about_flags.h"
-#include "chrome/browser/ash/borealis/borealis_credits.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/common/chrome_paths.h"
 #include "chrome/common/url_constants.h"
+#include "chrome/grit/branded_strings.h"
 #include "chrome/grit/browser_resources.h"
-#include "chrome/grit/chromium_strings.h"
 #include "chrome/grit/generated_resources.h"
 #include "components/about_ui/credit_utils.h"
 #include "components/grit/components_resources.h"
@@ -62,8 +61,8 @@
 #include <map>
 
 #include "base/base64.h"
-#include "base/cxx17_backports.h"
 #include "base/strings/strcat.h"
+#include "chrome/browser/ash/borealis/borealis_credits.h"
 #include "chrome/browser/ash/crosapi/browser_manager.h"
 #include "chrome/browser/ash/crosapi/browser_util.h"
 #include "chrome/browser/ash/crostini/crostini_features.h"
@@ -75,9 +74,10 @@
 #include "chrome/browser/component_updater/cros_component_manager.h"
 #include "chrome/browser/ui/webui/chrome_web_ui_controller_factory.h"
 #include "chrome/common/webui_url_constants.h"
-#include "chromeos/system/statistics_provider.h"
+#include "chromeos/ash/components/system/statistics_provider.h"
 #include "components/language/core/common/locale_util.h"
 #include "third_party/cros_system_api/dbus/service_constants.h"
+#include "third_party/zlib/google/compression_utils.h"
 #endif
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
 #include "chrome/browser/lacros/lacros_url_handling.h"
@@ -97,8 +97,6 @@ constexpr char kStatsJsPath[] = "stats.js";
 constexpr char kStringsJsPath[] = "strings.js";
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-
-constexpr char kKeyboardUtilsPath[] = "keyboard_utils.js";
 
 constexpr char kTerminaCreditsPath[] = "about_os_credits.html";
 
@@ -147,14 +145,14 @@ CountryRegionMap CreateCountryRegionMap() {
 // Reads device region from VPD. Returns "us" in case of read or parsing errors.
 std::string ReadDeviceRegionFromVpd() {
   std::string region = "us";
-  chromeos::system::StatisticsProvider* provider =
-      chromeos::system::StatisticsProvider::GetInstance();
-  bool region_found =
-      provider->GetMachineStatistic(chromeos::system::kRegionKey, &region);
-  if (region_found) {
+  ash::system::StatisticsProvider* provider =
+      ash::system::StatisticsProvider::GetInstance();
+  if (const absl::optional<base::StringPiece> region_statistic =
+          provider->GetMachineStatistic(ash::system::kRegionKey)) {
     // We only need the first part of the complex region codes like ca.ansi.
-    std::vector<std::string> region_pieces = base::SplitString(
-        region, ".", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
+    std::vector<std::string> region_pieces =
+        base::SplitString(region_statistic.value(), ".", base::TRIM_WHITESPACE,
+                          base::SPLIT_WANT_NONEMPTY);
     if (!region_pieces.empty())
       region = region_pieces[0];
   } else {
@@ -285,10 +283,12 @@ class ChromeOSCreditsHandler
   ChromeOSCreditsHandler(const ChromeOSCreditsHandler&) = delete;
   ChromeOSCreditsHandler& operator=(const ChromeOSCreditsHandler&) = delete;
 
+  // |prefix| allows tests to specify different location for the credits files.
   static void Start(const std::string& path,
-                    content::URLDataSource::GotDataCallback callback) {
+                    content::URLDataSource::GotDataCallback callback,
+                    const base::FilePath& prefix) {
     scoped_refptr<ChromeOSCreditsHandler> handler(
-        new ChromeOSCreditsHandler(path, std::move(callback)));
+        new ChromeOSCreditsHandler(path, std::move(callback), prefix));
     handler->StartOnUIThread();
   }
 
@@ -296,20 +296,14 @@ class ChromeOSCreditsHandler
   friend class base::RefCountedThreadSafe<ChromeOSCreditsHandler>;
 
   ChromeOSCreditsHandler(const std::string& path,
-                         content::URLDataSource::GotDataCallback callback)
-      : path_(path), callback_(std::move(callback)) {}
+                         content::URLDataSource::GotDataCallback callback,
+                         const base::FilePath& prefix)
+      : path_(path), callback_(std::move(callback)), prefix_(prefix) {}
 
   virtual ~ChromeOSCreditsHandler() {}
 
   void StartOnUIThread() {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
-    if (path_ == kKeyboardUtilsPath) {
-      contents_ =
-          ui::ResourceBundle::GetSharedInstance().LoadDataResourceString(
-              IDR_KEYBOARD_UTILS_JS);
-      ResponseOnUIThread();
-      return;
-    }
     // Load local Chrome OS credits from the disk.
     base::ThreadPool::PostTaskAndReply(
         FROM_HERE, {base::MayBlock(), base::TaskPriority::BEST_EFFORT},
@@ -317,19 +311,45 @@ class ChromeOSCreditsHandler
         base::BindOnce(&ChromeOSCreditsHandler::ResponseOnUIThread, this));
   }
 
+  // LoadCreditsFileAsync first attempts to load the uncompressed credits file.
+  // Then, if that's not present, it attempts to load and decompress the
+  // compressed credits file.
+  // If both fails, fall back to default contents as handled in
+  // ResponseOnUIThread.
   void LoadCreditsFileAsync() {
-    base::FilePath credits_file_path(chrome::kChromeOSCreditsPath);
-    if (!base::ReadFileToString(credits_file_path, &contents_)) {
+    if (prefix_.empty()) {
+      prefix_ = base::FilePath(chrome::kChromeOSCreditsPath).DirName();
+    }
+    base::FilePath credits =
+        prefix_.Append(base::FilePath(chrome::kChromeOSCreditsPath).BaseName());
+    if (base::ReadFileToString(credits, &contents_)) {
+      // Decompressed present; return.
+      return;
+    }
+
+    // Decompressed not present; load compressed.
+    base::FilePath compressed_credits = prefix_.Append(
+        base::FilePath(chrome::kChromeOSCreditsCompressedPath).BaseName());
+    std::string compressed;
+    if (!base::ReadFileToString(compressed_credits, &compressed)) {
       // File with credits not found, ResponseOnUIThread will load credits
       // from resources if contents_ is empty.
       contents_.clear();
+      return;
+    }
+
+    // Decompress.
+    if (!compression::GzipUncompress(compressed, &contents_)) {
+      LOG(DFATAL) << "Decompressing os credits failed";
+      contents_.clear();
+      return;
     }
   }
 
   void ResponseOnUIThread() {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
     // If we fail to load Chrome OS credits from disk, load it from resources.
-    if (contents_.empty() && path_ != kKeyboardUtilsPath) {
+    if (contents_.empty()) {
       contents_ =
           ui::ResourceBundle::GetSharedInstance().LoadDataResourceString(
               IDR_OS_CREDITS_HTML);
@@ -346,6 +366,9 @@ class ChromeOSCreditsHandler
 
   // Chrome OS credits contents that was loaded from file.
   std::string contents_;
+
+  // Directory containing files to read.
+  base::FilePath prefix_;
 };
 
 void OnBorealisCreditsLoaded(content::URLDataSource::GotDataCallback callback,
@@ -389,14 +412,6 @@ class CrostiniCreditsHandler
 
   void StartOnUIThread() {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
-    if (path_ == kKeyboardUtilsPath) {
-      contents_ =
-          ui::ResourceBundle::GetSharedInstance().LoadDataResourceString(
-              IDR_KEYBOARD_UTILS_JS);
-      RespondOnUIThread();
-      return;
-    }
-
     if (crostini::CrostiniFeatures::Get()->IsAllowedNow(profile_)) {
       crostini::CrostiniManager::GetForProfile(profile_)->GetInstallLocation(
           base::BindOnce(&CrostiniCreditsHandler::LoadCredits, this));
@@ -435,7 +450,7 @@ class CrostiniCreditsHandler
   void RespondOnUIThread() {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
     // If we fail to load Linux credits from disk, use the placeholder.
-    if (contents_.empty() && path_ != kKeyboardUtilsPath) {
+    if (contents_.empty()) {
       contents_ = l10n_util::GetStringUTF8(IDS_CROSTINI_CREDITS_PLACEHOLDER);
     }
     std::move(callback_).Run(
@@ -451,7 +466,7 @@ class CrostiniCreditsHandler
   // Linux credits contents that was loaded from file.
   std::string contents_;
 
-  Profile* profile_;
+  raw_ptr<Profile, ExperimentalAsh> profile_;
 };
 #endif
 
@@ -477,7 +492,7 @@ void AppendHeader(std::string* output, const std::string& unescaped_title) {
 // calling browser is Lacros.
 bool isLacrosPrimaryOrCurrentBrowser() {
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-  return crosapi::browser_util::IsLacrosPrimaryBrowser();
+  return crosapi::browser_util::IsLacrosEnabled();
 #else
   return true;
 #endif
@@ -573,7 +588,7 @@ std::string ChromeURLs() {
               "</a></li>\n";
     }
 
-    html += "<li><a href='chrome://theme/IDR_PRODUCT_YIFF'>chrome://yiff</a></li>\n";
+    html += "<li><a href='chrome://theme/IDR_PRODUCT_ROBOT'>chrome://robot</a></li>\n";
 
     html +=
         "</ul><a id=\"internals\"><h2>List of chrome://internals "
@@ -670,10 +685,6 @@ void AboutUIHTMLSource::StartDataRequest(
       idr = IDR_ABOUT_UI_CREDITS_JS;
     else if (path == kCreditsCssPath)
       idr = IDR_ABOUT_UI_CREDITS_CSS;
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-    else if (path == kKeyboardUtilsPath)
-      idr = IDR_KEYBOARD_UTILS_JS;
-#endif
     if (idr == IDR_ABOUT_UI_CREDITS_HTML) {
       response = about_ui::GetCredits(true /*include_scripts*/);
     } else {
@@ -685,25 +696,31 @@ void AboutUIHTMLSource::StartDataRequest(
     response = AboutLinuxProxyConfig();
 #endif
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-  } else if (source_name_ == chrome::kChromeUIOSCreditsHost) {
-    if (path == kCreditsCssPath) {
-      response = ui::ResourceBundle::GetSharedInstance().LoadDataResourceString(
-          IDR_ABOUT_UI_CREDITS_CSS);
-    } else {
-      ChromeOSCreditsHandler::Start(path, std::move(callback));
+  } else if (source_name_ == chrome::kChromeUIOSCreditsHost ||
+             source_name_ == chrome::kChromeUICrostiniCreditsHost ||
+             source_name_ == chrome::kChromeUIBorealisCreditsHost) {
+    int idr = IDR_ABOUT_UI_CREDITS_HTML;
+    if (path == kCreditsJsPath) {
+      idr = IDR_ABOUT_UI_CREDITS_JS;
+    } else if (path == kCreditsCssPath) {
+      idr = IDR_ABOUT_UI_CREDITS_CSS;
+    }
+    if (idr == IDR_ABOUT_UI_CREDITS_HTML) {
+      if (source_name_ == chrome::kChromeUIOSCreditsHost) {
+        ChromeOSCreditsHandler::Start(path, std::move(callback),
+                                      os_credits_prefix_);
+      } else if (source_name_ == chrome::kChromeUICrostiniCreditsHost) {
+        CrostiniCreditsHandler::Start(profile(), path, std::move(callback));
+      } else if (source_name_ == chrome::kChromeUIBorealisCreditsHost) {
+        HandleBorealisCredits(profile(), std::move(callback));
+      } else {
+        NOTREACHED();
+      }
       return;
     }
-  } else if (source_name_ == chrome::kChromeUICrostiniCreditsHost) {
-    if (path == kCreditsCssPath) {
-      response = ui::ResourceBundle::GetSharedInstance().LoadDataResourceString(
-          IDR_ABOUT_UI_CREDITS_CSS);
-    } else {
-      CrostiniCreditsHandler::Start(profile(), path, std::move(callback));
-      return;
-    }
-  } else if (source_name_ == chrome::kChromeUIBorealisCreditsHost) {
-    HandleBorealisCredits(profile(), std::move(callback));
-    return;
+
+    response =
+        ui::ResourceBundle::GetSharedInstance().LoadDataResourceString(idr);
 #endif
 #if !BUILDFLAG(IS_ANDROID)
   } else if (source_name_ == chrome::kChromeUITermsHost) {
@@ -730,11 +747,7 @@ void AboutUIHTMLSource::FinishDataRequest(
 
 std::string AboutUIHTMLSource::GetMimeType(const GURL& url) {
   const base::StringPiece path = url.path_piece().substr(1);
-  if (path == kCreditsJsPath ||
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-      path == kKeyboardUtilsPath ||
-#endif
-      path == kStatsJsPath || path == kStringsJsPath) {
+  if (path == kCreditsJsPath || path == kStatsJsPath || path == kStringsJsPath) {
     return "application/javascript";
   }
 
@@ -743,17 +756,6 @@ std::string AboutUIHTMLSource::GetMimeType(const GURL& url) {
   }
 
   return "text/html";
-}
-
-bool AboutUIHTMLSource::ShouldAddContentSecurityPolicy() {
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-  if (source_name_ == chrome::kChromeUIOSCreditsHost ||
-      source_name_ == chrome::kChromeUICrostiniCreditsHost ||
-      source_name_ == chrome::kChromeUIBorealisCreditsHost) {
-    return false;
-  }
-#endif
-  return content::URLDataSource::ShouldAddContentSecurityPolicy();
 }
 
 std::string AboutUIHTMLSource::GetAccessControlAllowOriginForOrigin(
@@ -769,7 +771,7 @@ std::string AboutUIHTMLSource::GetAccessControlAllowOriginForOrigin(
   return content::URLDataSource::GetAccessControlAllowOriginForOrigin(origin);
 }
 
-AboutUI::AboutUI(content::WebUI* web_ui, const std::string& name)
+AboutUI::AboutUI(content::WebUI* web_ui, const std::string& host)
     : WebUIController(web_ui) {
   Profile* profile = Profile::FromWebUI(web_ui);
 
@@ -779,7 +781,7 @@ AboutUI::AboutUI(content::WebUI* web_ui, const std::string& name)
 #endif
 
   content::URLDataSource::Add(
-      profile, std::make_unique<AboutUIHTMLSource>(name, profile));
+      profile, std::make_unique<AboutUIHTMLSource>(host, profile));
 }
 
 #if BUILDFLAG(IS_CHROMEOS)

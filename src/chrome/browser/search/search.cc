@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031. All rights reserved.
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -22,6 +22,7 @@
 #include "components/search/search.h"
 #include "components/search_engines/search_engine_type.h"
 #include "components/search_engines/template_url_service.h"
+#include "components/supervised_user/core/common/buildflags.h"
 #include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_process_host.h"
@@ -29,9 +30,9 @@
 #include "url/gurl.h"
 
 #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
-#include "chrome/browser/supervised_user/supervised_user_service.h"
 #include "chrome/browser/supervised_user/supervised_user_service_factory.h"
-#include "chrome/browser/supervised_user/supervised_user_url_filter.h"  // nogncheck
+#include "components/supervised_user/core/browser/supervised_user_service.h"
+#include "components/supervised_user/core/browser/supervised_user_url_filter.h"  // nogncheck
 #endif
 
 #if !BUILDFLAG(IS_ANDROID)
@@ -139,22 +140,20 @@ bool IsNTPOrRelatedURLHelper(const GURL& url, Profile* profile) {
 
 bool IsURLAllowedForSupervisedUser(const GURL& url, Profile* profile) {
 #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
-  // If this isn't a supervised child user, skip the URL filter check, since it
-  // can be fairly expensive.
-  if (!profile->IsChild())
-    return true;
-  SupervisedUserService* supervised_user_service =
+  supervised_user::SupervisedUserService* supervised_user_service =
       SupervisedUserServiceFactory::GetForProfile(profile);
-  SupervisedUserURLFilter* url_filter = supervised_user_service->GetURLFilter();
+  if (!supervised_user_service ||
+      !supervised_user_service->IsURLFilteringEnabled()) {
+    return true;
+  }
+
+  supervised_user::SupervisedUserURLFilter* url_filter =
+      supervised_user_service->GetURLFilter();
   if (url_filter->GetFilteringBehaviorForURL(url) ==
-          SupervisedUserURLFilter::BLOCK) {
+      supervised_user::SupervisedUserURLFilter::BLOCK) {
     return false;
   }
 #endif
-  return true;
-}
-
-bool ShouldShowLocalNewTab(Profile* profile) {
   return true;
 }
 
@@ -163,6 +162,10 @@ bool ShouldShowLocalNewTab(Profile* profile) {
 struct NewTabURLDetails {
   NewTabURLDetails(const GURL& url, NewTabURLState state)
       : url(url), state(state) {}
+
+  static bool ShouldUseLocalNewTab() {
+    return true;
+  }
 
   static NewTabURLDetails ForProfile(Profile* profile) {
     // Incognito and Guest profiles have their own New Tab.
@@ -174,14 +177,18 @@ struct NewTabURLDetails {
 
 #if BUILDFLAG(IS_ANDROID)
     const GURL local_url;
+    if (ShouldUseLocalNewTab()) {
+      return NewTabURLDetails(local_url, NEW_TAB_URL_VALID);
+    }
 #else
-    const GURL local_url(DefaultSearchProviderIsGoogle(profile)
+    const bool default_is_google = DefaultSearchProviderIsGoogle(profile);
+    const GURL local_url(default_is_google
                              ? chrome::kChromeUINewTabPageURL
                              : chrome::kChromeUINewTabPageThirdPartyURL);
-#endif
-
-    if (ShouldShowLocalNewTab(profile))
+    if (default_is_google || ShouldUseLocalNewTab()) {
       return NewTabURLDetails(local_url, NEW_TAB_URL_VALID);
+    }
+#endif
 
     const TemplateURL* template_url =
         GetDefaultSearchProviderTemplateURL(profile);

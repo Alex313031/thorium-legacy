@@ -36,7 +36,7 @@ else
     export CR_SRC_DIR
 fi
 
-THOR_VER="109.0.5414.173"
+THOR_VER="119.0.6045.214"
 
 export THOR_VER &&
 
@@ -50,20 +50,19 @@ cd ${CR_SRC_DIR} &&
 
 git checkout -f tags/$THOR_VER &&
 
-git clean -ffd &&
-git clean -ffd &&
-
-cd ~/thorium-win7 &&
+cd ~/thorium &&
 
 # Use our artifacts hash
 cp -v src/build/vs_toolchain.py ${CR_SRC_DIR}/build/ &&
 
-# Use my DEPS
-cp -v src/DEPS ${CR_SRC_DIR}/ &&
+# Add //third_party/libjxl to DEPS
+cp -v thorium-libjxl/src/DEPS ${CR_SRC_DIR}/ &&
 
 cd ${CR_SRC_DIR} &&
 
 gclient sync --with_branch_heads --with_tags -f -R -D &&
+
+# git clean -ffd &&
 
 gclient runhooks &&
 
@@ -82,19 +81,17 @@ python3 tools/update_pgo_profiles.py --target=linux update --gs-url-base=chromiu
 
 python3 tools/update_pgo_profiles.py --target=win64 update --gs-url-base=chromium-optimization-profiles/pgo_profiles &&
 
-python3 tools/update_pgo_profiles.py --target=win32 update --gs-url-base=chromium-optimization-profiles/pgo_profiles &&
-
-# python3 tools/update_pgo_profiles.py --target=mac update --gs-url-base=chromium-optimization-profiles/pgo_profiles &&
+python3 tools/update_pgo_profiles.py --target=mac update --gs-url-base=chromium-optimization-profiles/pgo_profiles &&
 printf "\n" &&
 
-# printf "${YEL}Downloading PGO Profile for V8 (when v8_enable_builtins_optimization = true)\n" &&
-# printf "\n" &&
-# tput sgr0 &&
+printf "${YEL}Downloading PGO Profile for V8 (when v8_enable_builtins_optimization = true)\n" &&
+printf "\n" &&
+tput sgr0 &&
 
-# python3 v8/tools/builtins-pgo/download_profiles.py --depot-tools=$HOME/depot_tools download &&
-# printf "\n" &&
+python3 v8/tools/builtins-pgo/download_profiles.py --depot-tools=$HOME/depot_tools download &&
+printf "\n" &&
 
-cd ~/thorium-win7 &&
+cd ~/thorium &&
 
 printf "${GRE}Done! ${YEL}You can now run \'./setup.sh\'\n"
 tput sgr0 &&

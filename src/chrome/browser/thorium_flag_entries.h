@@ -19,12 +19,16 @@
 
     {"prominent-active-tab-titles",
      "Prominent Active Tab Titles",
-     "Makes the active tab title bolder so that it is easier to identify. (Default: Enabled)",
-     kOsAll, FEATURE_VALUE_TYPE(features::kProminentDarkModeActiveTabTitle)},
+     "Makes the active tab title bolder so that it is easier to identify.",
+     kOsAll, SINGLE_VALUE_TYPE("prominent-active-tab-titles")},
     {"force-enable-tab-outlines",
      "Enable Tab Outlines",
-     "Force enables tab outline strokes, improving accessiblity in dark mode, incognito mode, and low contrast themes. (Default: Enabled)",
-     kOsAll, FEATURE_VALUE_TYPE(features::kTabOutlinesInLowContrastThemes)},
+     "Force enables tab outline strokes, improving accessiblity in dark mode, incognito mode, and low contrast themes.",
+     kOsAll, SINGLE_VALUE_TYPE("force-enable-tab-outlines")},
+    {"force-high-contrast",
+     "Enable High Contrast Mode",
+     "Enables high contrast mode for all Thorium instances.",
+     kOsAll, SINGLE_VALUE_TYPE("force-high-contrast")},
 
 #if BUILDFLAG(IS_WIN)
     {"disable-aero",
@@ -34,10 +38,6 @@
      kOsWin, SINGLE_VALUE_TYPE("disable-aero")},
 #endif // BUILDFLAG(IS_WIN)
 
-    {"force-high-contrast",
-     "Enable High Contrast Mode",
-     "Enables high contrast mode for all Thorium instances.",
-     kOsAll, SINGLE_VALUE_TYPE("force-high-contrast")},
     {"custom-ntp",
      "Custom New Tab Page",
      "Allows setting a custom URL for the New Tab Page (NTP). Value can be internal (e.g. `about:blank` or `chrome://new-tab-page`), external (e.g. `example.com`), or local (e.g. `file:///tmp/startpage.html`). "
@@ -56,6 +56,14 @@
      "Allows setting the AutoPlay policy. Use `No User Gesture Required` to enable AutoPlay, and use `Document User Activation Required` to disable AutoPlay "
      "and force all sites to require a click to initiate media playback. `User Gesture Required` is the default, and blocks most AutoPlay annoyances, while allowing some (i.e. WebAudio) to continue.",
      kOsDesktop, MULTI_VALUE_TYPE(kAutoplayPolicyChoices)},
+
+#if !BUILDFLAG(IS_ANDROID)
+    {"download-bubble",
+     "Enable/Disable Download Bubble",
+     "Enable or disable the download bubble. When disabled, the traditional download shelf is used. Thorium flag",
+     kOsDesktop, FEATURE_VALUE_TYPE(safe_browsing::kDownloadBubble)},
+#endif // BUILDFLAG(IS_ANDROID)
+
     {"show-avatar-button",
      "Show/Hide the Avatar Button",
      "Show the Avatar/People/Profile button in the browser toolbar: Always, Incognito|Guest only, or Never.",
@@ -106,6 +114,14 @@
      "Double Click to Close Tab",
      "Enables double clicking a tab to close it.",
      kOsDesktop, SINGLE_VALUE_TYPE("double-click-close-tab")},
+
+#if !BUILDFLAG(IS_ANDROID)
+    {"media-router",
+     "Enable/Disable Media Router",
+     "Media router is a component responsible for pairing Thorium to devices and endpoints, for streaming and rendering media sources on those devices. This is used, for example, for Cast.",
+     kOsDesktop, FEATURE_VALUE_TYPE(media_router::kMediaRouter)},
+#endif // BUILDFLAG(IS_ANDROID)
+
     {"show-fps-counter",
      "Show FPS Counter",
      "Draws a heads-up-display showing Frames Per Second as well as GPU memory usage.",
@@ -126,13 +142,19 @@
      "Disable Web Security",
      "Don't enforce the same-origin policy; meant for website testing only. See `https://web.dev/same-origin-policy/`",
      kOsAll, SINGLE_VALUE_TYPE(switches::kDisableWebSecurity)},
-
-#if !BUILDFLAG(IS_ANDROID)
-    {"media-router",
-     "Enable/Disable Media Router",
-     "Media router is a component responsible for pairing Thorium to devices and endpoints, for streaming and rendering media sources on those devices. This is used, for example, for Cast.",
-     kOsDesktop, FEATURE_VALUE_TYPE(media_router::kMediaRouter)},
-#endif // BUILDFLAG(IS_ANDROID)
+    {"disable-encryption",
+     "Disable Encryption",
+     "Disable encryption of cookies, passwords, and settings which normally uses a generated machine-specific encryption key. "
+     "This is used to enable portable user data directories. Enabled for Thorium Portable.",
+     kOsDesktop, SINGLE_VALUE_TYPE("disable-encryption")},
+    {"disable-machine-id",
+     "Disable Machine ID",
+     "Disables use of a generated machine-specific ID to lock the user data directory to that machine. This is used to enable portable user data directories. Enabled for Thorium Portable.",
+     kOsDesktop, SINGLE_VALUE_TYPE("disable-machine-id")},
+    {"close-confirmation",
+     "Close Confirmation",
+     "Show a warning prompt when closing browser window(s).",
+     kOsDesktop, MULTI_VALUE_TYPE(kCloseConfirmation)},
 
 #if BUILDFLAG(IS_LINUX)
     {"password-store",
@@ -144,14 +166,6 @@
 #endif // BUILDFLAG(IS_LINUX)
 
 #if BUILDFLAG(IS_WIN)
-    {"enable-win7-webrtc-hw-h264-decoding",
-     "Windows 7 WebRTC H.264 Hardware Decoding",
-     "Enables H.264 hardware decode acceleration for WebRTC on Windows 7.",
-     kOsWin, SINGLE_VALUE_TYPE(switches::kEnableWin7WebRtcHWH264Decoding)},
-    {"disable-windows10-custom-titlebar",
-     "Disable Custom Windows Titlebar",
-     "Disables custom-drawing the window titlebar on Windows 10/11.",
-     kOsWin, SINGLE_VALUE_TYPE(switches::kDisableWindows10CustomTitlebar)},
     {"enable-exclusive-audio",
      "Enable Exclusive Audio Streams",
      "Use exclusive mode audio streaming for Windows Vista and higher. Leads to lower latencies for audio streams which use the AudioParameters::AUDIO_PCM_LOW_LATENCY audio path. "
@@ -160,3 +174,5 @@
 #endif // BUILDFLAG(IS_WIN)
 
 #endif  // CHROME_BROWSER_THORIUM_FLAG_ENTRIES_H_
+
+// kDisableWindows10CustomTitlebar

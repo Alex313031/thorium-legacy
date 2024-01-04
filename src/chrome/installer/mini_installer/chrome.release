@@ -83,6 +83,8 @@ WidevineCdm\_platform_specific\win_x86\widevinecdm.dll: %(VersionDir)s\WidevineC
 WidevineCdm\_platform_specific\win_x86\widevinecdm.dll.sig: %(VersionDir)s\WidevineCdm\_platform_specific\win_x86\
 WidevineCdm\_platform_specific\win_x64\widevinecdm.dll: %(VersionDir)s\WidevineCdm\_platform_specific\win_x64\
 WidevineCdm\_platform_specific\win_x64\widevinecdm.dll.sig: %(VersionDir)s\WidevineCdm\_platform_specific\win_x64\
+WidevineCdm\_platform_specific\win_arm64\widevinecdm.dll: %(VersionDir)s\WidevineCdm\_platform_specific\win_arm64\
+WidevineCdm\_platform_specific\win_arm64\widevinecdm.dll.sig: %(VersionDir)s\WidevineCdm\_platform_specific\win_arm64\
 
 #
 # VisualElements sub-dir.
@@ -134,3 +136,10 @@ SmallLogoDev.png: %(VersionDir)s\VisualElements\
 # v8_context_snapshot.bin, such as Linux-Windows cross-builds.
 # It has its own section here so that it's only included when necessary.
 snapshot_blob.bin: %(VersionDir)s\
+
+[DXC]
+# Only include the DXC dlls if dawn_use_built_dxc is enabled. When this flag is false,
+# these DLLs may be present in the build dir if Dawn tests are built, in which case we
+# do not want to include them in the installer.
+dxcompiler.dll: %(VersionDir)s\
+dxil.dll: %(VersionDir)s\

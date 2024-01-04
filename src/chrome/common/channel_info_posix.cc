@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Chromium Authors and Alex313031. All rights reserved.
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -10,6 +10,7 @@
 
 #include "base/environment.h"
 #include "base/notreached.h"
+#include "base/strings/strcat.h"
 #include "base/strings/string_piece.h"
 #include "base/strings/string_util.h"
 #include "build/branding_buildflags.h"
@@ -90,6 +91,30 @@ std::string GetChannelSuffixForDataDir() {
       return std::string();
   }
 }
+
+#if BUILDFLAG(IS_LINUX)
+std::string GetChannelSuffixForExtraFlagsEnvVarName() {
+#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+  const auto channel_state = GetChannelImpl();
+  switch (channel_state.channel) {
+    case version_info::Channel::DEV:
+      return "_DEV";
+    case version_info::Channel::BETA:
+      return "_BETA";
+    case version_info::Channel::STABLE:
+      return "_STABLE";
+    default:
+      return std::string();
+  }
+#else   // BUILDFLAG(GOOGLE_CHROME_BRANDING)
+  const char* const channel_name = getenv("CHROME_VERSION_EXTRA");
+  return channel_name
+             ? base::StrCat(
+                   {"_", base::ToUpperASCII(base::StringPiece(channel_name))})
+             : std::string();
+#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
+}
+#endif  // BUILDFLAG(IS_LINUX)
 
 // TODO(crbug.com/1052397): Revisit the macro expression once build flag switch
 // of lacros-chrome is complete.

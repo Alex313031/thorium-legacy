@@ -33,7 +33,7 @@ sudo chmod -v +x build_dmg.sh &&
 
 sudo chmod -v +x build_mac.sh &&
 
-sudo chmod -v +x build_linux.sh &&
+sudo chmod -v +x build_win.sh &&
 
 sudo chmod -v +x check_simd.sh &&
 
@@ -41,13 +41,19 @@ sudo chmod -v +x clean.sh &&
 
 sudo chmod -v +x setup.sh &&
 
-sudo chmod -v +x thordeb.sh &&
+sudo chmod -v +x package.sh &&
 
 sudo chmod -v +x trunk.sh &&
 
 sudo chmod -v +x reset_depot_tools.sh &&
 
 sudo chmod -v +x version.sh &&
+
+sudo chmod -v +x infra/arch-prerequisites.sh &&
+
+sudo chmod -v +x infra/fetch_api_keys.sh &&
+
+sudo chmod -v +x infra/fix_libaom.sh &&
 
 sudo chmod -v +x infra/install_deps.sh &&
 
@@ -69,17 +75,17 @@ sudo chmod -v +x logos/NEW/mac/gen/app/build_icns.sh &&
 
 sudo chmod -v +x logos/NEW/mac/gen/document/build_icns.sh &&
 
-sudo chmod -v +x portable/THORIUM-PORTABLE &&
+sudo chmod -v +x infra/portable/THORIUM-PORTABLE &&
 
-sudo chmod -v +x portable/THORIUM-SHELL &&
+sudo chmod -v +x infra/portable/THORIUM-SHELL &&
 
-sudo chmod -v +x portable/thorium-portable.desktop &&
+sudo chmod -v +x infra/portable/thorium-portable.desktop &&
 
-sudo chmod -v +x portable/thorium-shell.desktop &&
+sudo chmod -v +x infra/portable/thorium-shell.desktop &&
 
-sudo chmod -v +x portable/make_portable_linux.sh &&
+sudo chmod -v +x infra/portable/make_portable_linux.sh &&
 
-sudo chmod -v +x portable/make_portable_win.sh &&
+sudo chmod -v +x infra/portable/make_portable_win.sh &&
 
 sudo chmod -v +x infra/APPIMAGE/pkg2appimage &&
 
@@ -89,7 +95,7 @@ sudo chmod -v +x pak_src/build.sh &&
 
 sudo chmod -v +x src/build/vs_toolchain.py &&
 
-sudo chmod -v +x src/tools/gn/bootstrap/bootstrap.py &&
+# sudo chmod -v +x src/tools/gn/bootstrap/bootstrap.py &&
 
 sudo chmod -v +x src/tools/clang/scripts/build.py &&
 

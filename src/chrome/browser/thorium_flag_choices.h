@@ -79,13 +79,13 @@ const FeatureEntry::Choice kGpuRasterizationMSAASampleCountChoices[] = {
 const FeatureEntry::Choice kNumRasterThreadsChoices[] = {
     {flags_ui::kGenericExperimentChoiceDefault, "", ""},
     {"1",
-     blink::switches::kNumRasterThreads, "1"},
+     cc::switches::kNumRasterThreads, "1"},
     {"2",
-     blink::switches::kNumRasterThreads, "2"},
+     cc::switches::kNumRasterThreads, "2"},
     {"3",
-     blink::switches::kNumRasterThreads, "3"},
+     cc::switches::kNumRasterThreads, "3"},
     {"4",
-     blink::switches::kNumRasterThreads, "4"},
+     cc::switches::kNumRasterThreads, "4"},
 };
 
 const FeatureEntry::Choice kForceGpuMemAvailableMbChoices[] = {
@@ -98,6 +98,16 @@ const FeatureEntry::Choice kForceGpuMemAvailableMbChoices[] = {
      "force-gpu-mem-available-mb", "512"},
     {"1024",
      "force-gpu-mem-available-mb", "1024"},
+};
+
+const FeatureEntry::Choice kCloseConfirmation[] = {
+    {flags_ui::kGenericExperimentChoiceDefault, "", ""},
+    {"Show confirmation with last window",
+     "close-confirmation",
+     "last"},
+    {"Show confirmation with multiple windows",
+     "close-confirmation",
+     "multiple"},
 };
 
 #if BUILDFLAG(IS_LINUX)

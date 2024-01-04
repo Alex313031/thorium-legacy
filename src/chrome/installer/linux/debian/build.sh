@@ -102,6 +102,9 @@ verify_package() {
     echo
     exit $BAD_DIFF
   fi
+
+  # Rename package to match Thorium naming scheme
+  mv -v "${PACKAGE}_${VERSIONFULL}_${ARCHITECTURE}.deb" "${PACKAGE}_${DEBVERSIONNAME}_${ARCHITECTURE}.deb"
 }
 
 # Actually generate the package file.
@@ -243,6 +246,7 @@ source ${OUTPUTDIR}/installer/common/installer.include
 
 get_version_info
 VERSIONFULL="${VERSION}-${PACKAGE_RELEASE}"
+DEBVERSIONNAME="${VERSION}"
 
 if [ "$BRANDING" = "google_chrome" ]; then
   source "${OUTPUTDIR}/installer/common/google-chrome.info"
@@ -268,14 +272,14 @@ COMMON_RECOMMENDS=$(grep -v ^$ "${MANUAL_RECOMMENDS}" | grep -v ^# |
 
 # Make everything happen in the OUTPUTDIR.
 cd "${OUTPUTDIR}"
-BASEREPOCONFIG="dl.google.com/linux/chrome/deb/ stable main"
+# BASEREPOCONFIG="dl.google.com/linux/chrome/deb/ stable main"
 # Only use the default REPOCONFIG if it's unset (e.g. verify_channel might have
 # set it to an empty string)
-REPOCONFIG="${REPOCONFIG-deb [arch=${ARCHITECTURE}] https://${BASEREPOCONFIG}}"
+# REPOCONFIG="${REPOCONFIG-deb [arch=${ARCHITECTURE}] https://${BASEREPOCONFIG}}"
 # Allowed configs include optional HTTPS support and explicit multiarch
 # platforms.
 REPOCONFIGREGEX="deb (\\\\[arch=[^]]*\\\\b${ARCHITECTURE}\\\\b[^]]*\\\\]"
-REPOCONFIGREGEX+="[[:space:]]*) https?://${BASEREPOCONFIG}"
+# REPOCONFIGREGEX+="[[:space:]]*) https?://${BASEREPOCONFIG}"
 stage_install_debian
 
 do_package

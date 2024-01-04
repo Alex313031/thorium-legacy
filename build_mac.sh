@@ -19,8 +19,8 @@ try() { "$@" || die "${RED}Failed $*"; }
 displayHelp () {
 	printf "\n" &&
 	printf "${bold}${GRE}Script to build Thorium and Thorium Shell on MacOS.${c0}\n" &&
-	printf "${underline}${YEL}Usage: ${c0}build.sh # (where # is number of jobs)${c0}\n" &&
-	printf "${c0}Use the --build-shell flag to also build the thorium_shell target.${c0}\n" &&
+	printf "${underline}${YEL}Usage:${c0} build.sh # (where # is number of jobs)${c0}\n" &&
+	printf "${YEL}Use the --build-shell flag to also build the thorium_shell target.${c0}\n" &&
 	printf "\n"
 }
 case $1 in
@@ -36,9 +36,10 @@ buildShell () {
 	# Build Thorium
 	export NINJA_SUMMARIZE_BUILD=1 &&
 	
-	./depot_tools/autoninja -C ~/chromium/src/out/thorium chrome chromedriver thorium_shell -j$@ &&
+	cd ${CR_SRC_DIR} &&
+	autoninja -C out/thorium chrome chromedriver thorium_shell -j$@ &&
 	
-	cat logos/thorium_logo_ascii_art.txt &&
+	cat ~/thorium/logos/thorium_logo_ascii_art.txt &&
 	
 	printf "${GRE}${bold}Build Completed. ${YEL}${bold}You can now run \'./build_dmg.sh\', and copy the Thorium Shell.app out.\n" &&
 	tput sgr0
@@ -47,16 +48,27 @@ case $1 in
 	--build-shell) buildShell; exit 0;;
 esac
 
+# chromium/src dir env variable
+if [ -z "${CR_DIR}" ]; then 
+    CR_SRC_DIR="$HOME/chromium/src"
+    export CR_SRC_DIR
+else 
+    CR_SRC_DIR="${CR_DIR}"
+    export CR_SRC_DIR
+fi
+
 printf "\n" &&
 printf "${YEL}Building Thorium for MacOS...\n" &&
 printf "${CYA}\n" &&
 
 # Build Thorium
 export NINJA_SUMMARIZE_BUILD=1 &&
+export NINJA_STATUS="[%r processes, %f/%t @ %o/s | %e sec. ] " &&
 
-./depot_tools/autoninja -C ~/chromium/src/out/thorium chrome chromedriver thorium_shell -j$@ &&
+cd ${CR_SRC_DIR} &&
+autoninja -C out/thorium chrome chromedriver -j$@ &&
 
-cat logos/thorium_logo_ascii_art.txt &&
+cat ~/thorium/logos/thorium_logo_ascii_art.txt &&
 
 printf "${GRE}${bold}Build Completed. ${YEL}${bold}You can now run \'./build_dmg.sh\'\n" &&
 

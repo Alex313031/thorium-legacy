@@ -6,6 +6,7 @@
 
 #include <stddef.h>
 
+#include <algorithm>
 #include <iterator>
 #include <limits>
 #include <memory>
@@ -13,16 +14,16 @@
 #include <utility>
 #include <vector>
 
-#include "base/bind.h"
-#include "base/callback.h"
 #include "base/compiler_specific.h"
 #include "base/containers/adapters.h"
 #include "base/containers/contains.h"
 #include "base/containers/flat_map.h"
-#include "base/cxx17_backports.h"
 #include "base/feature_list.h"
+#include "base/functional/bind.h"
+#include "base/functional/callback.h"
 #include "base/i18n/rtl.h"
 #include "base/memory/raw_ptr.h"
+#include "base/command_line.h"
 #include "base/memory/weak_ptr.h"
 #include "base/metrics/histogram.h"
 #include "base/metrics/histogram_functions.h"
@@ -66,19 +67,16 @@
 #include "chrome/browser/ui/views/tabs/tab_strip_layout_types.h"
 #include "chrome/browser/ui/views/tabs/tab_strip_observer.h"
 #include "chrome/browser/ui/views/tabs/tab_strip_types.h"
-#include "chrome/browser/ui/views/tabs/tab_style_views.h"
 #include "chrome/browser/ui/views/tabs/z_orderable_tab_container_element.h"
 #include "chrome/browser/ui/views/touch_uma/touch_uma.h"
 #include "chrome/browser/ui/web_applications/app_browser_controller.h"
 #include "chrome/grit/generated_resources.h"
 #include "chrome/grit/theme_resources.h"
+#include "chromeos/constants/chromeos_features.h"
 #include "components/crash/core/common/crash_key.h"
 #include "components/tab_groups/tab_group_color.h"
 #include "components/tab_groups/tab_group_id.h"
 #include "components/tab_groups/tab_group_visual_data.h"
-#include "third_party/skia/include/core/SkColorFilter.h"
-#include "third_party/skia/include/core/SkPath.h"
-#include "third_party/skia/include/pathops/SkPathOps.h"
 #include "ui/base/clipboard/clipboard.h"
 #include "ui/base/clipboard/clipboard_constants.h"
 #include "ui/base/dragdrop/drag_drop_types.h"
@@ -89,6 +87,7 @@
 #include "ui/base/models/list_selection_model.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/base/theme_provider.h"
+#include "ui/base/ui_base_features.h"
 #include "ui/color/color_provider.h"
 #include "ui/display/display.h"
 #include "ui/gfx/animation/throb_animation.h"
@@ -102,11 +101,7 @@
 #include "ui/views/cascading_property.h"
 #include "ui/views/controls/scroll_view.h"
 #include "ui/views/interaction/element_tracker_views.h"
-#include "ui/views/layout/fill_layout.h"
-#include "ui/views/layout/flex_layout.h"
-#include "ui/views/rect_based_targeting_utils.h"
 #include "ui/views/view_class_properties.h"
-#include "ui/views/view_model_utils.h"
 #include "ui/views/view_observer.h"
 #include "ui/views/view_utils.h"
 #include "ui/views/widget/root_view.h"
@@ -114,7 +109,6 @@
 #include "ui/views/window/non_client_view.h"
 
 #if BUILDFLAG(IS_WIN)
-#include "base/win/windows_version.h"
 #include "ui/display/win/screen_win.h"
 #include "ui/gfx/win/hwnd_util.h"
 #include "ui/views/win/hwnd_util.h"
@@ -137,8 +131,7 @@ std::unique_ptr<TabContainer> MakeTabContainer(
     TabDragContext* drag_context) {
   if (base::FeatureList::IsEnabled(features::kSplitTabStrip)) {
     return std::make_unique<CompoundTabContainer>(
-        raw_ref<TabContainerController>::from_ptr(tab_strip),
-        hover_card_controller, drag_context, *tab_strip, tab_strip);
+        *tab_strip, hover_card_controller, drag_context, *tab_strip, tab_strip);
   }
   return std::make_unique<TabContainerImpl>(
       *tab_strip, hover_card_controller, drag_context, *tab_strip, tab_strip);
@@ -186,7 +179,7 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
   }
 
   bool OnMouseDragged(const ui::MouseEvent& event) override {
-    ContinueDrag(this, event);
+    (void)ContinueDrag(this, event);
     return true;
   }
 
@@ -197,6 +190,7 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
   void OnMouseCaptureLost() override { EndDrag(END_DRAG_CAPTURE_LOST); }
 
   void OnGestureEvent(ui::GestureEvent* event) override {
+    Liveness tabstrip_alive = Liveness::kAlive;
     switch (event->type()) {
       case ui::ET_GESTURE_SCROLL_END:
       case ui::ET_SCROLL_FLING_START:
@@ -210,7 +204,8 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
       }
 
       case ui::ET_GESTURE_SCROLL_UPDATE:
-        ContinueDrag(this, *event);
+        // N.B. !! ContinueDrag may enter a nested run loop !!
+        tabstrip_alive = ContinueDrag(this, *event);
         break;
 
       case ui::ET_GESTURE_TAP_DOWN:
@@ -221,6 +216,12 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
         break;
     }
     event->SetHandled();
+
+    // If tabstrip was destroyed (during ContinueDrag above), return early to
+    // avoid UAF below.
+    if (tabstrip_alive == Liveness::kDeleted) {
+      return;
+    }
 
     // TabDragContext gets event capture as soon as a drag session begins, which
     // precludes TabStrip from ever getting events like tap or long tap. Forward
@@ -283,7 +284,8 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
             x += GetSizeNeededForViews(dragging_views) - other_tab->width();
         }
       }
-      if (!original_selection.IsSelected(tab_strip_->GetModelIndexOf(source)))
+      if (!original_selection.IsSelected(
+              tab_strip_->GetModelIndexOf(source).value()))
         selection_model = original_selection;
     }
 
@@ -309,20 +311,21 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
       std::move(drag_controller_set_callback_).Run(drag_controller_.get());
   }
 
-  void ContinueDrag(views::View* view, const ui::LocatedEvent& event) {
-    if (drag_controller_.get() &&
-        drag_controller_->event_source() == EventSourceFromEvent(event)) {
-      gfx::Point screen_location(event.location());
-      views::View::ConvertPointToScreen(view, &screen_location);
-
-      // Note: |tab_strip_| can be destroyed during drag, also destroying
-      // |this|.
-      base::WeakPtr<TabDragContext> weak_ptr(weak_factory_.GetWeakPtr());
-      drag_controller_->Drag(screen_location);
-
-      if (!weak_ptr)
-        return;
+  [[nodiscard]] Liveness ContinueDrag(views::View* view,
+                                      const ui::LocatedEvent& event) {
+    if (!drag_controller_.get() ||
+        drag_controller_->event_source() != EventSourceFromEvent(event)) {
+      return Liveness::kAlive;
     }
+
+    gfx::Point screen_location(event.location());
+    views::View::ConvertPointToScreen(view, &screen_location);
+
+    // Note: `tab_strip_` can be destroyed during drag, also destroying `this`.
+    base::WeakPtr<TabDragContext> weak_ptr(weak_factory_.GetWeakPtr());
+    drag_controller_->Drag(screen_location);
+
+    return weak_ptr ? Liveness::kAlive : Liveness::kDeleted;
   }
 
   bool EndDrag(EndDragReason reason) {
@@ -345,7 +348,7 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
   // TabDragContext:
   Tab* GetTabAt(int i) const override { return tab_strip_->tab_at(i); }
 
-  int GetIndexOf(const TabSlotView* view) const override {
+  absl::optional<int> GetIndexOf(const TabSlotView* view) const override {
     return tab_strip_->GetModelIndexOf(view);
   }
 
@@ -458,7 +461,7 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
     constexpr int kHorizontalMoveThreshold = 16;  // DIPs.
 
     double ratio = static_cast<double>(tab_strip_->GetInactiveTabWidth()) /
-                   TabStyle::GetStandardWidth();
+                   TabStyle::Get()->GetStandardWidth();
     return base::ClampRound(ratio * kHorizontalMoveThreshold);
   }
 
@@ -475,14 +478,15 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
     // |dragged_views| is a group header, and the second one is the first tab
     // in that group.
     const int first_dragged_tab_model_index =
-        tab_strip_->GetModelIndexOf(dragged_views[group.has_value() ? 1 : 0]);
+        tab_strip_->GetModelIndexOf(dragged_views[group.has_value() ? 1 : 0])
+            .value();
     const int index =
         CalculateInsertionIndex(dragged_bounds, first_dragged_tab_model_index,
                                 num_dragged_tabs, std::move(group));
 
     const Tab* last_visible_tab = tab_strip_->GetLastVisibleTab();
     int last_insertion_point =
-        last_visible_tab ? (GetIndexOf(last_visible_tab) + 1) : 0;
+        last_visible_tab ? (GetIndexOf(last_visible_tab).value() + 1) : 0;
 
     // Clamp the insertion point to keep it within the visible region.
     last_insertion_point = std::max(0, last_insertion_point - num_dragged_tabs);
@@ -496,11 +500,11 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
     DCHECK(!views.empty());
 
     std::vector<gfx::Rect> bounds;
-    const int overlap = TabStyle::GetTabOverlap();
+    const int overlap = TabStyle::Get()->GetTabOverlap();
     int x = 0;
     for (const TabSlotView* view : views) {
       const int width = view->width();
-      bounds.emplace_back(x, 0, width, view->height());
+      bounds.emplace_back(x, height() - view->height(), width, view->height());
       x += width - overlap;
     }
 
@@ -587,7 +591,7 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
             tab_strip_->tab_container_->GetIdealBounds(header->group().value());
       } else {
         ideal_bounds = tab_strip_->tab_container_->GetIdealBounds(
-            tab_strip_->GetModelIndexOf(view));
+            tab_strip_->GetModelIndexOf(view).value());
       }
 
       bounds_animator_.AnimateViewTo(
@@ -604,20 +608,37 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
     std::vector<gfx::Rect> bounds = CalculateBoundsForDraggedViews(views);
     DCHECK_EQ(views.size(), bounds.size());
 
-    int active_tab_model_index = GetIndexOf(source_view);
-    int active_tab_index = static_cast<int>(
+    // The index of `source_view` in the TabStrip's viewmodel.
+    absl::optional<int> source_view_model_index = GetIndexOf(source_view);
+    // The index of `source_view` as a child of this TabDragContext.
+    int source_view_index = static_cast<int>(
         base::ranges::find(views, source_view) - views.begin());
+
+    const auto should_animate_tab = [&](size_t index_in_views) {
+      // If the tab at `index_in_views` is already animating, don't interrupt
+      // it.
+      if (bounds_animator_.IsAnimating(views[index_in_views]))
+        return true;
+
+      // If `source_view_model_index` is nullopt, we are dragging by a header,
+      // so the tabs are guaranteed to be consecutive already.
+      if (!source_view_model_index.has_value())
+        return false;
+
+      // If the tab isn't at the right model index relative to `source_view`,
+      // animate it into position.
+      const int consecutive_model_index =
+          source_view_model_index.value() -
+          (source_view_index - static_cast<int>(index_in_views));
+      return initial_drag &&
+             GetIndexOf(views[index_in_views]) != consecutive_model_index;
+    };
+
     for (size_t i = 0; i < views.size(); ++i) {
       TabSlotView* view = views[i];
       gfx::Rect new_bounds = bounds[i];
       new_bounds.Offset(location.x(), location.y());
-      int consecutive_index =
-          active_tab_model_index - (active_tab_index - static_cast<int>(i));
-      // If this is the initial layout during a drag and the tabs aren't
-      // consecutive animate the view into position. Do the same if the tab is
-      // already animating (which means we previously caused it to animate).
-      if ((initial_drag && GetIndexOf(views[i]) != consecutive_index) ||
-          bounds_animator_.IsAnimating(views[i])) {
+      if (should_animate_tab(i)) {
         bounds_animator_.SetTargetBounds(views[i], new_bounds);
       } else {
         view->SetBoundsRect(new_bounds);
@@ -698,7 +719,7 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
       AnimationProgressed(animation);
       slot_view_->set_animating(false);
       slot_view_->set_dragging(false);
-      tab_container_->StoppedDraggingView(base::to_address(slot_view_));
+      tab_container_->ReturnTabSlotView(base::to_address(slot_view_));
     }
 
     void AnimationCanceled(const gfx::Animation* animation) override {
@@ -764,10 +785,7 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
       }
     }
 
-    if (min_distance_index == -1) {
-      NOTREACHED();
-      return 0;
-    }
+    CHECK_NE(min_distance_index, -1);
 
     // When moving a tab within a tabstrip, the target index is expressed as if
     // the tabs are not in the tabstrip, i.e. it acts like the tabs are first
@@ -825,7 +843,7 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
     if (candidate_index == 0)
       return 0;
 
-    const int tab_overlap = TabStyle::GetTabOverlap();
+    const int tab_overlap = TabStyle::Get()->GetTabOverlap();
 
     // We'll insert just right of the tab at |candidate_index| - 1.
     int ideal_x =
@@ -864,7 +882,7 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
           return 0;
         const int header_width =
             GetTabGroupHeader(*right_group)->bounds().width() -
-            TabStyle::GetTabOverlap();
+            TabStyle::Get()->GetTabOverlap();
         return header_width;
       }
     }
@@ -901,7 +919,8 @@ TabStrip::TabStrip(std::unique_ptr<TabStripController> controller)
           *AddChildViewAt(MakeTabContainer(this,
                                            hover_card_controller_.get(),
                                            base::to_address(drag_context_)),
-                          0)) {
+                          0)),
+      style_(TabStyle::Get()) {
   // TODO(pbos): This is probably incorrect, the background of individual tabs
   // depend on their selected state. This should probably be pushed down into
   // tabs.
@@ -945,7 +964,7 @@ int TabStrip::GetSizeNeededForViews(const std::vector<TabSlotView*>& views) {
   for (const TabSlotView* view : views)
     width += view->width();
   if (!views.empty())
-    width -= TabStyle::GetTabOverlap() * (views.size() - 1);
+    width -= TabStyle::Get()->GetTabOverlap() * (views.size() - 1);
   return width;
 }
 
@@ -955,13 +974,6 @@ void TabStrip::AddObserver(TabStripObserver* observer) {
 
 void TabStrip::RemoveObserver(TabStripObserver* observer) {
   observers_.RemoveObserver(observer);
-}
-
-void TabStrip::FrameColorsChanged() {
-  for (int i = 0; i < GetTabCount(); ++i)
-    tab_at(i)->FrameColorsChanged();
-  UpdateContrastRatioValues();
-  SchedulePaint();
 }
 
 void TabStrip::SetBackgroundOffset(int background_offset) {
@@ -1003,6 +1015,8 @@ void TabStrip::UpdateLoadingAnimations(const base::TimeDelta& elapsed_time) {
 }
 
 void TabStrip::AddTabAt(int model_index, TabRendererData data) {
+  DCHECK(IsValidModelIndex(model_index));
+
   const bool pinned = data.pinned;
   Tab* tab = tab_container_->AddTab(
       std::make_unique<Tab>(this), model_index,
@@ -1135,31 +1149,7 @@ void TabStrip::OnGroupVisualsChanged(
 void TabStrip::ToggleTabGroup(const tab_groups::TabGroupId& group,
                               bool is_collapsing,
                               ToggleTabGroupCollapsedStateOrigin origin) {
-  if (is_collapsing && GetWidget()) {
-    if (origin != ToggleTabGroupCollapsedStateOrigin::kMouse &&
-        origin != ToggleTabGroupCollapsedStateOrigin::kGesture) {
-      return;
-    }
-
-    const int current_group_width =
-        tab_container_->GetGroupViews(group)->GetBounds().width();
-    // A collapsed group only has the width of its header, which is slightly
-    // smaller for collapsed groups compared to expanded groups.
-    const int collapsed_group_width = tab_container_->GetGroupViews(group)
-                                          ->header()
-                                          ->GetCollapsedHeaderWidth();
-    const CloseTabSource source =
-        origin == ToggleTabGroupCollapsedStateOrigin::kMouse
-            ? CloseTabSource::CLOSE_TAB_FROM_MOUSE
-            : CloseTabSource::CLOSE_TAB_FROM_TOUCH;
-
-    tab_container_->EnterTabClosingMode(
-        tab_container_->GetIdealBounds(GetModelCount() - 1).right() -
-            current_group_width + collapsed_group_width,
-        source);
-  } else {
-    tab_container_->ExitTabClosingMode();
-  }
+  tab_container_->ToggleTabGroup(group, is_collapsing, origin);
 }
 
 void TabStrip::OnGroupMoved(const tab_groups::TabGroupId& group) {
@@ -1172,8 +1162,22 @@ void TabStrip::OnGroupClosed(const tab_groups::TabGroupId& group) {
 
 bool TabStrip::ShouldDrawStrokes() const {
   // If the controller says we can't draw strokes, don't.
-  if (!controller_->CanDrawStrokes())
+  if (!controller_->CanDrawStrokes()) {
     return false;
+  }
+
+  // The Tabstrip in the refreshed style does not meet the contrast ratio
+  // requirements listed below but does not have strokes for Tabs or the bottom
+  // border.
+  if (features::IsChromeRefresh2023()) {
+    return false;
+  }
+
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  if (chromeos::features::IsJellyrollEnabled()) {
+    return false;
+  }
+#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
   // The tabstrip normally avoids strokes and relies on the active tab
   // contrasting sufficiently with the frame background.  When there isn't
@@ -1181,8 +1185,9 @@ bool TabStrip::ShouldDrawStrokes() const {
   // against the active frame color, to avoid toggling the stroke on and off as
   // the window activation state changes.
   constexpr float kMinimumContrastRatioForOutlines = 1.3f;
-  const SkColor background_color = GetTabBackgroundColor(
-      TabActive::kActive, BrowserFrameActiveState::kActive);
+  const SkColor background_color = TabStyle::Get()->GetTabBackgroundColor(
+      TabStyle::TabSelectionState::kActive, /*hovered=*/false,
+      /*frame_active=*/true, *GetColorProvider());
   const SkColor frame_color =
       controller_->GetFrameColor(BrowserFrameActiveState::kActive);
   const float contrast_ratio =
@@ -1192,10 +1197,10 @@ bool TabStrip::ShouldDrawStrokes() const {
 
   // Don't want to have to run a full feature query every time this function is
   // called.
-  static const bool tab_outlines_in_low_contrast =
-      base::FeatureList::IsEnabled(features::kTabOutlinesInLowContrastThemes);
-  if (tab_outlines_in_low_contrast) {
-    return true;
+  static const bool force_enable_tab_outlines =
+      base::CommandLine::ForCurrentProcess()->HasSwitch("force-enable-tab-outlines");
+  if (force_enable_tab_outlines) {
+      return true;
   }
 
   return false;
@@ -1213,18 +1218,23 @@ void TabStrip::SetSelection(const ui::ListSelectionModel& new_selection) {
     if (old_active_tab)
       old_active_tab->ActiveStateChanged();
 
-    if (new_active_tab->group().has_value()) {
-      const tab_groups::TabGroupId new_group = new_active_tab->group().value();
-      // If the tab that is about to be activated is in a collapsed group,
-      // automatically expand the group.
-      if (IsGroupCollapsed(new_group))
-        ToggleTabGroupCollapsedState(
-            new_group, ToggleTabGroupCollapsedStateOrigin::kImplicitAction);
-    }
     new_active_tab->ActiveStateChanged();
 
     tab_container_->SetActiveTab(selected_tabs_.active(),
                                  new_selection.active());
+  }
+
+  for (int selection : new_selection.selected_indices()) {
+    Tab* const selected_tab = tab_at(selection);
+    if (selected_tab->group().has_value()) {
+      const tab_groups::TabGroupId new_group = selected_tab->group().value();
+      // If the tab that is about to be selected is in a collapsed group,
+      // automatically expand the group.
+      if (IsGroupCollapsed(new_group)) {
+        ToggleTabGroupCollapsedState(
+            new_group, ToggleTabGroupCollapsedStateOrigin::kImplicitAction);
+      }
+    }
   }
 
   // Use STLSetDifference to get the indices of elements newly selected
@@ -1272,8 +1282,19 @@ void TabStrip::SetTabNeedsAttention(int model_index, bool attention) {
   tab_at(model_index)->SetTabNeedsAttention(attention);
 }
 
-int TabStrip::GetModelIndexOf(const TabSlotView* view) const {
-  return tab_container_->GetModelIndexOf(view);
+absl::optional<int> TabStrip::GetModelIndexOf(const TabSlotView* view) const {
+  const absl::optional<int> viewmodel_index =
+      tab_container_->GetModelIndexOf(view);
+
+  // TODO(1392523): The viewmodel (as accessed by
+  // `tab_container_->GetModelIndexOf(Tab*)`) can be out of sync with the actual
+  // TabStripModel when multiple tabs are closed at once. We can check
+  // IsValidModelIndex to avoid crashes or out of bounds issues, but we can't
+  // avoid returning incorrect indices from this method in that context.
+  if (viewmodel_index.has_value() &&
+      !IsValidModelIndex(viewmodel_index.value()))
+    return absl::nullopt;
+  return viewmodel_index;
 }
 
 int TabStrip::GetTabCount() const {
@@ -1299,7 +1320,7 @@ TabDragContext* TabStrip::GetDragContext() {
 }
 
 bool TabStrip::IsAnimating() const {
-  return tab_container_->IsAnimating();
+  return tab_container_->IsAnimating() || drag_context_->IsAnimatingDragEnd();
 }
 
 void TabStrip::StopAnimating(bool layout) {
@@ -1319,19 +1340,19 @@ absl::optional<int> TabStrip::GetFocusedTabIndex() const {
 }
 
 views::View* TabStrip::GetTabViewForPromoAnchor(int index_hint) {
-  return tab_at(base::clamp(index_hint, 0, GetTabCount() - 1));
+  return tab_at(std::clamp(index_hint, 0, GetTabCount() - 1));
 }
 
 views::View* TabStrip::GetDefaultFocusableChild() {
-  int active = GetActiveIndex();
-  return active != TabStripModel::kNoTab ? tab_at(active) : nullptr;
+  const absl::optional<int> active = GetActiveIndex();
+  return active.has_value() ? tab_at(active.value()) : nullptr;
 }
 
 bool TabStrip::IsValidModelIndex(int index) const {
   return controller_->IsValidIndex(index);
 }
 
-int TabStrip::GetActiveIndex() const {
+absl::optional<int> TabStrip::GetActiveIndex() const {
   return controller_->GetActiveIndex();
 }
 
@@ -1345,7 +1366,8 @@ int TabStrip::NumPinnedTabsInModel() const {
   return controller_->GetCount();
 }
 
-void TabStrip::OnDropIndexUpdate(int index, bool drop_before) {
+void TabStrip::OnDropIndexUpdate(const absl::optional<int> index,
+                                 const bool drop_before) {
   controller_->OnDropIndexUpdate(index, drop_before);
 }
 
@@ -1368,6 +1390,18 @@ const views::View* TabStrip::GetTabClosingModeMouseWatcherHostView() const {
   return this;
 }
 
+bool TabStrip::IsAnimatingInTabStrip() const {
+  return IsAnimating();
+}
+
+void TabStrip::UpdateAnimationTarget(TabSlotView* tab_slot_view,
+                                     gfx::Rect target_bounds) {
+  // TODO(1116121): This may need to do coordinate space transformations if the
+  // view hierarchy changes so `tab_container_` and `drag_context_` don't share
+  // spaces.
+  drag_context_->UpdateAnimationTarget(tab_slot_view, target_bounds);
+}
+
 bool TabStrip::IsGroupCollapsed(const tab_groups::TabGroupId& group) const {
   return controller_->IsGroupCollapsed(group);
 }
@@ -1381,66 +1415,54 @@ Tab* TabStrip::tab_at(int index) const {
 }
 
 void TabStrip::SelectTab(Tab* tab, const ui::Event& event) {
-  int model_index = GetModelIndexOf(tab);
+  const absl::optional<int> maybe_model_index = GetModelIndexOf(tab);
+  if (!maybe_model_index.has_value())
+    return;
 
-  if (IsValidModelIndex(model_index)) {
-    if (!tab->IsActive()) {
-      if (selected_tabs_.active().has_value()) {
-        base::UmaHistogramSparse("Tabs.DesktopTabOffsetOfSwitch",
-                                 selected_tabs_.active().value() - model_index);
-      }
-      base::UmaHistogramSparse("Tabs.DesktopTabOffsetFromLeftOfSwitch",
-                               model_index);
-      base::UmaHistogramSparse("Tabs.DesktopTabOffsetFromRightOfSwitch",
-                               GetModelCount() - model_index - 1);
-      base::UmaHistogramEnumeration("TabStrip.Tab.Views.ActivationAction",
-                                    TabActivationTypes::kTab);
+  const int model_index = maybe_model_index.value();
 
-      if (tab->group().has_value()) {
-        base::RecordAction(
-            base::UserMetricsAction("TabGroups_SwitchGroupedTab"));
-      }
+  if (!tab->IsActive()) {
+    base::UmaHistogramEnumeration("TabStrip.Tab.Views.ActivationAction",
+                                  TabActivationTypes::kTab);
+
+    if (tab->group().has_value()) {
+      base::RecordAction(base::UserMetricsAction("TabGroups_SwitchGroupedTab"));
     }
-
-    // Selecting a tab via mouse affects what statistics we collect.
-    if (event.type() == ui::ET_MOUSE_PRESSED && !tab->IsActive() &&
-        hover_card_controller_) {
-      hover_card_controller_->TabSelectedViaMouse(tab);
-    }
-
-    controller_->SelectTab(model_index, event);
   }
+
+  controller_->SelectTab(model_index, event);
 }
 
 void TabStrip::ExtendSelectionTo(Tab* tab) {
-  int model_index = GetModelIndexOf(tab);
-  if (IsValidModelIndex(model_index))
-    controller_->ExtendSelectionTo(model_index);
+  absl::optional<int> model_index = GetModelIndexOf(tab);
+  if (model_index.has_value())
+    controller_->ExtendSelectionTo(model_index.value());
 }
 
 void TabStrip::ToggleSelected(Tab* tab) {
-  int model_index = GetModelIndexOf(tab);
-  if (IsValidModelIndex(model_index))
-    controller_->ToggleSelected(model_index);
+  absl::optional<int> model_index = GetModelIndexOf(tab);
+  if (model_index.has_value())
+    controller_->ToggleSelected(model_index.value());
 }
 
 void TabStrip::AddSelectionFromAnchorTo(Tab* tab) {
-  int model_index = GetModelIndexOf(tab);
-  if (IsValidModelIndex(model_index))
-    controller_->AddSelectionFromAnchorTo(model_index);
+  absl::optional<int> model_index = GetModelIndexOf(tab);
+  if (model_index.has_value())
+    controller_->AddSelectionFromAnchorTo(model_index.value());
 }
 
 void TabStrip::CloseTab(Tab* tab, CloseTabSource source) {
-  int index_to_close = tab_container_->GetModelIndexOfFirstNonClosingTab(tab);
+  const absl::optional<int> index_to_close =
+      tab_container_->GetModelIndexOfFirstNonClosingTab(tab);
 
-  if (IsValidModelIndex(index_to_close))
-    CloseTabInternal(index_to_close, source);
+  if (index_to_close.has_value())
+    CloseTabInternal(index_to_close.value(), source);
 }
 
 void TabStrip::ToggleTabAudioMute(Tab* tab) {
-  int model_index = GetModelIndexOf(tab);
-  if (IsValidModelIndex(model_index))
-    controller_->ToggleTabAudioMute(model_index);
+  absl::optional<int> model_index = GetModelIndexOf(tab);
+  if (model_index.has_value())
+    controller_->ToggleTabAudioMute(model_index.value());
 }
 
 void TabStrip::ShiftTabNext(Tab* tab) {
@@ -1455,12 +1477,12 @@ void TabStrip::MoveTabFirst(Tab* tab) {
   if (tab->closing())
     return;
 
-  const int start_index = GetModelIndexOf(tab);
-  if (!IsValidModelIndex(start_index))
+  const absl::optional<int> start_index = GetModelIndexOf(tab);
+  if (!start_index.has_value())
     return;
 
   int target_index = 0;
-  if (!controller_->IsTabPinned(start_index)) {
+  if (!controller_->IsTabPinned(start_index.value())) {
     while (target_index < start_index && controller_->IsTabPinned(target_index))
       ++target_index;
   }
@@ -1469,7 +1491,7 @@ void TabStrip::MoveTabFirst(Tab* tab) {
     return;
 
   if (target_index != start_index)
-    controller_->MoveTab(start_index, target_index);
+    controller_->MoveTab(start_index.value(), target_index);
 
   // The tab may unintentionally land in the first group in the tab strip, so we
   // remove the group to ensure consistent behavior. Even if the tab is already
@@ -1485,9 +1507,11 @@ void TabStrip::MoveTabLast(Tab* tab) {
   if (tab->closing())
     return;
 
-  const int start_index = GetModelIndexOf(tab);
-  if (!IsValidModelIndex(start_index))
+  const absl::optional<int> maybe_start_index = GetModelIndexOf(tab);
+  if (!maybe_start_index.has_value())
     return;
+
+  const int start_index = maybe_start_index.value();
 
   int target_index;
   if (controller_->IsTabPinned(start_index)) {
@@ -1515,10 +1539,21 @@ void TabStrip::MoveTabLast(Tab* tab) {
       l10n_util::GetStringUTF16(IDS_TAB_AX_ANNOUNCE_MOVED_LAST));
 }
 
-bool TabStrip::ToggleTabGroupCollapsedState(
+void TabStrip::ToggleTabGroupCollapsedState(
     const tab_groups::TabGroupId group,
     ToggleTabGroupCollapsedStateOrigin origin) {
-  return controller_->ToggleTabGroupCollapsedState(group, origin);
+  int tab_count = GetTabCount();
+  controller_->ToggleTabGroupCollapsedState(group, origin);
+  // If tab count changed, all tab groups are collapsed and we have
+  // created a new tab. We need to exit closing mode to resize the new
+  // tab immediately.
+  // TODO(crbug/1384151): This should be captured along with the
+  // ToggleTabGroup logic, so other callers to
+  // TabStripController::ToggleTabGroupCollapsedState see the same
+  // behavior.
+  if (tab_count != GetTabCount()) {
+    tab_container_->ExitTabClosingMode();
+  }
 }
 
 void TabStrip::NotifyTabGroupEditorBubbleOpened() {
@@ -1535,24 +1570,21 @@ void TabStrip::ShowContextMenuForTab(Tab* tab,
 }
 
 bool TabStrip::IsActiveTab(const Tab* tab) const {
-  int model_index = GetModelIndexOf(tab);
-  return IsValidModelIndex(model_index) &&
-         controller_->IsActiveTab(model_index);
+  absl::optional<int> model_index = GetModelIndexOf(tab);
+  return model_index.has_value() &&
+         controller_->IsActiveTab(model_index.value());
 }
 
 bool TabStrip::IsTabSelected(const Tab* tab) const {
-  int model_index = GetModelIndexOf(tab);
-  return IsValidModelIndex(model_index) &&
-         controller_->IsTabSelected(model_index);
+  absl::optional<int> model_index = GetModelIndexOf(tab);
+  return model_index.has_value() &&
+         controller_->IsTabSelected(model_index.value());
 }
 
 bool TabStrip::IsTabPinned(const Tab* tab) const {
-  if (tab->closing())
-    return false;
-
-  int model_index = GetModelIndexOf(tab);
-  return IsValidModelIndex(model_index) &&
-         controller_->IsTabPinned(model_index);
+  absl::optional<int> model_index = GetModelIndexOf(tab);
+  return model_index.has_value() &&
+         controller_->IsTabPinned(model_index.value());
 }
 
 bool TabStrip::IsTabFirst(const Tab* tab) const {
@@ -1576,16 +1608,17 @@ void TabStrip::MaybeStartDrag(
 
   // Check that the source is either a valid tab or a tab group header, which
   // are the only valid drag targets.
-  if (!IsValidModelIndex(GetModelIndexOf(source))) {
-    DCHECK_EQ(source->GetTabSlotViewType(),
-              TabSlotView::ViewType::kTabGroupHeader);
-  }
+  DCHECK(GetModelIndexOf(source).has_value() ||
+         source->GetTabSlotViewType() ==
+             TabSlotView::ViewType::kTabGroupHeader);
 
   drag_context_->MaybeStartDrag(source, event, original_selection);
 }
 
-void TabStrip::ContinueDrag(views::View* view, const ui::LocatedEvent& event) {
-  drag_context_->ContinueDrag(view, event);
+TabSlotController::Liveness TabStrip::ContinueDrag(
+    views::View* view,
+    const ui::LocatedEvent& event) {
+  return drag_context_->ContinueDrag(view, event);
 }
 
 bool TabStrip::EndDrag(EndDragReason reason) {
@@ -1606,11 +1639,11 @@ Tab* TabStrip::GetTabAt(const gfx::Point& point) {
 }
 
 const Tab* TabStrip::GetAdjacentTab(const Tab* tab, int offset) {
-  int index = GetModelIndexOf(tab);
-  if (index < 0)
+  const absl::optional<int> tab_index = GetModelIndexOf(tab);
+  if (!tab_index.has_value())
     return nullptr;
-  index += offset;
-  return IsValidModelIndex(index) ? tab_at(index) : nullptr;
+  const int adjacent_index = tab_index.value() + offset;
+  return IsValidModelIndex(adjacent_index) ? tab_at(adjacent_index) : nullptr;
 }
 
 void TabStrip::OnMouseEventInTab(views::View* source,
@@ -1665,33 +1698,8 @@ bool TabStrip::HasVisibleBackgroundTabShapes() const {
   return controller_->HasVisibleBackgroundTabShapes();
 }
 
-bool TabStrip::ShouldPaintAsActiveFrame() const {
-  return controller_->ShouldPaintAsActiveFrame();
-}
-
 SkColor TabStrip::GetTabSeparatorColor() const {
   return separator_color_;
-}
-
-SkColor TabStrip::GetTabBackgroundColor(
-    TabActive active,
-    BrowserFrameActiveState active_state) const {
-  const auto* cp = GetColorProvider();
-  if (!cp)
-    return gfx::kPlaceholderColor;
-
-  constexpr ChromeColorIds kColorIds[2][2] = {
-      {kColorTabBackgroundInactiveFrameInactive,
-       kColorTabBackgroundInactiveFrameActive},
-      {kColorTabBackgroundActiveFrameInactive,
-       kColorTabBackgroundActiveFrameActive}};
-
-  using State = BrowserFrameActiveState;
-  const bool tab_active = active == TabActive::kActive;
-  const bool frame_active =
-      (active_state == State::kActive) ||
-      ((active_state == State::kUseCurrent) && ShouldPaintAsActiveFrame());
-  return cp->GetColor(kColorIds[tab_active][frame_active]);
 }
 
 SkColor TabStrip::GetTabForegroundColor(TabActive active) const {
@@ -1706,26 +1714,20 @@ SkColor TabStrip::GetTabForegroundColor(TabActive active) const {
        kColorTabForegroundActiveFrameActive}};
 
   const bool tab_active = active == TabActive::kActive;
-  const bool frame_active = ShouldPaintAsActiveFrame();
+  const bool frame_active = GetWidget()->ShouldPaintAsActive();
   return cp->GetColor(kColorIds[tab_active][frame_active]);
 }
 
 // Returns the accessible tab name for the tab.
 std::u16string TabStrip::GetAccessibleTabName(const Tab* tab) const {
-  const int model_index = GetModelIndexOf(tab);
-  return IsValidModelIndex(model_index) ? controller_->GetAccessibleTabName(tab)
-                                        : std::u16string();
+  return GetModelIndexOf(tab).has_value()
+             ? controller_->GetAccessibleTabName(tab)
+             : std::u16string();
 }
 
 absl::optional<int> TabStrip::GetCustomBackgroundId(
     BrowserFrameActiveState active_state) const {
-  if (!TitlebarBackgroundIsTransparent())
-    return controller_->GetCustomBackgroundId(active_state);
-
-  constexpr int kBackgroundIdGlass = IDR_THEME_TAB_BACKGROUND_V;
-  return GetThemeProvider()->HasCustomImage(kBackgroundIdGlass)
-             ? absl::make_optional(kBackgroundIdGlass)
-             : absl::nullopt;
+  return controller_->GetCustomBackgroundId(active_state);
 }
 
 float TabStrip::GetHoverOpacityForTab(float range_parameter) const {
@@ -1754,7 +1756,7 @@ tab_groups::TabGroupColorId TabStrip::GetGroupColorId(
 SkColor TabStrip::GetPaintedGroupColor(
     const tab_groups::TabGroupColorId& color_id) const {
   return GetColorProvider()->GetColor(
-      GetTabGroupTabStripColorId(color_id, ShouldPaintAsActiveFrame()));
+      GetTabGroupTabStripColorId(color_id, GetWidget()->ShouldPaintAsActive()));
 }
 
 void TabStrip::ShiftGroupLeft(const tab_groups::TabGroupId& group) {
@@ -1812,7 +1814,7 @@ void TabStrip::Layout() {
         tab_container_->GetAvailableWidthForTabContainer();
     // Be as wide as possible subject to the above constraints.
     const int width = std::min(max_width, std::max(min_width, available_width));
-    SetBounds(0, 0, width, GetLayoutConstant(TAB_HEIGHT));
+    SetBounds(0, 0, width, GetLayoutConstant(TAB_STRIP_HEIGHT));
   }
 
   if (tab_container_->bounds() != GetLocalBounds()) {
@@ -1835,8 +1837,7 @@ void TabStrip::ChildPreferredSizeChanged(views::View* child) {
 BrowserRootView::DropIndex TabStrip::GetDropIndex(
     const ui::DropTargetEvent& event) {
   // BrowserView should talk directly to |tab_container_| instead of asking us.
-  NOTREACHED();
-  return tab_container_->GetDropIndex(event);
+  NOTREACHED_NORETURN();
 }
 
 BrowserRootView::DropTarget* TabStrip::GetDropTarget(
@@ -1846,8 +1847,7 @@ BrowserRootView::DropTarget* TabStrip::GetDropTarget(
 
 views::View* TabStrip::GetViewForDrop() {
   // BrowserView should talk directly to |tab_container_| instead of asking us.
-  NOTREACHED();
-  return tab_container_->GetViewForDrop();
+  NOTREACHED_NORETURN();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1858,8 +1858,6 @@ void TabStrip::Init() {
   // So we only get enter/exit messages when the mouse enters/exits the whole
   // tabstrip, even if it is entering/exiting a specific Tab, too.
   SetNotifyEnterExitOnChild(true);
-
-  UpdateContrastRatioValues();
 }
 
 void TabStrip::NewTabButtonPressed(const ui::Event& event) {
@@ -1901,12 +1899,10 @@ bool TabStrip::ShouldHighlightCloseButtonAfterRemove() {
 
 bool TabStrip::TitlebarBackgroundIsTransparent() const {
 #if BUILDFLAG(IS_WIN)
-  // Windows 8+ uses transparent window contents (because the titlebar area is
-  // drawn by the system and not Chrome), but the actual titlebar is opaque.
-  if (base::win::GetVersion() >= base::win::Version::WIN8)
-    return false;
-#endif
+  return false;
+#else
   return GetWidget()->ShouldWindowContentsBeTransparent();
+#endif  // BUILDFLAG(IS_WIN)
 }
 
 int TabStrip::GetActiveTabWidth() const {
@@ -1968,15 +1964,18 @@ void TabStrip::UpdateContrastRatioValues() {
   if (!controller_)
     return;
 
-  const SkColor inactive_bg = GetTabBackgroundColor(
-      TabActive::kInactive, BrowserFrameActiveState::kUseCurrent);
+  const SkColor inactive_bg = TabStyle::Get()->GetTabBackgroundColor(
+      TabStyle::TabSelectionState::kInactive,
+      /*hovered=*/false, GetWidget()->ShouldPaintAsActive(),
+      *GetColorProvider());
   const auto get_blend = [inactive_bg](SkColor target, float contrast) {
     return color_utils::BlendForMinContrast(inactive_bg, inactive_bg, target,
                                             contrast);
   };
 
-  const SkColor active_bg = GetTabBackgroundColor(
-      TabActive::kActive, BrowserFrameActiveState::kUseCurrent);
+  const SkColor active_bg = TabStyle::Get()->GetTabBackgroundColor(
+      TabStyle::TabSelectionState::kActive, /*hovered=*/false,
+      GetWidget()->ShouldPaintAsActive(), *GetColorProvider());
   const auto get_hover_opacity = [active_bg, &get_blend](float contrast) {
     return get_blend(active_bg, contrast).alpha / 255.0f;
   };
@@ -2000,15 +1999,18 @@ void TabStrip::UpdateContrastRatioValues() {
   // The contrast ratio for the separator between inactive tabs.
   constexpr float kTabSeparatorContrast = 2.5f;
   separator_color_ = get_blend(inactive_fg, kTabSeparatorContrast).color;
+
+  SchedulePaint();
 }
 
 void TabStrip::ShiftTabRelative(Tab* tab, int offset) {
   DCHECK_EQ(1, std::abs(offset));
-  const int start_index = GetModelIndexOf(tab);
-  int target_index = start_index + offset;
-
-  if (!IsValidModelIndex(start_index))
+  const absl::optional<int> maybe_start_index = GetModelIndexOf(tab);
+  if (!maybe_start_index.has_value())
     return;
+
+  const int start_index = maybe_start_index.value();
+  int target_index = start_index + offset;
 
   if (tab->closing())
     return;
@@ -2143,10 +2145,19 @@ void TabStrip::OnMouseExited(const ui::MouseEvent& event) {
 
 void TabStrip::AddedToWidget() {
   GetWidget()->AddObserver(this);
+  paint_as_active_subscription_ =
+      GetWidget()->RegisterPaintAsActiveChangedCallback(base::BindRepeating(
+          &TabStrip::UpdateContrastRatioValues, base::Unretained(this)));
 }
 
 void TabStrip::RemovedFromWidget() {
   GetWidget()->RemoveObserver(this);
+  paint_as_active_subscription_ = {};
+}
+
+void TabStrip::OnThemeChanged() {
+  views::View::OnThemeChanged();
+  UpdateContrastRatioValues();
 }
 
 void TabStrip::OnGestureEvent(ui::GestureEvent* event) {
@@ -2157,9 +2168,8 @@ void TabStrip::OnGestureEvent(ui::GestureEvent* event) {
     }
 
     case ui::ET_GESTURE_TAP: {
-      const int active_index = GetActiveIndex();
-      DCHECK_NE(-1, active_index);
-      Tab* active_tab = tab_at(active_index);
+      const absl::optional<int> active_index = GetActiveIndex();
+      Tab* active_tab = tab_at(active_index.value());
       TouchUMA::GestureActionType action = TouchUMA::kGestureTabNoSwitchTap;
       if (active_tab->tab_activated_with_last_tap_down())
         action = TouchUMA::kGestureTabSwitchTap;

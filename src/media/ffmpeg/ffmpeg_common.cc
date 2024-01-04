@@ -15,6 +15,7 @@
 #include "media/base/encryption_scheme.h"
 #include "media/base/media_util.h"
 #include "media/base/video_aspect_ratio.h"
+#include "media/base/video_color_space.h"
 #include "media/base/video_decoder_config.h"
 #include "media/base/video_util.h"
 #include "media/formats/mp4/box_definitions.h"
@@ -45,13 +46,13 @@ VideoDecoderConfig::AlphaMode GetAlphaMode(const AVStream* stream) {
              : VideoDecoderConfig::AlphaMode::kIsOpaque;
 }
 
-}  // namespace
+VideoColorSpace GetGuessedColorSpace(const VideoColorSpace& color_space) {
+  return VideoColorSpace::FromGfxColorSpace(
+      // convert to gfx color space and make a guess.
+      color_space.GuessGfxColorSpace());
+}
 
-// Why AV_INPUT_BUFFER_PADDING_SIZE? FFmpeg assumes all input buffers are
-// padded. Check here to ensure FFmpeg only receives data padded to its
-// specifications.
-static_assert(DecoderBuffer::kPaddingSize >= AV_INPUT_BUFFER_PADDING_SIZE,
-              "DecoderBuffer padding size does not fit ffmpeg requirement");
+}  // namespace
 
 // Alignment requirement by FFmpeg for input and output buffers. This need to
 // be updated to match FFmpeg when it changes.
@@ -60,12 +61,6 @@ static const int kFFmpegBufferAddressAlignment = 16;
 #else
 static const int kFFmpegBufferAddressAlignment = 32;
 #endif
-
-// Check here to ensure FFmpeg only receives data aligned to its specifications.
-static_assert(
-    DecoderBuffer::kAlignmentSize >= kFFmpegBufferAddressAlignment &&
-    DecoderBuffer::kAlignmentSize % kFFmpegBufferAddressAlignment == 0,
-    "DecoderBuffer alignment size does not fit ffmpeg requirement");
 
 // Allows faster SIMD YUV convert. Also, FFmpeg overreads/-writes occasionally.
 // See video_get_buffer() in libavcodec/utils.c.
@@ -118,12 +113,6 @@ AudioCodec CodecIDToAudioCodec(AVCodecID codec_id) {
       return AudioCodec::kPCM_S24BE;
     case AV_CODEC_ID_FLAC:
       return AudioCodec::kFLAC;
-    case AV_CODEC_ID_AMR_NB:
-      return AudioCodec::kAMR_NB;
-    case AV_CODEC_ID_AMR_WB:
-      return AudioCodec::kAMR_WB;
-    case AV_CODEC_ID_GSM_MS:
-      return AudioCodec::kGSM_MS;
     case AV_CODEC_ID_PCM_ALAW:
       return AudioCodec::kPCM_ALAW;
     case AV_CODEC_ID_PCM_MULAW:
@@ -179,12 +168,6 @@ AVCodecID AudioCodecToCodecID(AudioCodec audio_codec,
       return AV_CODEC_ID_VORBIS;
     case AudioCodec::kFLAC:
       return AV_CODEC_ID_FLAC;
-    case AudioCodec::kAMR_NB:
-      return AV_CODEC_ID_AMR_NB;
-    case AudioCodec::kAMR_WB:
-      return AV_CODEC_ID_AMR_WB;
-    case AudioCodec::kGSM_MS:
-      return AV_CODEC_ID_GSM_MS;
     case AudioCodec::kPCM_ALAW:
       return AV_CODEC_ID_PCM_ALAW;
     case AudioCodec::kPCM_MULAW:
@@ -660,9 +643,20 @@ bool AVStreamToVideoDecoderConfig(const AVStream* stream,
           break;
       }
       break;
+#if BUILDFLAG(ENABLE_AV1_DECODER)
     case VideoCodec::kAV1:
       profile = AV1PROFILE_PROFILE_MAIN;
+      if (codec_context->extradata && codec_context->extradata_size) {
+        mp4::AV1CodecConfigurationRecord av1_config;
+        if (av1_config.Parse(codec_context->extradata,
+                             codec_context->extradata_size)) {
+          profile = av1_config.profile;
+        } else {
+          DLOG(WARNING) << "Failed to parse AV1 extra data for profile.";
+        }
+      }
       break;
+#endif  // BUILDFLAG(ENABLE_AV1_DECODER)
     case VideoCodec::kTheora:
       profile = THEORAPROFILE_ANY;
       break;
@@ -707,17 +701,18 @@ bool AVStreamToVideoDecoderConfig(const AVStream* stream,
     // because GBR is reasonable for 4:4:4 content. See crbug.com/1067377.
     color_space = VideoColorSpace::REC709();
   } else if (codec_context->codec_id == AV_CODEC_ID_HEVC &&
-             color_space.primaries == VideoColorSpace::PrimaryID::INVALID &&
-             color_space.transfer == VideoColorSpace::TransferID::BT709 &&
-             color_space.matrix == VideoColorSpace::MatrixID::UNSPECIFIED &&
-             color_space.range == gfx::ColorSpace::RangeID::LIMITED &&
+             (color_space.primaries == VideoColorSpace::PrimaryID::INVALID ||
+              color_space.transfer == VideoColorSpace::TransferID::INVALID ||
+              color_space.matrix == VideoColorSpace::MatrixID::INVALID) &&
              AVPixelFormatToVideoPixelFormat(codec_context->pix_fmt) ==
                  PIXEL_FORMAT_I420) {
     // Some HEVC SDR content encoded by the Adobe Premiere HW HEVC encoder has
-    // invalid primaries but valid transfer and matrix, this will cause
-    // IsHevcProfileSupported return "false" and fail to playback.
-    // See crbug.com/1374270.
-    color_space = VideoColorSpace::REC709();
+    // invalid primaries but valid transfer and matrix, and some HEVC SDR
+    // content encoded by web camera has invalid primaries and transfer, this
+    // will cause IsHevcProfileSupported return "false" and fail to playback.
+    // make a guess can at least make these videos able to play. See
+    // crbug.com/1374270.
+    color_space = GetGuessedColorSpace(color_space);
   }
 
   // AVCodecContext occasionally has invalid extra data. See
@@ -748,24 +743,28 @@ bool AVStreamToVideoDecoderConfig(const AVStream* stream,
 
       AVMasteringDisplayMetadata* metadata =
           reinterpret_cast<AVMasteringDisplayMetadata*>(side_data.data);
+      gfx::HdrMetadataSmpteSt2086 smpte_st_2086;
       if (metadata->has_primaries) {
-        hdr_metadata.color_volume_metadata.primary_r =
-            gfx::PointF(av_q2d(metadata->display_primaries[0][0]),
-                        av_q2d(metadata->display_primaries[0][1]));
-        hdr_metadata.color_volume_metadata.primary_g =
-            gfx::PointF(av_q2d(metadata->display_primaries[1][0]),
-                        av_q2d(metadata->display_primaries[1][1]));
-        hdr_metadata.color_volume_metadata.primary_b =
-            gfx::PointF(av_q2d(metadata->display_primaries[2][0]),
-                        av_q2d(metadata->display_primaries[2][1]));
-        hdr_metadata.color_volume_metadata.white_point = gfx::PointF(
-            av_q2d(metadata->white_point[0]), av_q2d(metadata->white_point[1]));
+        smpte_st_2086.primaries = {
+            static_cast<float>(av_q2d(metadata->display_primaries[0][0])),
+            static_cast<float>(av_q2d(metadata->display_primaries[0][1])),
+            static_cast<float>(av_q2d(metadata->display_primaries[1][0])),
+            static_cast<float>(av_q2d(metadata->display_primaries[1][1])),
+            static_cast<float>(av_q2d(metadata->display_primaries[2][0])),
+            static_cast<float>(av_q2d(metadata->display_primaries[2][1])),
+            static_cast<float>(av_q2d(metadata->white_point[0])),
+            static_cast<float>(av_q2d(metadata->white_point[1])),
+        };
       }
       if (metadata->has_luminance) {
-        hdr_metadata.color_volume_metadata.luminance_max =
-            av_q2d(metadata->max_luminance);
-        hdr_metadata.color_volume_metadata.luminance_min =
-            av_q2d(metadata->min_luminance);
+        smpte_st_2086.luminance_max = av_q2d(metadata->max_luminance);
+        smpte_st_2086.luminance_min = av_q2d(metadata->min_luminance);
+      }
+
+      // TODO(https://crbug.com/1446302): Consider rejecting metadata that does
+      // not specify all values.
+      if (metadata->has_primaries || metadata->has_luminance) {
+        hdr_metadata.smpte_st_2086 = smpte_st_2086;
       }
     }
   }
@@ -918,26 +917,6 @@ VideoPixelFormat AVPixelFormatToVideoPixelFormat(AVPixelFormat pixel_format) {
       DVLOG(1) << "Unsupported AVPixelFormat: " << pixel_format;
   }
   return PIXEL_FORMAT_UNKNOWN;
-}
-
-VideoColorSpace AVColorSpaceToColorSpace(AVColorSpace color_space,
-                                         AVColorRange color_range) {
-  // TODO(hubbe): make this better
-  if (color_range == AVCOL_RANGE_JPEG)
-    return VideoColorSpace::JPEG();
-
-  switch (color_space) {
-    case AVCOL_SPC_UNSPECIFIED:
-      break;
-    case AVCOL_SPC_BT709:
-      return VideoColorSpace::REC709();
-    case AVCOL_SPC_SMPTE170M:
-    case AVCOL_SPC_BT470BG:
-      return VideoColorSpace::REC601();
-    default:
-      DVLOG(1) << "Unknown AVColorSpace: " << color_space;
-  }
-  return VideoColorSpace();
 }
 
 std::string AVErrorToString(int errnum) {

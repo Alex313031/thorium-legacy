@@ -23,10 +23,10 @@ displayHelp () {
 	printf "${bold}${YEL}Use the --raspi flag for Raspberry Pi builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --woa flag for Windows on ARM builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --avx2 flag for AVX2 Builds.${c0}\n" &&
-	printf "${bold}${YEL}Use the --sse4 flag for SSE4.1 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse3 flag for SSE3 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse2 flag for 32 bit SSE2 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --android flag for Android Builds.${c0}\n" &&
+	printf "${bold}${YEL}Use the --cros flag for ChromiumOS Builds.${c0}\n" &&
 	printf "${bold}${YEL}IMPORTANT: For Polly builds, first run build_polly.sh in Thorium/infra, then use the setup_polly.sh${c0}\n" &&
 	printf "${bold}${YEL}script in Thorium/other/Polly. Both of these actions should be taken AFTER running this script!${c0}\n" &&
 	printf "\n"
@@ -55,14 +55,18 @@ printf "\n" &&
 printf "${YEL}Copying Thorium source files over the Chromium tree...\n" &&
 tput sgr0 &&
 
+# Copy libjxl src
+cd ~/thorium &&
+cp -r -v thorium-libjxl/src/. ${CR_SRC_DIR}/ &&
+
 # Copy Thorium sources
 cp -r -v src/. ${CR_SRC_DIR}/ &&
 cp -r -v patches/win7-8-8.1-support.patch ${CR_SRC_DIR}/ &&
 cp -r -v patches/win7-8-8.1-support-in-boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
 cp -r -v patches/win7-8-8.1-support-in-webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
 cp -r -v thorium_shell/. ${CR_SRC_DIR}/out/thorium/ &&
-cp -r -v pak_src/bin/pak ${CR_SRC_DIR}/out/thorium/ &&
-cp -r -v pak_src/bin/pak-win/. ${CR_SRC_DIR}/out/thorium/ &&
+cp -r -v pak_src/binaries/pak ${CR_SRC_DIR}/out/thorium/ &&
+cp -r -v pak_src/binaries/pak-win/. ${CR_SRC_DIR}/out/thorium/ &&
 
 # Add default_apps dir for Google Docs Offline extension.
 mkdir -v -p ${CR_SRC_DIR}/out/thorium/default_apps &&
@@ -80,7 +84,6 @@ cp -r -v src/third_party/devtools-frontend/src/front_end/Images/src/chromeSelect
 copyMacOS () {
 	printf "\n" &&
 	printf "${YEL}Copying files for MacOS...${c0}\n" &&
-	cp -r -v other/Mac/cdm_registration.cc ${CR_SRC_DIR}/chrome/common/media/ &&
 	cp -r -v arm/mac_arm.gni ${CR_SRC_DIR}/build/config/arm.gni &&
 	printf "\n"
 }
@@ -92,7 +95,11 @@ esac
 copyRaspi () {
 	printf "\n" &&
 	printf "${YEL}Copying Raspberry Pi build files...${c0}\n" &&
+	cp -r -v arm/media/* ${CR_SRC_DIR}/media/ &&
 	cp -r -v arm/raspi/* ${CR_SRC_DIR}/ &&
+	rm -v ${CR_SRC_DIR}/out/thorium/pak &&
+	cp -v pak_src/binaries/pak_arm64 ${CR_SRC_DIR}/out/thorium/pak &&
+	./infra/fix_libaom.sh &&
 	printf "\n"
 }
 # Display raspi ascii art
@@ -171,8 +178,9 @@ copyAndroid () {
 	printf "\n" &&
 	printf "${YEL}Copying Android (ARM64 and ARM32) build files...${c0}\n" &&
 	cp -r -v arm/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v arm/media/* ${CR_SRC_DIR}/media/ &&
 	cp -r -v arm/android/* ${CR_SRC_DIR}/ &&
-	cp -r -v arm/raspi/third_party/* ${CR_SRC_DIR}/third_party/ &&
+	cp -r -v arm/android/third_party/* ${CR_SRC_DIR}/third_party/ &&
 	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_base/drawable-v26/ic_launcher.xml &&
 	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_base/drawable-v26/ic_launcher_round.xml &&
 	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-mdpi/layered_app_icon_background.png &&
@@ -192,39 +200,24 @@ case $1 in
 	--android) copyAndroid;
 esac
 
+# Copy CrOS files
+copyCros () {
+	printf "\n" &&
+	printf "${YEL}Copying ChromiumOS build files...${c0}\n" &&
+	cp -r -v other/CrOS/* ${CR_SRC_DIR}/ &&
+	printf "\n"
+}
+case $1 in
+	--cros) copyCros;
+esac
+
 printf "${GRE}Done!\n" &&
 printf "\n" &&
 
 printf "${YEL}Exporting variables and setting handy aliases...\n" &&
 
-export NINJA_SUMMARIZE_BUILD=1 &&
-export NINJA_STATUS="[%r processes, %f/%t @ %o/s | %e sec. ] " &&
+. ~/thorium/aliases &&
 
-export EDITOR=nano &&
-
-export VISUAL=nano &&
-
-alias origin='git checkout -f origin/main' &&
-
-alias gfetch='git fetch --tags' &&
-
-alias rebase='git rebase-update' &&
-
-alias gsync='gclient sync --with_branch_heads --with_tags -f -R -D' &&
-
-alias args='gn args out/thorium' &&
-
-alias gnls='gn ls out/thorium' &&
-
-alias show='git show-ref' &&
-
-alias runhooks='gclient runhooks' &&
-
-alias pgo='python3 tools/update_pgo_profiles.py --target=linux update --gs-url-base=chromium-optimization-profiles/pgo_profiles' &&
-
-alias pgow='python3 tools/update_pgo_profiles.py --target=win64 update --gs-url-base=chromium-optimization-profiles/pgo_profiles' &&
-
-alias pgom='python3 tools/update_pgo_profiles.py --target=mac update --gs-url-base=chromium-optimization-profiles/pgo_profiles' &&
 printf "\n" &&
 tput sgr0 &&
 
@@ -256,6 +249,8 @@ printf "alias ${YEL}pgo${c0} = ${CYA}python3 tools/update_pgo_profiles.py --targ
 printf "alias ${YEL}pgow${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=win64 update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
 
 printf "alias ${YEL}pgom${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=mac update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
+
+printf "alias ${YEL}pgomac-arm${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=mac-arm update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
 
 printf "\n" &&
 

@@ -1,4 +1,4 @@
-// Copyright 2022 The Chromium Authors and Alex313031
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -13,18 +13,17 @@
 #include <vector>
 
 #include "base/base_paths.h"
-#include "base/bind.h"
-#include "base/callback.h"
-#include "base/callback_helpers.h"
 #include "base/command_line.h"
 #include "base/containers/contains.h"
+#include "base/functional/bind.h"
+#include "base/functional/callback.h"
+#include "base/functional/callback_helpers.h"
 #include "base/location.h"
 #include "base/logging.h"
-#include "base/metrics/histogram_macros.h"
 #include "base/metrics/user_metrics.h"
 #include "base/one_shot_event.h"
 #include "base/strings/utf_string_conversions.h"
-#include "base/threading/thread_task_runner_handle.h"
+#include "base/task/single_thread_task_runner.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/app/chrome_command_ids.h"
@@ -54,14 +53,14 @@
 #include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/chrome_pages.h"
 #include "chrome/browser/ui/extensions/app_launch_params.h"
-#include "chrome/browser/ui/profile_picker.h"
+#include "chrome/browser/ui/profiles/profile_picker.h"
 #include "chrome/common/chrome_constants.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/extensions/extension_constants.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/common/webui_url_constants.h"
+#include "chrome/grit/branded_strings.h"
 #include "chrome/grit/chrome_unscaled_resources.h"
-#include "chrome/grit/chromium_strings.h"
 #include "chrome/grit/generated_resources.h"
 #include "components/keep_alive_registry/keep_alive_registry.h"
 #include "components/keep_alive_registry/keep_alive_types.h"
@@ -98,11 +97,6 @@ enum MenuItem {
   MENU_ITEM_EXIT = 4,
   MENU_ITEM_NUM_STATES
 };
-
-void RecordMenuItemClick(MenuItem item) {
-  UMA_HISTOGRAM_ENUMERATION("BackgroundMode.MenuItemClick", item,
-                            MENU_ITEM_NUM_STATES);
-}
 }  // namespace
 
 // static
@@ -170,7 +164,6 @@ void BackgroundModeManager::BackgroundModeData::ExecuteCommand(
       break;
     default:
       DCHECK(!command_id_handler_vector_->at(command_id).is_null());
-      RecordMenuItemClick(MENU_ITEM_BACKGROUND_CLIENT);
       command_id_handler_vector_->at(command_id).Run();
       break;
   }
@@ -303,11 +296,6 @@ BackgroundModeManager::BackgroundModeManager(
   // This observer is never unregistered because the BackgroundModeManager
   // outlives the profile storage.
   profile_storage_->AddObserver(this);
-
-  UMA_HISTOGRAM_BOOLEAN("BackgroundMode.OnStartup.AutoLaunchState",
-                        command_line.HasSwitch(switches::kNoStartupWindow));
-  UMA_HISTOGRAM_BOOLEAN("BackgroundMode.OnStartup.IsBackgroundModePrefEnabled",
-                        IsBackgroundModePrefEnabled());
 
   // Listen for the background mode preference changing.
   if (g_browser_process->local_state()) {  // Skip for unit tests
@@ -496,10 +484,7 @@ void BackgroundModeManager::OnAppTerminating() {
 void BackgroundModeManager::OnExtensionsReady(Profile* profile) {
   BackgroundModeManager::BackgroundModeData* bmd =
       GetBackgroundModeData(profile);
-  if (bmd) {
-    UMA_HISTOGRAM_COUNTS_100("BackgroundMode.BackgroundApplicationsCount",
-                             bmd->applications()->size());
-  }
+
   // Extensions are loaded, so we don't need to manually keep the browser
   // process alive any more when running in no-startup-window mode.
   ReleaseStartupKeepAlive();
@@ -514,14 +499,12 @@ void BackgroundModeManager::OnExtensionsReady(Profile* profile) {
 }
 
 void BackgroundModeManager::OnBackgroundModeEnabledPrefChanged() {
-  bool enabled = IsBackgroundModePrefEnabled();
-  UMA_HISTOGRAM_BOOLEAN("BackgroundMode.BackgroundModeEnabledPrefChanged",
-                        enabled);
   UpdateEnableLaunchOnStartup();
-  if (enabled)
+  if (IsBackgroundModePrefEnabled()) {
     EnableBackgroundMode();
-  else
+  } else {
     DisableBackgroundMode();
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -620,7 +603,6 @@ void BackgroundModeManager::ExecuteCommand(int command_id, int event_flags) {
   BackgroundModeData* bmd = GetBackgroundModeDataForLastProfile();
   switch (command_id) {
     case IDC_ABOUT:
-      RecordMenuItemClick(MENU_ITEM_ABOUT);
       if (bmd) {
         chrome::ShowAboutChrome(bmd->GetBrowserWindow());
       } else {
@@ -629,7 +611,6 @@ void BackgroundModeManager::ExecuteCommand(int command_id, int event_flags) {
       }
       break;
     case IDC_TASK_MANAGER:
-    RecordMenuItemClick(MENU_ITEM_TASK_MANAGER);
       if (bmd) {
         chrome::OpenTaskManager(bmd->GetBrowserWindow());
       } else {
@@ -638,7 +619,6 @@ void BackgroundModeManager::ExecuteCommand(int command_id, int event_flags) {
       }
       break;
     case IDC_EXIT:
-      RecordMenuItemClick(MENU_ITEM_EXIT);
       base::RecordAction(UserMetricsAction("Exit"));
       chrome::CloseAllBrowsers();
       break;
@@ -647,8 +627,6 @@ void BackgroundModeManager::ExecuteCommand(int command_id, int event_flags) {
       // not be visible).
       DCHECK(IsBackgroundModePrefEnabled());
       DCHECK(KeepAliveRegistry::GetInstance()->IsKeepingAlive());
-
-      RecordMenuItemClick(MENU_ITEM_KEEP_RUNNING);
 
       // Set the background mode pref to "disabled" - the resulting notification
       // will result in a call to DisableBackgroundMode().
@@ -681,7 +659,7 @@ void BackgroundModeManager::ReleaseStartupKeepAlive() {
     // keep-alive (which can shutdown Chrome) before the message loop has
     // started. This object reference is safe because it's going to be kept
     // alive by the browser process until after the callback is called.
-    base::ThreadTaskRunnerHandle::Get()->PostTask(
+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
         FROM_HERE,
         base::BindOnce(&BackgroundModeManager::ReleaseStartupKeepAliveCallback,
                        base::Unretained(this)));
@@ -694,7 +672,7 @@ void BackgroundModeManager::ReleaseForceInstalledExtensionsKeepAlive() {
     // keep-alive (which can shutdown Chrome) before the message loop has
     // started. This object reference is safe because it's going to be kept
     // alive by the browser process until after the callback is called.
-    base::ThreadTaskRunnerHandle::Get()->PostTask(
+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
         FROM_HERE, base::BindOnce(
                        [](std::unique_ptr<ScopedKeepAlive> keep_alive) {
                          // Cleans up unique_ptr when it goes out of scope.
@@ -710,7 +688,7 @@ void BackgroundModeManager::StartBackgroundMode() {
   if (in_background_mode_)
     return;
 
-  startup_metric_utils::SetBackgroundModeEnabled();
+  startup_metric_utils::GetBrowser().SetBackgroundModeEnabled();
 
   // Mark ourselves as running in background mode.
   in_background_mode_ = true;

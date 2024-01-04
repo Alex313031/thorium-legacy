@@ -1,4 +1,4 @@
-# Copyright (c) 2022 The Chromium Authors and Alex313031. All rights reserved.
+# Copyright 2023 The Chromium Authors and Alex313031
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -8,6 +8,7 @@ import("//build/config/mac/mac_sdk.gni")
 import("//build/config/sysroot.gni")
 import("//build/toolchain/goma.gni")
 import("//build/toolchain/rbe.gni")
+import("//build/toolchain/siso.gni")
 
 # This is included by reference in the //build/config/compiler config that
 # is applied to all targets. It is here to separate out the logic.
@@ -48,12 +49,14 @@ config("compiler") {
 
   ldflags = [ "-Wl,-O3", ] + common_mac_flags
   
-  if (target_cpu == "x64") {
-    cflags += [ "-maes", "-mavx", "-mavx2", "-ffp-contract=fast", "-mf16c", "-mfma", "-Wno-unused-command-line-argument", ]
+  if (current_cpu == "arm64") {
+    cflags += [ "-march=armv8.3-a+simd", ]
+    ldflags += [ "-march=armv8.3-a+simd", ]
   }
 
   if (current_cpu == "x64") {
-    cflags += [ "-maes", "-mavx", "-mavx2", "-ffp-contract=fast", "-mf16c", "-mfma", "-Wno-unused-command-line-argument", ]
+    cflags += [ "-O3", "-march=x86-64-v3", "-ffp-contract=fast", ]
+    ldflags += [ "-Wl,-O3", "-Wl,-mllvm,-march=x86-64-v3", "-Wl,-mllvm,-fp-contract=fast", "-Wl,-mllvm,-import-instr-limit=30", "-Wl,-mllvm,-import-hot-multiplier=15", "-Wl,-mllvm,-import-cold-multiplier=2", ]
   }
 
   if (save_unstripped_output) {
@@ -106,18 +109,6 @@ config("mac_dynamic_flags") {
   }
 }
 
-# The ldflags referenced below are handled by
-# //build/toolchain/apple/linker_driver.py.
-# Remove this config if a target wishes to change the arguments passed to the
-# strip command during linking. This config by default strips all symbols
-# from a binary, but some targets may wish to specify an exports file to
-# preserve specific symbols.
-config("strip_all") {
-  if (enable_stripping) {
-    ldflags = [ "-Wcrl,strip,-x,-S", "-Wl,-O3", ]
-  }
-}
-
 # When building with Goma, all inputs must be relative to the build directory.
 # If using the system Xcode, which typically resides outside the build root, a
 # symlink to the SDK is created in the build directory, and the path to that
@@ -130,8 +121,8 @@ config("strip_all") {
 #
 # The symbolic link for $mac_sdk_path is set up by
 # //build/config/apple/sdk_info.py in //build/config/mac/mac_sdk.gni.
-if (use_system_xcode && (use_goma || use_remoteexec) && target_os == "mac" &&
-    current_toolchain == default_toolchain) {
+if (use_system_xcode && (use_goma || use_remoteexec || use_siso) &&
+    target_os == "mac" && current_toolchain == default_toolchain) {
   action("sdk_inputs") {
     script = "//build/noop.py"
     outputs = [

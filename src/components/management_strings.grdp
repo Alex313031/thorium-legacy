@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (c) 2022 Alex313031. -->
 
 <!--
   Strings for the management disclosure panel
@@ -22,23 +21,23 @@
     </message>
   </if>
 
-  <!-- Subtitles of the ChromeOS version of the management page -->
+  <!-- Subtitles of the ThoriumOS version of the management page -->
   <if expr="chromeos_ash">
     <message name="IDS_MANAGEMENT_SUBTITLE_MANAGED" desc="Title of chrome://management page, shows when device is managed by an unknown manager">
-      Your <ph name="DEVICE_NAME">$1<ex>Chromebook</ex></ph> is managed
+      Your <ph name="DEVICE_NAME">$1<ex>Thoriumbook</ex></ph> is managed
     </message>
     <message name="IDS_MANAGEMENT_SUBTITLE_MANAGED_BY" desc="Title of chrome://management page, shows when device managed by a known manager. MANAGER can be a domain or an email address.">
-      Your <ph name="DEVICE_TYPE">$1<ex>Chromebook</ex></ph> is managed by <ph name="MANAGER">$2<ex>example.com</ex></ph>
+      Your <ph name="DEVICE_TYPE">$1<ex>Thoriumbook</ex></ph> is managed by <ph name="MANAGER">$2<ex>example.com</ex></ph>
     </message>
     <message name="IDS_MANAGEMENT_NOT_MANAGED_SUBTITLE" desc="Message indicating that the device is not managed">
-      Your <ph name="DEVICE_TYPE">$1<ex>Chromebook</ex></ph> is not managed
+      Your <ph name="DEVICE_TYPE">$1<ex>Thoriumbook</ex></ph> is not managed
     </message>
   </if>
 
   <!-- Subtitles of the browser version of the management page -->
   <if expr="not chromeos_ash">
       <message name="IDS_MANAGEMENT_SUBTITLE" desc="Title of chrome://management page, which shows the administrator's capabilities in a managed environment">
-      Your browser is managed
+      Your browser is managed by your organization
     </message>
     <message name="IDS_MANAGEMENT_SUBTITLE_MANAGED_BY" desc="Title of chrome://management page, which shows the administrator's capabilities in a managed environment. MANAGER can be a domain or an email address.">
       Your browser is managed by <ph name="MANAGER">$1<ex>example.com</ex></ph>
@@ -49,8 +48,11 @@
     <message name="IDS_MANAGEMENT_SUBTITLE_BROWSER_AND_PROFILE_DIFFERENT_MANAGED_BY" desc="Text displayed to inform that the browser is managed by BROWSER_DOMAIN and the profile by PROFILE_DOMAIN.">
       Your browser is managed by <ph name="BROWSER_DOMAIN">$1<ex>foo.com</ex></ph> and your profile is managed by <ph name="PROFILE_DOMAIN">$2<ex>bar.com</ex></ph>
     </message>
+    <message name="IDS_MANAGEMENT_SUBTITLE_BROWSER_MANAGED_AND_PROFILE_MANAGED_BY" desc="Text displayed to inform that the browser is managed by an organization and the profile by PROFILE_DOMAIN.">
+      Your browser is managed by your organization and your profile is managed by <ph name="PROFILE_DOMAIN">$1<ex>bar.com</ex></ph>
+    </message>
     <message name="IDS_MANAGEMENT_SUBTITLE_BROWSER_AND_PROFILE_SAME_MANAGED_BY" desc="Text displayed to inform that the browser and profile are managed by the same DOMAIN.">
-      Your profile and browser are managed by <ph name="DOMAIN">$1<ex>google.com</ex></ph>
+      Your browser and profile are managed by <ph name="DOMAIN">$1<ex>google.com</ex></ph>
     </message>
     <message name="IDS_MANAGEMENT_SUBTITLE_PROFILE_MANAGED_BY" desc="Text displayed to inform the user that the browser is managed by DOMAIN. [iOS only]">
       Your profile is managed by <ph name="DOMAIN">$1<ex>google.com</ex></ph>
@@ -61,25 +63,28 @@
     <!-- Browser managed status section -->
     <if expr="not chromeos_ash">
       <if expr="_google_chrome">
-        <message name="IDS_MANAGEMENT_BROWSER_NOTICE" desc="Message shown when the (Google-branded) Chrome browser is managed, it indicates what the administrator can do on the browser.">
-        Your administrator can change your browser setup remotely. Activity on this device may also be managed outside of Chrome. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+        <message name="IDS_MANAGEMENT_BROWSER_NOTICE" desc="Message shown when the (Google-branded) Thorium browser is managed, it indicates what the administrator can do on the browser.">
+        Your administrator can change your browser setup remotely. Activity on this device may also be managed outside of Thorium. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1" aria-label="$2"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
         </message>
-        <message name="IDS_MANAGEMENT_NOT_MANAGED_NOTICE" desc="Message indicating that the (Google-branded) Chrome browser is not managed">
-        This browser is not managed by a company or other organization. Activity on this device may be managed outside of Chrome. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+        <message name="IDS_MANAGEMENT_NOT_MANAGED_NOTICE" desc="Message indicating that the (Google-branded) Thorium browser is not managed">
+        This browser is not managed by a company or other organization. Activity on this device may be managed outside of Thorium. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1" aria-label="$2"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
         </message>
       </if>
       <if expr="not _google_chrome">
-        <message name="IDS_MANAGEMENT_BROWSER_NOTICE" desc="Message shown when the (non-Google-branded) Chromium browser is managed, it indicates what the administrator can do on the browser.">
-        Your administrator can change your browser setup remotely. Activity on this device may also be managed outside of Thorium. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+        <message name="IDS_MANAGEMENT_BROWSER_NOTICE" desc="Message shown when the (non-Google-branded) Thorium browser is managed, it indicates what the administrator can do on the browser.">
+        Your administrator can change your browser setup remotely. Activity on this device may also be managed outside of Thorium. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1" aria-label="$2"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
         </message>
-        <message name="IDS_MANAGEMENT_NOT_MANAGED_NOTICE" desc="Message indicating that the (non-Google-branded) Chromium browser is not managed">
-        This browser is not managed by a company or other organization. Activity on this device may be managed outside of Thorium. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+        <message name="IDS_MANAGEMENT_NOT_MANAGED_NOTICE" desc="Message indicating that the (non-Google-branded) Thorium browser is not managed">
+        This browser is not managed by a company or other organization. Activity on this device may be managed outside of Thorium. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1" aria-label="$2"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
         </message>
       </if>
+      <message name="IDS_MANAGEMENT_LEARN_MORE_ACCCESSIBILITY_TEXT" desc="Accessibility text for a 'Learn more' link that links to a help article about how the browser is managed.">
+        Learn more about how your browser is managed
+      </message>
     </if>
   </if>
 
-  <!-- ChromeOS managed status section -->
+  <!-- ThoriumOS managed status section -->
   <if expr="is_chromeos">
     <message name="IDS_MANAGEMENT_DEVICE_NOT_MANAGED" desc="Message indicating that the device and account are not managed">
       This device and account are not managed by a company or other organization.
@@ -148,8 +153,8 @@
     <message name="IDS_MANAGEMENT_REPORT_DEVICE_CRASH_REPORTS" desc="Message stating that administrators see the numbers and causes of the crashes that occurred on the device recently.">
       Numbers and causes of the crashes that occurred recently
     </message>
-    <message name="IDS_MANAGEMENT_REPORT_APP_INFO_AND_ACTIVITY" desc="Message stating that administrators see application install information and activity times.">
-      Apps installed and how often they are used
+    <message name="IDS_MANAGEMENT_REPORT_APP_INFO_AND_ACTIVITY" desc="Message stating that administrators see application install or uninstall information and activity times.">
+      Apps installed or uninstalled and how often they are used
     </message>
     <message name="IDS_MANAGEMENT_REPORT_PRINTING" desc="Message stating that administrators can see names of printed files.">
       Names of files that you print
@@ -184,9 +189,9 @@
       Your administrator has allowed <ph name="APP_NAME">$1<ex>Plugin VM</ex></ph> to collect diagnostics data to improve the product experience. See <ph name="BEGIN_LINK">&lt;a target="_blank" href="https://www.parallels.com/pcep"&gt;</ph>https://www.parallels.com/pcep<ph name="END_LINK">&lt;/a&gt;</ph> for more information.
     </message>
 
-    <!-- ChromeOS update required end-of-life reached section -->
+    <!-- ThoriumOS update required end-of-life reached section -->
     <message name="IDS_MANAGEMENT_UPDATE_REQUIRED_EOL_MESSAGE" desc="Message indicating that the device needs to be returned back before the deadline because the device has reached end-of-life and an update is required as per policy.">
-      <ph name="ENROLLMENT_DOMAIN">$1<ex>example.com</ex></ph> requires you to back up your data and return this <ph name="DEVICE_TYPE">$2<ex>Chromebook</ex></ph>.
+      <ph name="ENROLLMENT_DOMAIN">$1<ex>example.com</ex></ph> requires you to back up your data and return this <ph name="DEVICE_TYPE">$2<ex>Thoriumbook</ex></ph>.
     </message>
     <message name="IDS_MANAGEMENT_UPDATE_REQUIRED_EOL_ADMIN_MESSAGE_TITLE" desc="Message indicating return instructions from the device administrator because the device cannot be updated as it has reached its end of life.">
       Instructions from your device administrator:
@@ -209,6 +214,25 @@
     </message>
     <message name="IDS_MANAGEMENT_EXTENSIONS_PERMISSIONS" desc="Title of a column of the extension table showing the permissions of the extension">
       Permissions
+    </message>
+
+     <!-- Strings related to application reporting section of the management page -->
+    <message name="IDS_MANAGEMENT_APPLICATION_REPORTING" desc="Title of the force installed applications section of the page">
+      Applications
+    </message>
+    <message name="IDS_MANAGEMENT_APPLICATIONS_INSTALLED" desc="Message describing that the administrator has installed some powerful applications on the managed user's browser">
+      The administrator of this device has installed applications for additional functions. Applications have access to some of your data.
+    </message>
+    <message name="IDS_MANAGEMENT_APPLICATIONS_INSTALLED_BY" desc="Message describing that the administrator has installed some powerful applications on the managed user's browser from a specific domain">
+      <ph name="ENROLLMENT_DOMAIN">$1<ex>example.com</ex></ph> has installed applications for additional functions. Applications have access to some of your data.
+    </message>
+    <message name="IDS_MANAGEMENT_APPLICATIONS_NAME" desc="Title of a column of the application table showing the name of the application" meaning="Name of an inanimate object">
+      Name
+    </message>
+    <message name="IDS_MANAGEMENT_APPLICATIONS_PERMISSIONS" desc="Title of a column of the application table showing the permissions of the application">
+      Permissions
+    </message>  <message name="IDS_MANAGEMENT_APPLICATIONS_RUN_ON_OS_LOGIN" desc="Permission to run on OS login">
+      Auto-start on your device
     </message>
 
     <!-- Strings related to website managed configuration of the management page -->
@@ -237,7 +261,7 @@
       Your device name and network address
     </message>
     <message name="IDS_MANAGEMENT_EXTENSION_REPORT_USERNAME" desc="Message explaining that an extension currently reports the user's username" formatter_data="android_java">
-      Your device username and Chrome username
+      Your device username and Thorium username
     </message>
     <message name="IDS_MANAGEMENT_EXTENSION_REPORT_VERSION" desc="Message explaining that an extension currently reports the user's browser and machine version" formatter_data="android_java">
       Version information about your device and browser
@@ -251,16 +275,19 @@
     <message name="IDS_MANAGEMENT_EXTENSION_REPORT_PERF_CRASH" desc="Message explaining that an extension currently reports the user's  performance data and crash report">
       Performance data and crash reports
     </message>
+    <message name="IDS_MANAGEMENT_LEGACY_TECH_REPORT" desc="Message explaining that browser will upload a report when a legacy technology is used for a webpage">
+      A limited list of URLs of pages you visit where <ph name="BEGIN_LINK">&lt;a target="_blank" href="https://chromestatus.com/features#browsers.chrome.status%3A%22Deprecated%22" &gt;</ph>legacy technology events<ph name="END_LINK">&lt;/a&gt;</ph> are occuring.
+    </message>
 
-    <!-- Strings related to Chrome Enterprise Connectors -->
-    <message name="IDS_MANAGEMENT_THREAT_PROTECTION" desc="Title of the Chrome Enterprise Connectors section of the page">
-      Chrome Enterprise Connectors
+    <!-- Strings related to Thorium Enterprise Connectors -->
+    <message name="IDS_MANAGEMENT_THREAT_PROTECTION" desc="Title of the Thorium Enterprise Connectors section of the page">
+      Thorium Enterprise Connectors
     </message>
-    <message name="IDS_MANAGEMENT_THREAT_PROTECTION_DESCRIPTION" desc="Description of the Chrome Enterprise Connectors section of the page">
-      Your administrator has turned on Chrome Enterprise Connectors on your browser. These connectors have access to some of your data.
+    <message name="IDS_MANAGEMENT_THREAT_PROTECTION_DESCRIPTION" desc="Description of the Thorium Enterprise Connectors section of the page">
+      Your administrator has turned on Thorium Enterprise Connectors on your browser. These connectors have access to some of your data.
     </message>
-    <message name="IDS_MANAGEMENT_THREAT_PROTECTION_DESCRIPTION_BY" desc="Description of the Chrome Enterprise Connectors section of the page">
-      <ph name="ENROLLMENT_DOMAIN">$1<ex>example.com</ex></ph> has turned on Chrome Enterprise Connectors on your browser. These connectors have access to some of your data.
+    <message name="IDS_MANAGEMENT_THREAT_PROTECTION_DESCRIPTION_BY" desc="Description of the Thorium Enterprise Connectors section of the page">
+      <ph name="ENROLLMENT_DOMAIN">$1<ex>example.com</ex></ph> has turned on Thorium Enterprise Connectors on your browser. These connectors have access to some of your data.
     </message>
     <message name="IDS_MANAGEMENT_CONNECTORS_EVENT" desc="Title of a column of the Connectors table showing the event that triggers a Connector">
       Event
@@ -289,6 +316,9 @@
     <message name="IDS_MANAGEMENT_PAGE_VISITED_EVENT" desc="Event for the real time URL check feature.">
       Page is visited
     </message>
+    <message name="IDS_MANAGEMENT_SCREEN_CAPTURE_EVENT" desc="Event for the multi screen capture feature.">
+      Screen capture has started
+    </message>
     <message name="IDS_MANAGEMENT_FILE_ATTACHED_VISIBLE_DATA" desc="Description of the visible data for the file attachment scanning feature.">
       Files you upload or attach are sent to Google Cloud or third parties for analysis. For example, they might be scanned for sensitive data or malware and might be stored based on company policies.
     </message>
@@ -299,16 +329,26 @@
       Text you paste or attach is sent to Google Cloud or third parties for analysis. For example, it might be scanned for sensitive data.
     </message>
     <message name="IDS_MANAGEMENT_PAGE_PRINTED_VISIBLE_DATA" desc="Description of the visible data for the page print scanning feature.">
-      The content of pages you print is sent to Google Cloud or third parties for analysis. For example, it might be scanned for sensitive data.
+      The content of pages you print and information about your printer is sent to Google Cloud or third parties for analysis. For example, it might be scanned for sensitive data.
     </message>
     <message name="IDS_MANAGEMENT_FILE_TRANSFER_VISIBLE_DATA" desc="Description of the visible data for the file transfer scanning feature.">
-      Files you copy or move are sent to Google Cloud or third parties for analysis. For example, they might be scanned for sensitive data or malware.
+      Files you copy or move are sent to Google Cloud or third parties for analysis. For example, they might be scanned for sensitive data or malware and might be stored based on company policies.
+    </message>
+    <message name="IDS_MANAGEMENT_SCREEN_CAPTURE_DATA" desc="Description of the visible data for the multi screen capture feature.">
+      Applications authorized by your administrator can capture all screens attached to your device. This information can be processed locally or uploaded to your organization’s servers.
     </message>
     <message name="IDS_MANAGEMENT_ENTERPRISE_REPORTING_VISIBLE_DATA" desc="Description of the visible data for the Connectors reporting feature">
-      When security events are flagged by Chrome, relevant data about the events is sent to your administrator. This can include URLs of pages you visit in Chrome, file names or metadata, and the username that you use to sign in to web based applications, your device and Chrome.
+      When security events are flagged by Thorium, relevant data about the events is sent to your administrator. This can include URLs of pages you visit in Thorium, file names or metadata, browser or tab crashes, and the username that you use to sign in to web based applications, your device and Thorium.
     </message>
     <message name="IDS_MANAGEMENT_PAGE_VISITED_VISIBLE_DATA" desc="Description of the visible data for the real time URL check feature.">
-      URLs of pages you visit are sent to Google Cloud or third parties for analysis. For example, they might be scanned to detect unsafe websites.
+      URLs of pages you visit are sent to Google Cloud or third parties for analysis. For example, they might be scanned to detect unsafe websites or filter websites based on rules set by the administrator.
+    </message>
+  </if>
+
+  <!-- Strings related to Thorium Enterprise Device Signals Sharing -->
+  <if expr="is_win or is_linux or is_macosx">
+    <message name="IDS_MANAGEMENT_DEVICE_SIGNALS_DISCLOSURE" desc="Disclosure message explaining that device signals can be shared.">
+      Information about your browser, OS, device, installed software, and files
     </message>
   </if>
 </grit-part>

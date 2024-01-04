@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (c) 2022 Alex313031. -->
 <!-- Settings-specific Thorium strings (included from chromium_strings.grd). -->
 <grit-part>
   <!-- Shared across multiple page -->
@@ -9,12 +8,24 @@
     </message>
   </if>
   <!-- About Page -->
-  <message name="IDS_SETTINGS_ABOUT_PROGRAM" desc="Menu title for the About Thorium page.">
-    About Thorium
-  </message>
-  <message name="IDS_SETTINGS_GET_HELP_USING_CHROME" desc="Text of the button which takes the user to the Thorium help page.">
-    Get help with Thorium
-  </message>
+  <if expr="_is_chrome_for_testing_branded">
+    <then>
+      <message name="IDS_SETTINGS_ABOUT_PROGRAM" desc="Menu title for the About Thorium for Testing page.">
+        About Thorium for Testing
+      </message>
+      <message name="IDS_SETTINGS_GET_HELP_USING_CHROME" desc="Text of the button which takes the user to the Thorium for Testing help page.">
+        Get help with Thorium for Testing
+      </message>
+    </then>
+    <else>
+      <message name="IDS_SETTINGS_ABOUT_PROGRAM" desc="Menu title for the About Thorium page.">
+        About Thorium
+      </message>
+      <message name="IDS_SETTINGS_GET_HELP_USING_CHROME" desc="Text of the button which takes the user to the Thorium help page.">
+        Get help with Thorium
+      </message>
+    </else>
+  </if>
   <if expr="not chromeos_ash">
     <message name="IDS_SETTINGS_UPGRADE_UPDATING" desc="Status label: Updating Thorium">
       Updating Thorium
@@ -89,10 +100,33 @@
     <message name="IDS_SETTINGS_DEFAULT_BROWSER_ERROR" desc="The text displayed when Thorium cannot determine or set the default browser">
       Thorium cannot determine or set the default browser
     </message>
-    <message name="IDS_SETTINGS_DEFAULT_BROWSER_SECONDARY" desc="The text displayed when Thorium is installed in side-by-side mode, which does not support setting as the default browser.">
-      This is a secondary installation of Thorium, and cannot be made your default browser.
-    </message>
+    <if expr="_is_chrome_for_testing_branded">
+      <then>
+        <message name="IDS_SETTINGS_DEFAULT_BROWSER_SECONDARY" desc="The text displayed when Thorium for Testing is installed in side-by-side mode, which does not support setting as the default browser.">
+          Thorium for Testing cannot be made your default browser.
+        </message>
+      </then>
+      <else>
+        <message name="IDS_SETTINGS_DEFAULT_BROWSER_SECONDARY" desc="The text displayed when Thorium is installed in side-by-side mode, which does not support setting as the default browser.">
+          This is a secondary installation of Chromium, and cannot be made your default browser.
+        </message>
+      </else>
+    </if>
   </if>
+
+  <!-- Preloading Page-->
+  <message name="IDS_SETTINGS_PRELOAD_PAGES_STANDARD_PRELOADING_WHEN_ON_BULLET_TWO" desc="Bullet point in the standard preloading and when on column. Informs the user about what the standard preloading setting does.">
+    Thorium preloads pages you're likely to visit, so that they load more quickly when you visit them
+  </message>
+  <message name="IDS_SETTINGS_PRELOAD_PAGES_EXTENDED_PRELOADING_WHEN_ON_BULLET_TWO" desc="Bullet point in the extended preloading and when on column. Informs the user about what the extended preloading setting does.">
+    Thorium preloads even more pages that you're likely to visit, so that they load more quickly when you visit them
+  </message>
+  <message name="IDS_SETTINGS_PRELOAD_PAGES_EXTENDED_PRELOADING_THINGS_TO_CONSIDER_BULLET_TWO" desc="Bullet point in the extended preloading and things to consider column. Informs the user about what the extended preloading setting does.">
+    When a site asks to privately preload links on their page, Thorium uses Google servers. This hides your identity from the preloaded site, but Google learns what sites get preloaded.
+  </message>
+  <message name="IDS_SETTINGS_PRELOAD_PAGES_THINGS_TO_CONSIDER_BULLET_ONE" desc="Bullet point in the things to consider column. Informs the user about what the preloading setting does.">
+    If you allow cookies, Thorium may use them when preloading
+  </message>
 
   <!-- Privacy Page -->
   <message name="IDS_SETTINGS_SPELLING_PREF_DESC" desc="Description of using a web serviced to help resolve spelling errors. It is important to convey that what the user types will be sent to Google.">
@@ -121,18 +155,17 @@
     </message>
   </if>
 
+    <!-- Site Settings - Site Data Page-->
+  <message name="IDS_SETTINGS_SITE_DATA_PAGE_CLEAR_ON_EXIT_RADIO_SUBLABEL" desc="A description of the benefit/cost of choosing 'Sites can save content on your device. In short, a site will remember your preferences, shopping cart content, etc. during this browser session. But once you close all open windows, and then visit the site again, it's as if you're coming to the site for the first time.">
+    Sites will probably work as you expect but won't remember you after you close all Thorium windows
+  </message>
+  <message name="IDS_SETTINGS_SITE_DATA_PAGE_DELETE_ON_EXIT_EXCEPTIONS_SUB_HEADING" desc="2 of 3. A label within 'Customized behaviors' that allows for exceptions to the 'On-device site data' setting. This label and the list of sites that can appear beneath it is only relevant if the user has chosen to allow 'on-device site data' as the default value above.">
+    Always delete site data from your device when you close Thorium
+  </message>
+
   <!-- Privacy Guide -->
   <message name="IDS_SETTINGS_PRIVACY_GUIDE_PROMO_BODY" desc="Body text of a card in the settings page that explains what the 'Privacy Guide' feature is.">
     Review key privacy and security controls in Thorium
-  </message>
-  <message name="IDS_SETTINGS_PRIVACY_GUIDE_CLEAR_ON_EXIT_FEATURE_DESCRIPTION1" desc="A part of the feature description of 'clear cookies on exit' card in the 'Privacy Guide'.">
-    When you close all Thorium windows, cookies and site data are automatically cleared
-  </message>
-  <message name="IDS_SETTINGS_PRIVACY_GUIDE_CLEAR_ON_EXIT_FEATURE_DESCRIPTION2" desc="A part of the feature description of 'clear cookies on exit' card in the 'Privacy Guide'.">
-    You will be <ph name="BEGIN_BOLD">&lt;b&gt;</ph>signed out of most sites<ph name="END_BOLD">&lt;/b&gt;</ph> when you close Thorium. If sync is off, you will also be <ph name="BEGIN_BOLD">&lt;b&gt;</ph>signed out of Google services and Thorium<ph name="END_BOLD">&lt;/b&gt;</ph>.
-  </message>
-  <message name="IDS_SETTINGS_PRIVACY_GUIDE_CLEAR_ON_EXIT_FEATURE_DESCRIPTION3" desc="A part of the feature description of 'clear cookies on exit' card in the 'Privacy Guide'.">
-    Sites you visit remember your information until you close Thorium
   </message>
   <message name="IDS_SETTINGS_PRIVACY_GUIDE_SAFE_BROWSING_CARD_STANDARD_PROTECTION_FEATURE_DESCRIPTION2" desc="A part of the feature description of the standard protection section of the safe browsing card in the 'Privacy Guide'.">
     Checks URLs with a list of unsafe sites stored in Thorium
@@ -146,8 +179,14 @@
   <message name="IDS_SETTINGS_PRIVACY_GUIDE_COMPLETION_CARD_WAA_SUB_LABEL" desc="Text of the Web and App Activity sublabel in the completion card of the 'Privacy Guide'.">
     Choose whether to include Thorium history for more personalized experiences in Google services
   </message>
+  <message name="IDS_SETTINGS_PRIVACY_GUIDE_MSBB_FEATURE_DESCRIPTION3" desc="A part of the feature description of 'make searches and browsing better' in the 'Privacy Guide'.">
+    If you also save your bookmarks in your Google Account, you can track product prices in Thorium and get notified when the price drops
+  </message>
   <message name="IDS_SETTINGS_PRIVACY_GUIDE_MSBB_PRIVACY_DESCRIPTION2" desc="A part of the privacy description of 'make searches and browsing better' in the 'Privacy Guide'.">
     If you also share Thorium usage reports, those reports include the URLs you visit
+  </message>
+  <message name="IDS_SETTINGS_PRIVACY_SEARCH_SUGGESTIONS_PRIVACY_DESCRIPTION2" desc="A part of the privacy description of 'search suggestions' in the 'Privacy Guide'.">
+    Depending on your settings, Thorium may also send cookies and your current URL
   </message>
 
   <!-- Privacy Sandbox -->
@@ -221,11 +260,17 @@
   </message>
 
   <!-- Safe Browsing -->
-  <message name="IDS_SETTINGS_SAFEBROWSING_ENHANCED_BULLET_TWO" desc="Second bullet point under the safe browsing enhanced protection mode">
+  <message name="IDS_SETTINGS_SAFEBROWSING_ENHANCED_BULLET_TWO" desc="Bullet point under the safe browsing enhanced protection mode">
     Keeps you safe on Thorium and may be used to improve your security in other Google apps when you are signed in
   </message>
-  <message name="IDS_SETTINGS_SAFEBROWSING_STANDARD_BULLET_TWO" desc="First bullet point under the safe browsing standard protection mode">
+  <message name="IDS_SETTINGS_SAFEBROWSING_STANDARD_BULLET_TWO" desc="Bullet point under the safe browsing standard protection mode">
     Checks URLs with a list of unsafe sites stored in Thorium. If a site tries to steal your password, or when you download a harmful file, Thorium may also send URLs, including bits of page content, to Safe Browsing.
+  </message>
+  <message name="IDS_SETTINGS_SAFEBROWSING_ENHANCED_WHEN_ON_BULLET_ONE" desc="Bullet point under the Safe Browsing enhanced protection mode section titled 'When on'">
+    Warns you about dangerous sites, even ones Google didn't know about before, by analyzing more data from sites than standard protection. You can choose to skip Thorium warnings.
+  </message>
+  <message name="IDS_SETTINGS_SAFEBROWSING_ENHANCED_LEARN_MORE_LABEL" desc="The text for a link to a help center article that gives more information about Safe Browsing.">
+    Learn more about <ph name="BEGIN_LINK">&lt;a href="$1" target=&quot;_blank&quot;&gt;<ex>&lt;a href="$1" target=&quot;_blank&quot;&gt;</ex></ph>how Thorium keeps your data private<ph name="END_LINK">&lt;/a&gt;<ex>&lt;/a&gt;</ex></ph>
   </message>
 
   <!-- People Page -->
@@ -262,27 +307,25 @@
   <message name="IDS_SETTINGS_SYNC_DISCONNECT_TITLE" desc="The title of the dialog to stop syncing and sign out.">
     Sign out of Thorium?
   </message>
-  <message name="IDS_DRIVE_SUGGEST_PREF_DESC" desc="The documentation string of the 'Show Drive Results in Omnibox' - full description sentence">
-    Thorium will access your Drive to make suggestions in the address bar
+  <message name="IDS_SETTINGS_SUGGEST_PREF_DESC" desc="The description of the checkbox to enable/disable sending omnibox input to the user's default search engine to get additional suggestions.">
+    When you type in the address bar or search box, Thorium sends what you type to your default search engine to get better suggestions. This is off in Incognito.
+  </message>
+  <message name="IDS_SETTINGS_DRIVE_SUGGEST_PREF_DESC" desc="The description of the checkbox to enable/disable sending omnibox input to Google Drive to get suggestions for files.">
+    When you type in the address bar or search box, Thorium sends what you type to Google Drive to get item suggestions. This is off in Incognito.
   </message>
   <message name="IDS_SETTINGS_SYNC_SIGN_IN_PROMPT_WITH_NO_ACCOUNT" desc="The text displayed to prompt users to sign in to Thorium.">
     Sign in to sync and personalize Thorium across your devices
   </message>
 
-    <!-- Autofill Assistant settings -->
-  <message name="IDS_SETTINGS_AUTOFILL_ASSISTANT_PREF" desc="The documentation string of the 'Use Google Assistant' preference to help with automated flows on the web">
-    Google Assistant in Thorium
-  </message>
-  <message name="IDS_SETTINGS_AUTOFILL_ASSISTANT_PREF_DESC" desc="The description of the 'Use Google Assistant' preference to help with automated flows on the web">
-    Google Assistant in Thorium can complete actions across websites for you
-  </message>
-
   <!-- Performance Page -->
   <message name="IDS_SETTINGS_PERFORMANCE_HIGH_EFFICIENCY_MODE_SETTING_DESCRIPTION" desc="Description for the memory saver mode setting">
-    When on, Thorium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Thorium fast. Your inactive tabs automatically become active again when you go back to them. <ph name="BEGIN_LINK">&lt;a id="highEfficiencyLearnMore" target="_blank" href="$1" aria-label="$2"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+    When on, Thorium frees up memory from inactive tabs. This gives active tabs and other apps more computer resources and keeps Thorium fast. Your inactive tabs automatically become active again when you go back to them.
   </message>
   <message name="IDS_SETTINGS_PERFORMANCE_BATTERY_SAVER_MODE_SETTING_DESCRIPTION" desc="Description for the energy saver mode setting">
-    When on, Thorium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates. <ph name="BEGIN_LINK">&lt;a id="batterySaverLearnMore" target="_blank" href="$1" aria-label="$2"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+    When on, Thorium conserves battery power by limiting background activity and visual effects, such as smooth scrolling and video frame rates.
+  </message>
+  <message name="IDS_SETTINGS_PERFORMANCE_PRELOAD_TOGGLE_SUMMARY" desc="Summary for the preload pages setting">
+    When on, Thorium preloads pages which makes browsing and searching faster.
   </message>
 
   <!-- Languages Page -->
@@ -308,12 +351,39 @@
   </message>
 
   <!-- Thorium Root Store -->
-  <if expr="chrome_root_store_supported">
-    <message name="IDS_SETTINGS_CHROME_CERTIFICATES" desc="Text for manage certificates button in Privacy options">
-      Certificates managed by Thorium
-    </message>
-    <message name="IDS_SETTINGS_CHROME_CERTIFICATES_DESCRIPTION" desc="Secondary, continued explanation of how to manage SSL certificates and settings in Privacy options">
-      Information about how Thorium manages its root certificates
-    </message>
-  </if>
+  <message name="IDS_SETTINGS_CHROME_CERTIFICATES" desc="Text for manage certificates button in Privacy options">
+    Certificates managed by Thorium
+  </message>
+  <message name="IDS_SETTINGS_CHROME_CERTIFICATES_DESCRIPTION" desc="Secondary, continued explanation of how to manage SSL certificates and settings in Privacy options">
+    Information about how Thorium manages its root certificates
+  </message>
+
+  <!-- Safety Hub -->
+  <message name="IDS_SETTINGS_SAFETY_HUB_ENTRY_POINT_NOTHING_TO_DO" desc="This text describes what Safety Hub does (regularly checking whether Thorium settings are safe) and indicates whether the user should take action. This text is shown when Safety Hub has not identified any issues at this time. There is nothing to do for the user. As future checks of Safety Hub may identify issues, this state may change. This text is shown on a card in privacy settings next to a button that leads to Safety Hub.">
+    Thorium regularly checks to make sure your browser has the safest settings. We'll let you know if anything needs your review.
+  </message>
+  <message name="IDS_SETTINGS_SAFETY_HUB_ENTRY_POINT_HEADER" desc="Title of a row in Thorium's privacy settings (chrome://settings/privacy) explaining that Thorium recommends for the user to take action to improve their safety. Next to this text there is a button labeled 'Go to SafetyHub' that will take users to a dedicated page where users can take action.">
+    Thorium found some safety recommendations for your review
+  </message>
+  <message name="IDS_SETTINGS_SAFETY_HUB_EMPTY_STATE_MODULE_SUBHEADER" desc="The header of the 'Empty State Module' in the Safety Hub page. The 'Empty State Module' is visible if there is no safety recommendation.">
+    Thorium will let you know if anything needs your review
+  </message>
+  <message name="IDS_SETTINGS_SAFETY_HUB_PASSWORD_CHECK_SUBHEADER_NO_PASSWORDS" desc="This text explains that passwords saved in Thorium are automatically checked for issues (e.g. password is leaked or weak) by SafetyHub. However the user does not have any passwords stored in Thorium, therefore the feature does not operate. This text is shown as a subtitle of the passwords card of SafetyHub. It sits below the title 'No saved passwords'.">
+    Thorium can check your passwords when you save them
+  </message>
+  <message name="IDS_SETTINGS_SAFETY_HUB_USER_EDU_MODULE_HEADER" desc="The header of the 'User Education Module' in the Safety Hub page. The 'User Education Module' is visible if there is no safety recommendation and gives information about some Thorium features.">
+    Learn how Thorium keeps you safe
+  </message>
+  <message name="IDS_SETTINGS_SAFETY_HUB_USER_EDU_DATA_HEADER" desc="The header of the first item in the 'User Education Module' in the Safety Hub page. This item explains how Thorium's tools help user to keep their data safe.">
+    Thorium's safety tools
+  </message>
+  <message name="IDS_SETTINGS_SAFETY_HUB_USER_EDU_DATA_SUBHEADER" desc="The subheader of the first item in the 'User Education Module' in the Safety Hub page. This item explains how Thorium's tools help user to keep their data safe.">
+    With <ph name="BEGIN_LINK">&lt;a href="$1" target="_blank"&gt;</ph>tools from Thorium<ph name="END_LINK">&lt;/a&gt;</ph>, you can browse safely and stay in control
+  </message>
+  <message name="IDS_SETTINGS_SAFETY_HUB_USER_EDU_INCOGNITO_HEADER" desc="The header of the second item in the 'User Education Module' in the Safety Hub page. This item explains Incognito mode.">
+    Thorium Incognito
+  </message>
+  <message name="IDS_SETTINGS_SAFETY_HUB_USER_EDU_SAFE_BROWSING_SUBHEADER" desc="The header of the second item in the 'User Education Module' in the Safety Hub page. This item explains Safe Browsing.">
+    <ph name="BEGIN_LINK">&lt;a href="$1" target="_blank"&gt;</ph>Thorium warns you<ph name="END_LINK">&lt;/a&gt;</ph> about unsafe sites and downloads
+  </message>
 </grit-part>

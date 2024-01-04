@@ -1,13 +1,13 @@
-<img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/STAGING/Thorium90_504.jpg" width="200">
+<img src="https://github.com/Alex313031/thorium/blob/main/logos/STAGING/Thorium90_504.jpg" width="200">
 
-## List of patches/changes/features included in Thorium <img src="https://raw.githubusercontent.com/Alex313031/thorium-win7/main/logos/NEW/patches.png" width="32">
+## List of patches/changes/features included in Thorium <img src="https://raw.githubusercontent.com/Alex313031/thorium/main/logos/NEW/patches.png" width="32">
 
 Compiler modifications include SSE4.2, AVX, AES, and CFLAGS, LTO flags, and import_instr_limit flags set to /03, 3, and 30, respectively. \
 NEW > Added some LLVM LOOP optimizations as -mllvm flags. See here > https://github.com/RobRich999/Chromium_Clang/issues/26#issuecomment-976883814
 
 Fixed AVX Windows Builds as per > https://github.com/RobRich999/Chromium_Clang/issues/26#issuecomment-1003605112
 
-.desktop files are created for Thorium itself and content-shell (named thorium-shell), with theses cmdline flags being appended to both via the wrapper file > '--enable-experimental-web-platform-features --new-canvas-2d-api'.
+.desktop files are created for Thorium itself and content-shell (named thorium-shell).
 
 There are also additional desktop actions: when right clicking the Thorium launcher it gives three additional desktop actions, one to open thorium-shell, another to open in Safe Mode which disables any flags one has set in chrome://flags until the next launch, and lastly to open in Dark Mode which appends the --force-dark-mode flag.
 
@@ -29,8 +29,8 @@ V8 Font Rendering Patch > https://github.com/saiarcot895/chromium-ubuntu-build/b
 VAAPI Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blob/master/debian/patches/enable-vaapi-on-linux.diff
   - Modified by me.
 
-VAAPI on Wayland Patch > https://github.com/ungoogled-software/ungoogled-chromium-archlinux/blob/master/ozone-add-va-api-support-to-wayland.patch
-  - From Arch AUR
+ REMOVED ~~VAAPI on Wayland Patch > https://github.com/ungoogled-software/ungoogled-chromium-archlinux/blob/master/ozone-add-va-api-support-to-wayland.patch~~
+  - From Arch AUR ~~
 
 Use default search icon instead of search engine icon in omnibox patch > https://github.com/ungoogled-software/contrib/blob/master/tweaks/visual/default-search-icon.patch
 
@@ -38,12 +38,12 @@ Intel HD Support Patch > https://github.com/saiarcot895/chromium-ubuntu-build/bl
 
 Nicer Native Notifications Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blob/master/debian/patches/notifications-nicer
 
-Enable Quiet Notifications Patch > https://github.com/Alex313031/thorium-win7/blob/main/src/chrome/browser/permissions/quiet_notification_permission_ui_state.cc
+Enable Quiet Notifications Patch > https://github.com/Alex313031/thorium/blob/main/src/chrome/browser/permissions/quiet_notification_permission_ui_state.cc
   - Made by me.
 
 Title Bar Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blob/master/debian/patches/title-bar-default-system.patch-v35
 
-VDPAU Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blob/master/debian/patches/vdpau-support.patch
+REMOVED ~~VDPAU Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blob/master/debian/patches/vdpau-support.patch~~
   - Modified by me.
 
 Audio Sandbox Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blob/master/debian/patches/fix-audio-sandbox.patch
@@ -101,8 +101,14 @@ Always Show Component Extensions Patch > https://github.com/iridium-browser/irid
 
 Increase default key length for newly-generated RSA keys from 1024 to 2048 Patch > https://github.com/iridium-browser/iridium-browser/commit/d016769081706d591188b5b2929c5fc2efd8ef20
 
-Enable UI Features: Side Search, Side Panel Journeys, Chrome Labs, Extensions Access Menu, Tab Hover Cards, Tab Outlines in Low Contrast Themes, More Prominent Active Tab Title in Dark Mode, WebUI Tab Strip, Drag and Drop Tabs on Wayland, Tab Groups Saving > https://github.com/Alex313031/thorium-win7/blob/main/chrome/browser/ui/ui_features.cc
+Enable UI Features: Side Search, Side Panel Journeys, Chrome Labs, Extensions Access Menu, Tab Hover Cards, WebUI Tab Strip, Drag and Drop Tabs on Wayland, Tab Groups Saving > https://github.com/Alex313031/thorium/blob/main/chrome/browser/ui/ui_features.cc
   - Made by me.
+
+Tab Outlines in Low Contrast Themes, More Prominent Active Tab Title in Dark Mode: Restore after they removed it in M113 > 
+https://chromium-review.googlesource.com/c/chromium/src/+/4578380 
+https://chromium-review.googlesource.com/c/chromium/src/+/4578188 
+https://github.com/Alex313031/thorium/commit/17a3074d3f2cd32a05b71cdcb57942d5319845f0
+ - Made by me.
 
 Disable History Expiration Patch > https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-to-disable-local-history-expiration.patch
  - Modified by me.
@@ -173,8 +179,14 @@ Enable double click to close tab flag - https://github.com/bigfoxtail/brave-core
 Enable close confirmation patch - https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-for-close-confirmation.patch
   - Modified by me.
 
+CFI Ignores Patch - https://github.com/RobRich999/Chromium_Clang/blob/150e755bdb3f2c389ab3d485f38d62a36414e73a/Linux/linux64-avx.patch#L386
+  - Made by RobRich999
+
 Warn instead of Error on V8 PGO Profile Mismatch Patch - https://github.com/RobRich999/Chromium_Clang/blob/main/V8/v8.patch
   - Made by RobRich999
+
+Enable Middle Click Autoscroll on ALL Platforms - https://github.com/Alex313031/thorium/issues/199
+  - Made by me.
 
 Patches to enable truly Portable usage > Disable Encryption and Machine ID
   - https://github.com/ungoogled-software/ungoogled-chromium-windows/blob/master/patches/ungoogled-chromium/windows/windows-disable-encryption.patch
@@ -195,9 +207,12 @@ Installer patches to include unstripped and RPATH binaries, with chrome_sandbox 
 Patches for mini_installer and abseil when using AVX on Windows. Credit goes to @RobRich999
 
 "Ctrl+Shift+Q" to close all windows (exit) "Ctrl+Shift+K" to open a new tab to the right "Ctrl+Shift+D" to duplicate the current tab "Ctrl+Shift+P" to pop out the current tab into a new window
- - https://github.com/Alex313031/thorium-win7/blob/main/src/chrome/browser/ui/views/accelerator_table.cc
+ - https://github.com/Alex313031/thorium/blob/main/src/chrome/browser/ui/views/accelerator_table.cc
 
 The Thorium .desktop file and content-shell .desktop file have flags added for experimental and useful features, namely: Disabling the Default Browser check and InfoBar, Experimental web platform features, and Experimental Canvas2D.
   - Modified by me.
+
+Remove discovery module from NTP on Android
+  - Made by @gz83.
 
 - Any other code/patches are written from scratch by me.

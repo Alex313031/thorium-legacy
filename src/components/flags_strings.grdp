@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (c) 2022 Alex313031. -->
 <grit-part>
   <!-- about:flags
       Not translated. See discussion at: https://crbug.com/587272
@@ -17,7 +16,7 @@
     Reset all
   </message>
   <message name="IDS_FLAGS_UI_PAGE_WARNING" translateable="false" desc="A warning stating that the features of the page are experimental.">
-    Warning: Experimental Thorium features ahead!
+    Warning: Experimental features ahead!
   </message>
   <message name="IDS_FLAGS_UI_PAGE_WARNING_EXPLANATION" translateable="false" desc="A warning stating what the user gets exposed to by enabling one the features.">
     By enabling these features, you could lose browser data or
@@ -47,27 +46,27 @@
     Not available on your platform.
   </message>
   <if expr="chromeos_ash">
-    <message name="IDS_FLAGS_UI_RELAUNCH" translateable="false" desc="Label for button that restarts ChromeOS.">
+    <message name="IDS_FLAGS_UI_RELAUNCH" translateable="false" desc="Label for button that restarts ThoriumOS.">
       Restart
     </message>
-    <message name="IDS_FLAGS_UI_OS_FLAGS_TEXT1" translateable="false" desc="Begin label text which directs a user to a second dialog in ChromeOS showing OS specific flags - enclosing url link.">
+    <message name="IDS_FLAGS_UI_OS_FLAGS_TEXT1" translateable="false" desc="Begin label text which directs a user to a second dialog in ThoriumOS showing OS specific flags - enclosing url link.">
       Looking for browser flags? Visit
     </message>
-    <message name="IDS_FLAGS_UI_OS_FLAGS_TEXT2" translateable="false" desc="End label text which directs a user to a second dialog in ChromeOS showing OS specific flags - enclosing url link.">
+    <message name="IDS_FLAGS_UI_OS_FLAGS_TEXT2" translateable="false" desc="End label text which directs a user to a second dialog in ThoriumOS showing OS specific flags - enclosing url link.">
       .
     </message>
-    <message name="IDS_FLAGS_UI_OS_FLAGS_LINK" translateable="false" desc="Label for button that will call a new window which allows to change ChromeOS system flags.">
+    <message name="IDS_FLAGS_UI_OS_FLAGS_LINK" translateable="false" desc="Label for button that will call a new window which allows to change ThoriumOS system flags.">
       chrome://flags
     </message>
   </if>
   <if expr="chromeos_lacros">
-    <message name="IDS_FLAGS_UI_OS_FLAGS_TEXT1" translateable="false" desc="Begin label text which directs a user to a second dialog in ChromeOS showing OS specific flags - enclosing url link.">
-      Looking for the ChromeOS flags? Visit
+    <message name="IDS_FLAGS_UI_OS_FLAGS_TEXT1" translateable="false" desc="Begin label text which directs a user to a second dialog in ThoriumOS showing OS specific flags - enclosing url link.">
+      Looking for the ThoriumOS flags? Visit
     </message>
-    <message name="IDS_FLAGS_UI_OS_FLAGS_TEXT2" translateable="false" desc="End label text which directs a user to a second dialog in ChromeOS showing OS specific flags - enclosing url link.">
+    <message name="IDS_FLAGS_UI_OS_FLAGS_TEXT2" translateable="false" desc="End label text which directs a user to a second dialog in ThoriumOS showing OS specific flags - enclosing url link.">
       .
     </message>
-    <message name="IDS_FLAGS_UI_OS_FLAGS_LINK" translateable="false" desc="Label for button that will call a new window which allows to change ChromeOS system flags.">
+    <message name="IDS_FLAGS_UI_OS_FLAGS_LINK" translateable="false" desc="Label for button that will call a new window which allows to change ThoriumOS system flags.">
       os://flags
     </message>
   </if>
@@ -121,27 +120,27 @@
     Not available on your platform.
   </message>
   <if expr="chromeos_ash">
-    <message name="IDS_DEPRECATED_FEATURES_RELAUNCH" desc="Label for button that restarts ChromeOS.">
+    <message name="IDS_DEPRECATED_FEATURES_RELAUNCH" desc="Label for button that restarts ThoriumOS.">
       Restart
     </message>
-    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_TEXT1" desc="Begin label text which directs a user to a second dialog in ChromeOS showing OS specific flags - enclosing url link.">
+    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_TEXT1" desc="Begin label text which directs a user to a second dialog in ThoriumOS showing OS specific flags - enclosing url link.">
       Looking for browser flags? Visit
     </message>
-    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_TEXT2" desc="End label text which directs a user to a second dialog in ChromeOS showing OS specific flags - enclosing url link.">
+    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_TEXT2" desc="End label text which directs a user to a second dialog in ThoriumOS showing OS specific flags - enclosing url link.">
       .
     </message>
-    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_LINK" desc="Label for button that will call a new window which allows to change ChromeOS system flags.">
+    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_LINK" desc="Label for button that will call a new window which allows to change ThoriumOS system flags.">
       chrome://flags
     </message>
   </if>
   <if expr="chromeos_lacros">
-    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_TEXT1" desc="Begin label text which directs a user to a second dialog in ChromeOS showing OS specific flags - enclosing url link.">
+    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_TEXT1" desc="Begin label text which directs a user to a second dialog in ThoriumOS showing OS specific flags - enclosing url link.">
       Looking for the ThoriumOS flags? Visit
     </message>
-    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_TEXT2" desc="End label text which directs a user to a second dialog in ChromeOS showing OS specific flags - enclosing url link.">
+    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_TEXT2" desc="End label text which directs a user to a second dialog in ThoriumOS showing OS specific flags - enclosing url link.">
       .
     </message>
-    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_LINK" desc="Label for button that will call a new window which allows to change ChromeOS system flags.">
+    <message name="IDS_DEPRECATED_FLAGS_UI_OS_FLAGS_LINK" desc="Label for button that will call a new window which allows to change ThoriumOS system flags.">
       os://flags
     </message>
   </if>
@@ -160,7 +159,7 @@
     Unsupported features
   </message>
   <message name="IDS_DEPRECATED_FEATURES_PAGE_WARNING_EXPLANATION" desc="Warning to users that features are deprecated. Shown prominently at the top of the page.">
-    These features are disabled by default. They will not be available in future versions of Chrome.
+    These flags prevent or revert a breaking change and will only be available for a limited time.
   </message>
   <message name="IDS_DEPRECATED_FEATURES_NO_RESULTS" desc="Message shown when searching and no results were found.">
     No matching features

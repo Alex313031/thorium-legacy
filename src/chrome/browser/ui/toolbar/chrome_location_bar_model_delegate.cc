@@ -1,4 +1,4 @@
-// Copyright 2022 The Chromium Authors and Alex313031.
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,7 +8,6 @@
 #include "base/feature_list.h"
 #include "base/metrics/histogram_macros.h"
 #include "build/build_config.h"
-#include "chrome/browser/accuracy_tips/accuracy_service_factory.h"
 #include "chrome/browser/autocomplete/autocomplete_classifier_factory.h"
 #include "chrome/browser/autocomplete/chrome_autocomplete_scheme_classifier.h"
 #include "chrome/browser/profiles/profile.h"
@@ -18,10 +17,10 @@
 #include "chrome/browser/ui/login/login_tab_helper.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/common/url_constants.h"
-#include "components/accuracy_tips/accuracy_service.h"
 #include "components/google/core/common/google_util.h"
 #include "components/offline_pages/buildflags/buildflags.h"
 #include "components/omnibox/browser/autocomplete_input.h"
+#include "components/omnibox/browser/omnibox_field_trial.h"
 #include "components/omnibox/browser/omnibox_prefs.h"
 #include "components/omnibox/common/omnibox_features.h"
 #include "components/pref_registry/pref_registry_syncable.h"
@@ -39,6 +38,7 @@
 
 #if !BUILDFLAG(IS_ANDROID)
 #include "components/omnibox/browser/vector_icons.h"  // nogncheck
+#include "components/vector_icons/vector_icons.h"     // nogncheck
 #endif
 
 #if BUILDFLAG(ENABLE_OFFLINE_PAGES)
@@ -185,11 +185,17 @@ const gfx::VectorIcon* ChromeLocationBarModelDelegate::GetVectorIconOverride()
   GURL url;
   GetURL(&url);
 
-  if (url.SchemeIs(content::kChromeUIScheme))
-    return &omnibox::kProductIcon;
+  if (url.SchemeIs(content::kChromeUIScheme)) {
+    return (OmniboxFieldTrial::IsChromeRefreshIconsEnabled())
+               ? &omnibox::kProductChromeRefreshIcon
+               : &omnibox::kProductIcon;
+  }
 
-  if (url.SchemeIs(extensions::kExtensionScheme))
-    return &omnibox::kExtensionAppIcon;
+  if (url.SchemeIs(extensions::kExtensionScheme)) {
+    return (OmniboxFieldTrial::IsChromeRefreshIconsEnabled())
+               ? &vector_icons::kExtensionChromeRefreshIcon
+               : &omnibox::kExtensionAppIcon;
+  }
 #endif
 
   return nullptr;
@@ -233,28 +239,6 @@ bool ChromeLocationBarModelDelegate::IsHomePage(const GURL& url) const {
     return false;
 
   return url.spec() == profile->GetPrefs()->GetString(prefs::kHomePage);
-}
-
-bool ChromeLocationBarModelDelegate::IsShowingAccuracyTip() const {
-#if !BUILDFLAG(IS_ANDROID)
-  Profile* const profile = GetProfile();
-  if (!profile) {
-    return false;
-  }
-
-  content::WebContents* web_contents = GetActiveWebContents();
-  if (!web_contents) {
-    return false;
-  }
-
-  if (base::FeatureList::IsEnabled(safe_browsing::kAccuracyTipsFeature)) {
-    if (auto* accuracy_service =
-            AccuracyServiceFactory::GetForProfile(profile)) {
-      return accuracy_service->IsShowingAccuracyTip(web_contents);
-    }
-  }
-#endif
-  return false;
 }
 
 content::NavigationController*

@@ -68,8 +68,8 @@ usage () {
   echo "        --temp-profile             Start with a new and temporary profile"
   echo
   echo " Other supported options are:"
-  MANWIDTH=80 man thorium-browser-stable | sed -e '1,/OPTIONS/d; /ENVIRONMENT/,$d'
-  echo " See 'man thorium-browser-stable' for more details"
+  MANWIDTH=80 man thorium-browser | sed -e '1,/OPTIONS/d; /ENVIRONMENT/,$d'
+  echo " See 'man thorium-browser' for more details"
 }
 
 want_temp_profile=0
@@ -108,4 +108,4 @@ fi
 
 # Launch Thorium
 # Note: exec -a below is a bashism.
-exec -a "$0" "$HERE/@@PROGNAME@@" "--enable-experimental-web-platform-features" "--new-canvas-2d-api" "$CHROME_USER_FLAGS" "$@"
+exec -a "$0" "$HERE/@@PROGNAME@@" "$CHROME_USER_FLAGS" "$@"

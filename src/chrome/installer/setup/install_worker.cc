@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors, Hibiki Tachibana, and Alex313031.
+// Copyright 2023 The Chromium Authors, Hibiki Tachibana, and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -16,14 +16,16 @@
 #include <wrl/client.h>
 
 #include <memory>
+#include <string>
+#include <tuple>
 #include <vector>
 
 #include "base/command_line.h"
 #include "base/enterprise_util.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
-#include "base/bind.h"
-#include "base/callback_helpers.h"
+#include "base/functional/bind.h"
+#include "base/functional/callback_helpers.h"
 #include "base/process/kill.h"
 #include "base/process/process_iterator.h"
 #include "base/logging.h"
@@ -48,6 +50,7 @@
 #include "chrome/installer/setup/setup_constants.h"
 #include "chrome/installer/setup/setup_util.h"
 #include "chrome/installer/setup/update_active_setup_version_work_item.h"
+#include "chrome/installer/util/app_command.h"
 #include "chrome/installer/util/callback_work_item.h"
 #include "chrome/installer/util/conditional_work_item_list.h"
 #include "chrome/installer/util/create_reg_key_work_item.h"
@@ -391,9 +394,6 @@ void AddEnterpriseEnrollmentWorkItems(const InstallerState& installer_state,
   if (!installer_state.system_install())
     return;
 
-  const HKEY root_key = installer_state.root_key();
-  const std::wstring cmd_key(GetCommandKey(kCmdStoreDMToken));
-
   // Register a command to allow Chrome to request Google Update to run
   // setup.exe --store-dmtoken=<token>, which will store the specified token
   // in the registry.
@@ -409,13 +409,14 @@ void AddEnterpriseEnrollmentWorkItems(const InstallerState& installer_state,
   // safety check for unsafe insert sequences since the right thing is
   // happening. Do not blindly copy this pattern in new code. Check with a
   // member of base/win/OWNERS if in doubt.
-  AppCommand cmd(cmd_line.GetCommandLineStringWithUnsafeInsertSequences());
+  AppCommand cmd(kCmdStoreDMToken,
+                 cmd_line.GetCommandLineStringWithUnsafeInsertSequences());
 
   // TODO(rogerta): For now setting this command as web accessible is required
   // by Google Update.  Could revisit this should Google Update change the
   // way permissions are handled for commands.
   cmd.set_is_web_accessible(true);
-  cmd.AddWorkItems(root_key, cmd_key, install_list);
+  cmd.AddCreateAppCommandWorkItems(installer_state.root_key(), install_list);
 }
 
 // Adds work items to add the "delete-dmtoken" command to Chrome's version key.
@@ -429,9 +430,6 @@ void AddEnterpriseUnenrollmentWorkItems(const InstallerState& installer_state,
   if (!installer_state.system_install())
     return;
 
-  const HKEY root_key = installer_state.root_key();
-  const std::wstring cmd_key(GetCommandKey(kCmdDeleteDMToken));
-
   // Register a command to allow Chrome to request Google Update to run
   // setup.exe --delete-dmtoken, which will delete any existing DMToken from the
   // registry.
@@ -441,13 +439,13 @@ void AddEnterpriseUnenrollmentWorkItems(const InstallerState& installer_state,
   cmd_line.AppendSwitch(switches::kSystemLevel);
   cmd_line.AppendSwitch(switches::kVerboseLogging);
   InstallUtil::AppendModeAndChannelSwitches(&cmd_line);
-  AppCommand cmd(cmd_line.GetCommandLineString());
+  AppCommand cmd(kCmdDeleteDMToken, cmd_line.GetCommandLineString());
 
   // TODO(rogerta): For now setting this command as web accessible is required
   // by Google Update.  Could revisit this should Google Update change the
   // way permissions are handled for commands.
   cmd.set_is_web_accessible(true);
-  cmd.AddWorkItems(root_key, cmd_key, install_list);
+  cmd.AddCreateAppCommandWorkItems(installer_state.root_key(), install_list);
 }
 
 // Adds work items to add the "rotate-dtkey" command to Chrome's version key.
@@ -459,9 +457,6 @@ void AddEnterpriseDeviceTrustWorkItems(const InstallerState& installer_state,
                                        WorkItemList* install_list) {
   if (!installer_state.system_install())
     return;
-
-  const HKEY root_key = installer_state.root_key();
-  const std::wstring cmd_key(GetCommandKey(kCmdRotateDeviceTrustKey));
 
   // Register a command to allow Chrome to request Google Update to run
   // setup.exe --rotate-dtkey=<dm-token>, which will rotate the key and store
@@ -480,13 +475,14 @@ void AddEnterpriseDeviceTrustWorkItems(const InstallerState& installer_state,
   // safety check for unsafe insert sequences since the right thing is
   // happening. Do not blindly copy this pattern in new code. Check with a
   // member of base/win/OWNERS if in doubt.
-  AppCommand cmd(cmd_line.GetCommandLineStringWithUnsafeInsertSequences());
+  AppCommand cmd(kCmdRotateDeviceTrustKey,
+                 cmd_line.GetCommandLineStringWithUnsafeInsertSequences());
 
   // TODO(rogerta): For now setting this command as web accessible is required
   // by Google Update.  Could revisit this should Google Update change the
   // way permissions are handled for commands.
   cmd.set_is_web_accessible(true);
-  cmd.AddWorkItems(root_key, cmd_key, install_list);
+  cmd.AddCreateAppCommandWorkItems(installer_state.root_key(), install_list);
 }
 #endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
 
@@ -552,9 +548,9 @@ void AddUninstallShortcutWorkItems(const InstallParams& install_params,
                                          KEY_WOW64_32KEY, L"InstallLocation",
                                          install_path.value(), true);
 
-    std::wstring chrome_icon =
-        ShellUtil::FormatIconLocation(install_path.Append(kChromeExe),
-                                      install_static::GetIconResourceIndex());
+    std::wstring chrome_icon = ShellUtil::FormatIconLocation(
+        install_path.Append(kChromeExe),
+        install_static::GetAppIconResourceIndex());
     install_list->AddSetRegValueWorkItem(reg_root, uninstall_reg,
                                          KEY_WOW64_32KEY, L"DisplayIcon",
                                          chrome_icon, true);
@@ -642,12 +638,54 @@ void AddUpdateBrandCodeWorkItem(const InstallerState& installer_state,
   if (!GoogleUpdateSettings::GetBrand(&brand))
     return;
 
-  std::wstring new_brand = GetUpdatedBrandCode(brand);
-  if (new_brand.empty())
-    return;
-
   // Only update if this machine is a managed device, including domain join.
   if (!base::IsManagedDevice()) {
+    return;
+  }
+
+  std::wstring new_brand = GetUpdatedBrandCode(brand);
+  // Rewrite the old brand so that the next step can potentially apply both
+  // changes at once.
+  if (!new_brand.empty()) {
+    brand = new_brand;
+  }
+
+  // Furthermore do the CBCM brand code conversion both ways.
+  base::win::RegKey key;
+  std::wstring value_name;
+  bool has_valid_dm_token = false;
+  std::tie(key, value_name) = InstallUtil::GetCloudManagementDmTokenLocation(
+      InstallUtil::ReadOnly(true), InstallUtil::BrowserLocation(false));
+  if (key.Valid()) {
+    DWORD dtype = REG_NONE;
+    std::vector<char> raw_value(512);
+    DWORD size = static_cast<DWORD>(raw_value.size());
+    auto result =
+        key.ReadValue(value_name.c_str(), raw_value.data(), &size, &dtype);
+    if (result == ERROR_MORE_DATA && size > raw_value.size()) {
+      raw_value.resize(size);
+      result =
+          key.ReadValue(value_name.c_str(), raw_value.data(), &size, &dtype);
+    }
+    if (result == ERROR_SUCCESS && dtype == REG_BINARY && size != 0) {
+      std::string dmtoken_value(base::TrimWhitespaceASCII(
+          base::StringPiece(raw_value.data(), size), base::TRIM_ALL));
+      if (dmtoken_value.compare("INVALID_DM_TOKEN")) {
+        has_valid_dm_token = true;
+      }
+    }
+  }
+
+  bool is_cbcm_enrolled =
+      !InstallUtil::GetCloudManagementEnrollmentToken().empty() &&
+      has_valid_dm_token;
+  std::wstring cbcm_brand =
+      TransformCloudManagementBrandCode(brand, /*to_cbcm=*/is_cbcm_enrolled);
+  if (!cbcm_brand.empty()) {
+    new_brand = cbcm_brand;
+  }
+
+  if (new_brand.empty()) {
     return;
   }
 
@@ -664,11 +702,46 @@ std::wstring GetUpdatedBrandCode(const std::wstring& brand_code) {
   } kEnterpriseBrandRemapping[] = {
       {L"GGLS", L"GCEU"},
       {L"GGRV", L"GCEV"},
+      {L"GTPM", L"GCER"},
   };
 
   for (auto mapping : kEnterpriseBrandRemapping) {
     if (brand_code == mapping.old_brand)
       return mapping.new_brand;
+  }
+  return std::wstring();
+}
+
+std::wstring TransformCloudManagementBrandCode(const std::wstring& brand_code,
+                                               bool to_cbcm) {
+  // Brand codes to be remapped on enterprise installs.
+  // We are extracting the 4th letter below so we should better have one.
+  if (brand_code.length() != 4 || brand_code == L"GCEL") {
+    return std::wstring();
+  }
+  static constexpr struct CbcmBrandRemapping {
+    const wchar_t* cbe_brand;
+    const wchar_t* cbcm_brand;
+  } kCbcmBrandRemapping[] = {
+      {L"GCE", L"GCC"},
+      {L"GCF", L"GCK"},
+      {L"GCG", L"GCL"},
+      {L"GCH", L"GCM"},
+  };
+  if (to_cbcm) {
+    for (auto mapping : kCbcmBrandRemapping) {
+      if (base::StartsWith(brand_code, mapping.cbe_brand,
+                           base::CompareCase::SENSITIVE)) {
+        return std::wstring(mapping.cbcm_brand) + brand_code[3];
+      }
+    }
+  } else {
+    for (auto mapping : kCbcmBrandRemapping) {
+      if (base::StartsWith(brand_code, mapping.cbcm_brand,
+                           base::CompareCase::SENSITIVE)) {
+        return std::wstring(mapping.cbe_brand) + brand_code[3];
+      }
+    }
   }
   return std::wstring();
 }
@@ -725,7 +798,7 @@ bool AppendPostInstallTasks(const InstallParams& install_params,
           google_update::kRegCriticalVersionField);
     }
 
-    // Form the mode-specific rename command.
+    // Form the mode-specific rename command and register it.
     base::CommandLine product_rename_cmd(installer_path);
     product_rename_cmd.AppendSwitch(switches::kRenameChromeExe);
     if (installer_state.system_install())
@@ -733,9 +806,25 @@ bool AppendPostInstallTasks(const InstallParams& install_params,
     if (installer_state.verbose_logging())
       product_rename_cmd.AppendSwitch(switches::kVerboseLogging);
     InstallUtil::AppendModeAndChannelSwitches(&product_rename_cmd);
-    in_use_update_work_items->AddSetRegValueWorkItem(
-        root, clients_key, KEY_WOW64_32KEY, google_update::kRegRenameCmdField,
-        product_rename_cmd.GetCommandLineString(), true);
+    AppCommand(installer::kCmdRenameChromeExe,
+               product_rename_cmd.GetCommandLineString())
+        .AddCreateAppCommandWorkItems(root, in_use_update_work_items.get());
+    // Some clients in Chrome 110 look for an alternate rename command id. Write
+    // that one as well so those can find it and be able to finish updating.
+    // TODO(floresa): Remove all uses of the alternate id in Chrome 111.
+    AppCommand(installer::kCmdAlternateRenameChromeExe,
+               product_rename_cmd.GetCommandLineString())
+        .AddCreateAppCommandWorkItems(root, in_use_update_work_items.get());
+
+    if (!installer_state.system_install()) {
+      // Chrome versions prior to 110.0.5435.0 still look for the User rename
+      // command line REG_SZ "cmd" under the path
+      // "Software\Google\Update\Clients\<guid>" where "<guid>" is the current
+      // install mode's appguid.
+      in_use_update_work_items->AddSetRegValueWorkItem(
+          root, clients_key, KEY_WOW64_32KEY, installer::kCmdRenameChromeExe,
+          product_rename_cmd.GetCommandLineString(), true);
+    }
 
     // Delay deploying the new chrome_proxy while chrome is running.
     in_use_update_work_items->AddCopyTreeWorkItem(
@@ -766,8 +855,15 @@ bool AppendPostInstallTasks(const InstallParams& install_params,
     regular_update_work_items->AddDeleteRegValueWorkItem(
         root, clients_key, KEY_WOW64_32KEY,
         google_update::kRegCriticalVersionField);
-    regular_update_work_items->AddDeleteRegValueWorkItem(
-        root, clients_key, KEY_WOW64_32KEY, google_update::kRegRenameCmdField);
+    AppCommand(installer::kCmdRenameChromeExe, {})
+        .AddDeleteAppCommandWorkItems(root, regular_update_work_items.get());
+    AppCommand(installer::kCmdAlternateRenameChromeExe, {})
+        .AddDeleteAppCommandWorkItems(root, regular_update_work_items.get());
+
+    if (!installer_state.system_install()) {
+      regular_update_work_items->AddDeleteRegValueWorkItem(
+          root, clients_key, KEY_WOW64_32KEY, installer::kCmdRenameChromeExe);
+    }
 
     // Only copy chrome_proxy.exe directly when chrome.exe isn't in use to avoid
     // different versions getting mixed up between the two binaries.
@@ -866,14 +962,10 @@ void AddInstallWorkItems(const InstallParams& install_params,
             base::BindOnce(
                 [](const base::FilePath& histogram_storage_dir,
                    const CallbackWorkItem& work_item) {
-                  auto sid = base::win::Sid::FromKnownSid(
-                      base::win::WellKnownSid::kAuthenticatedUser);
-                  if (!sid)
-                    return false;
-                  std::vector<base::win::Sid> sids;
-                  sids.push_back(std::move(*sid));
                   return base::win::GrantAccessToPath(
-                      histogram_storage_dir, sids,
+                      histogram_storage_dir,
+                      base::win::Sid::FromKnownSidVector(
+                          {base::win::WellKnownSid::kAuthenticatedUser}),
                       FILE_GENERIC_READ | FILE_DELETE_CHILD,
                       CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE);
                 },
@@ -1117,11 +1209,10 @@ void AddOsUpgradeWorkItems(const InstallerState& installer_state,
                            const base::Version& new_version,
                            WorkItemList* install_list) {
   const HKEY root_key = installer_state.root_key();
-  const std::wstring cmd_key(GetCommandKey(kCmdOnOsUpgrade));
 
   if (installer_state.operation() == InstallerState::UNINSTALL) {
-    install_list->AddDeleteRegKeyWorkItem(root_key, cmd_key, KEY_WOW64_32KEY)
-        ->set_log_message("Removing OS upgrade command");
+    AppCommand(kCmdOnOsUpgrade, {})
+        .AddDeleteAppCommandWorkItems(root_key, install_list);
   } else {
     // Register with Google Update to have setup.exe --on-os-upgrade called on
     // OS upgrade.
@@ -1136,9 +1227,9 @@ void AddOsUpgradeWorkItems(const InstallerState& installer_state,
     // Log everything for now.
     cmd_line.AppendSwitch(installer::switches::kVerboseLogging);
 
-    AppCommand cmd(cmd_line.GetCommandLineString());
+    AppCommand cmd(kCmdOnOsUpgrade, cmd_line.GetCommandLineString());
     cmd.set_is_auto_run_on_os_upgrade(true);
-    cmd.AddWorkItems(installer_state.root_key(), cmd_key, install_list);
+    cmd.AddCreateAppCommandWorkItems(root_key, install_list);
   }
 }
 

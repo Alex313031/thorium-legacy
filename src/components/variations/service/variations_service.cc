@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031.
+// Copyright 2023 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -11,16 +11,16 @@
 #include <vector>
 
 #include "base/base64.h"
-#include "base/bind.h"
-#include "base/callback.h"
 #include "base/command_line.h"
 #include "base/feature_list.h"
+#include "base/functional/bind.h"
+#include "base/functional/callback.h"
+#include "base/memory/raw_ptr.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/metrics/histogram_macros.h"
 #include "base/observer_list.h"
 #include "base/ranges/algorithm.h"
 #include "base/strings/string_util.h"
-#include "base/timer/elapsed_timer.h"
 #include "base/trace_event/trace_event.h"
 #include "base/values.h"
 #include "base/version.h"
@@ -196,8 +196,8 @@ bool GetInstanceManipulations(const net::HttpResponseHeaders* headers,
   *is_gzip_compressed = gzip_im != ims.end();
 
   // The IM field should not have anything but x-bm and gzip.
-  size_t im_count = (*is_delta_compressed ? 1 : 0) +
-      (*is_gzip_compressed ? 1 : 0);
+  size_t im_count =
+      (*is_delta_compressed ? 1 : 0) + (*is_gzip_compressed ? 1 : 0);
   if (im_count != ims.size()) {
     DVLOG(1) << "Unrecognized instance manipulations in "
              << base::JoinString(ims, ",")
@@ -309,7 +309,7 @@ class DeviceVariationsRestrictionByPolicyApplicator {
     }
   }
 
-  PrefService* const policy_pref_service_;
+  const raw_ptr<PrefService, ExperimentalAsh> policy_pref_service_;
 
   // Watch the changes of the variations prefs.
   std::unique_ptr<PrefChangeRegistrar> pref_change_registrar_;
@@ -420,6 +420,14 @@ void VariationsService::SetRestrictMode(const std::string& restrict_mode) {
   restrict_mode_ = restrict_mode;
 }
 
+bool VariationsService::IsLikelyDogfoodClient() const {
+  // The param is typically only set for dogfood clients, though in principle it
+  // could be set in other rare contexts as well.
+  const std::string restrict_mode = GetRestrictParameterValue(
+      restrict_mode_, client_.get(), policy_pref_service_);
+  return !restrict_mode.empty();
+}
+
 GURL VariationsService::GetVariationsServerURL(HttpOptions http_options) {
   const bool secure = http_options == USE_HTTPS;
   const std::string restrict_mode = GetRestrictParameterValue(
@@ -505,26 +513,28 @@ void VariationsService::RegisterPrefs(PrefRegistrySimple* registry) {
   SafeSeedManager::RegisterPrefs(registry);
   VariationsSeedStore::RegisterPrefs(registry);
 
-  // This preference will only be written by the policy service, which will fill
-  // it according to a value stored in the User Policy.
-  registry->RegisterStringPref(prefs::kVariationsRestrictParameter,
-                               std::string());
+  registry->RegisterIntegerPref(
+      prefs::kDeviceVariationsRestrictionsByPolicy,
+      static_cast<int>(RestrictionPolicy::NO_RESTRICTIONS));
+  registry->RegisterDictionaryPref(
+      prefs::kVariationsGoogleGroups,
+      static_cast<int>(RestrictionPolicy::NO_RESTRICTIONS));
+  // This preference keeps track of the country code used to filter
+  // permanent-consistency studies.
+  registry->RegisterListPref(prefs::kVariationsPermanentConsistencyCountry);
   // This preference is used to override the variations country code which is
   // consistent across different chrome version.
   registry->RegisterStringPref(prefs::kVariationsPermanentOverriddenCountry,
                                std::string());
-  // This preference keeps track of the country code used to filter
-  // permanent-consistency studies.
-  registry->RegisterListPref(prefs::kVariationsPermanentConsistencyCountry);
   // This preference keeps track of ChromeVariations enum policy which
   // allows the admin to restrict the set of variations applied.
   registry->RegisterIntegerPref(
       prefs::kVariationsRestrictionsByPolicy,
       static_cast<int>(RestrictionPolicy::NO_RESTRICTIONS));
-
-  registry->RegisterIntegerPref(
-      prefs::kDeviceVariationsRestrictionsByPolicy,
-      static_cast<int>(RestrictionPolicy::NO_RESTRICTIONS));
+  // This preference will only be written by the policy service, which will fill
+  // it according to a value stored in the User Policy.
+  registry->RegisterStringPref(prefs::kVariationsRestrictParameter,
+                               std::string());
 }
 
 // static
@@ -643,7 +653,6 @@ bool VariationsService::DoFetchFromURL(const GURL& url, bool is_http_retry) {
   UMA_HISTOGRAM_CUSTOM_COUNTS("Variations.TimeSinceLastFetchAttempt",
                               time_since_last_fetch.InMinutes(), 1,
                               base::Days(7).InMinutes(), 50);
-  UMA_HISTOGRAM_COUNTS_100("Variations.RequestCount", request_count_);
   ++request_count_;
   last_request_started_time_ = now;
   delta_error_since_last_success_ = false;
@@ -692,7 +701,8 @@ void VariationsService::InitResourceRequestedAllowedNotifier() {
   // ResourceRequestAllowedNotifier does not install an observer if there is no
   // NetworkChangeNotifier, which results in never being notified of changes to
   // network status.
-  resource_request_allowed_notifier_->Init(this, false /* leaky */);
+  resource_request_allowed_notifier_->Init(this, /*leaky=*/false,
+                                           /*wait_for_eula=*/false);
 }
 
 void VariationsService::StartRepeatedVariationsSeedFetch() {
@@ -885,22 +895,11 @@ void VariationsService::PerformSimulationWithVersion(
   if (!version.IsValid())
     return;
 
-  const base::ElapsedTimer timer;
-
   auto entropy_providers = state_manager_->CreateEntropyProviders();
 
   std::unique_ptr<ClientFilterableState> client_state =
       field_trial_creator_.GetClientFilterableStateForVersion(version);
   auto result = SimulateSeedStudies(seed, *client_state, *entropy_providers);
-
-  UMA_HISTOGRAM_COUNTS_100("Variations.SimulateSeed.NormalChanges",
-                           result.normal_group_change_count);
-  UMA_HISTOGRAM_COUNTS_100("Variations.SimulateSeed.KillBestEffortChanges",
-                           result.kill_best_effort_group_change_count);
-  UMA_HISTOGRAM_COUNTS_100("Variations.SimulateSeed.KillCriticalChanges",
-                           result.kill_critical_group_change_count);
-
-  UMA_HISTOGRAM_TIMES("Variations.SimulateSeed.Duration", timer.Elapsed());
 
   NotifyObservers(result);
 }
@@ -914,12 +913,12 @@ void VariationsService::RecordSuccessfulFetch() {
   safe_seed_manager_.RecordSuccessfulFetch(field_trial_creator_.seed_store());
 }
 
-void VariationsService::GetClientFilterableStateForVersionCalledForTesting() {
+std::unique_ptr<ClientFilterableState>
+VariationsService::GetClientFilterableStateForVersion() {
   const base::Version current_version(version_info::GetVersionNumber());
-  if (!current_version.IsValid())
-    return;
-
-  field_trial_creator_.GetClientFilterableStateForVersion(current_version);
+  DCHECK(current_version.IsValid());
+  return field_trial_creator_.GetClientFilterableStateForVersion(
+      current_version);
 }
 
 std::string VariationsService::GetLatestCountry() const {
@@ -935,7 +934,11 @@ bool VariationsService::SetUpFieldTrials(
   return field_trial_creator_.SetUpFieldTrials(
       variation_ids, command_line_variation_ids, extra_overrides,
       std::move(feature_list), state_manager_, platform_field_trials,
-      &safe_seed_manager_, state_manager_->GetLowEntropySource());
+      &safe_seed_manager_, /*add_entropy_source_to_variations_ids=*/true);
+}
+
+SeedType VariationsService::GetSeedType() const {
+  return field_trial_creator_.seed_type();
 }
 
 void VariationsService::OverrideCachedUIStrings() {
@@ -983,13 +986,17 @@ bool VariationsService::OverrideStoredPermanentCountry(
     const std::string& country_override) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
+  const std::string country_override_lowercase =
+      base::ToLowerASCII(country_override);
   const std::string stored_country =
       local_state_->GetString(prefs::kVariationsPermanentOverriddenCountry);
 
-  if (stored_country == country_override)
+  if (stored_country == country_override_lowercase) {
     return false;
+  }
 
-  field_trial_creator_.StoreVariationsOverriddenCountry(country_override);
+  field_trial_creator_.StoreVariationsOverriddenCountry(
+      country_override_lowercase);
   return true;
 }
 

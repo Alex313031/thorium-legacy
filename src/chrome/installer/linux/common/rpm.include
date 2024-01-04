@@ -1,0 +1,122 @@
+@@include@@repo_variables.include
+
+# Install the repository signing key (see also:
+# https://www.google.com/linuxrepositories/)
+install_rpm_key() {
+  return 0
+}
+
+determine_rpm_package_manager() {
+  local RELEASE
+
+  # Modern method using os-release(5)
+  if [ -f "/etc/os-release" ]; then
+    RELEASE=$(. "/etc/os-release"; echo "$ID")
+    case $RELEASE in
+    "fedora"|"rhel"|"centos"|"amzn"|"mageia"|"openmandriva")
+      PACKAGEMANAGERS=(yum)
+      ;;
+    "suse"|"sles"|"sled"|"opensuse"|"opensuse-leap"|"opensuse-tumbleweed")
+      PACKAGEMANAGERS=(zypp)
+      ;;
+    esac
+  fi
+
+  if [ "$PACKAGEMANAGERS" ]; then
+    return
+  fi
+
+  # Fallback method using lsb_release(1)
+  LSB_RELEASE="$(command -v lsb_release 2> /dev/null)"
+  if [ -x "$LSB_RELEASE" ]; then
+    RELEASE=$(lsb_release -i 2> /dev/null | sed 's/:\t/:/' | cut -d ':' -f 2-)
+    case $RELEASE in
+    "Fedora"|"Amazon"|"Mageia"|"OpenMandrivaLinux")
+      PACKAGEMANAGERS=(yum)
+      ;;
+    "SUSE LINUX"|"openSUSE")
+      PACKAGEMANAGERS=(zypp)
+      ;;
+    esac
+  fi
+
+  if [ "$PACKAGEMANAGERS" ]; then
+    return
+  fi
+
+  # Fallback methods that are probably unnecessary on modern systems.
+  if [ -f "/etc/fedora-release" ] || [ -f "/etc/redhat-release" ]; then
+    PACKAGEMANAGERS=(yum)
+  elif [ -f "/etc/system-release" ] && grep -Fq "Amazon Linux" "/etc/system-release"; then
+    PACKAGEMANAGERS=(yum)
+  elif [ -f "/etc/SuSE-release" ]; then
+    PACKAGEMANAGERS=(zypp)
+  fi
+}
+
+DEFAULT_ARCH="@@ARCHITECTURE@@"
+YUM_REPO_FILE="/etc/yum.repos.d/@@PACKAGE@@.repo"
+ZYPPER_REPO_FILE="/etc/zypp/repos.d/@@PACKAGE@@.repo"
+
+install_yum() {
+  install_rpm_key
+  return 0
+}
+
+install_zypp() {
+  return 0
+}
+
+# Check if the automatic repository configuration is done, so we know when to
+# stop trying.
+verify_install() {
+  # It's probably enough to see that the repo configs have been created. If they
+  # aren't configured properly, update_bad_repo should catch that when it's run.
+  case $1 in
+  "yum")
+    [ -f "$YUM_REPO_FILE" ]
+    ;;
+  "zypp")
+    [ -f "$ZYPPER_REPO_FILE" ]
+    ;;
+  esac
+}
+
+# Update the Google repository if it's not set correctly.
+update_bad_repo() {
+  return 0
+}
+
+update_repo_file() {
+  REPO_FILE="$1"
+  return 0
+}
+
+# We only remove the repository configuration during a purge. Since RPM has
+# no equivalent to dpkg --purge, the code below is actually never used. We
+# keep it only for reference purposes, should we ever need it.
+#
+#remove_yum() {
+#  rm -f "$YUM_REPO_FILE"
+#}
+#
+#remove_zypp() {
+#  # Ideally, we would run: zypper removerepo "@@PACKAGE@@"
+#  # but that does not work when zypper is running.
+#  rm -f /etc/zypp/repos.d/@@PACKAGE@@.repo
+#}
+
+DEFAULT_ARCH="@@ARCHITECTURE@@"
+
+get_lib_dir() {
+  if [ "$DEFAULT_ARCH" = "i386" ] || [ "$DEFAULT_ARCH" = "armhf" ] || \
+      [ "$DEFAULT_ARCH" = "mipsel" ]; then
+    LIBDIR=lib
+  elif [ "$DEFAULT_ARCH" = "x86_64" ] || [ "$DEFAULT_ARCH" = "aarch64" ] || \
+        [ "$DEFAULT_ARCH" = "mips64el" ]; then
+    LIBDIR=lib64
+  else
+    echo Unknown CPU Architecture: "$DEFAULT_ARCH"
+    exit 1
+  fi
+}

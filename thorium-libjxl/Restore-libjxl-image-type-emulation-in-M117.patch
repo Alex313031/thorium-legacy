@@ -1,0 +1,180 @@
+diff --git a/front_end/core/sdk/EmulationModel.ts b/front_end/core/sdk/EmulationModel.ts
+index 613461adb5..135d5390b5 100644
+--- a/front_end/core/sdk/EmulationModel.ts
++++ b/front_end/core/sdk/EmulationModel.ts
+@@ -1,4 +1,4 @@
+-// Copyright 2017 The Chromium Authors. All rights reserved.
++// Copyright 2023 The Chromium Authors, gz83, and Alex313031. All rights reserved.
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
+ 
+@@ -159,6 +159,7 @@ export class EmulationModel extends SDKModel<void> {
+     }
+ 
+     const avifFormatDisabledSetting = Common.Settings.Settings.instance().moduleSetting('avifFormatDisabled');
++    const jpegXlFormatDisabledSetting = Common.Settings.Settings.instance().moduleSetting('jpegXlFormatDisabled');
+     const webpFormatDisabledSetting = Common.Settings.Settings.instance().moduleSetting('webpFormatDisabled');
+ 
+     const updateDisabledImageFormats = (): void => {
+@@ -166,6 +167,9 @@ export class EmulationModel extends SDKModel<void> {
+       if (avifFormatDisabledSetting.get()) {
+         types.push(Protocol.Emulation.DisabledImageType.Avif);
+       }
++      if (jpegXlFormatDisabledSetting.get()) {
++        types.push(Protocol.Emulation.DisabledImageType.Jxl);
++      }
+       if (webpFormatDisabledSetting.get()) {
+         types.push(Protocol.Emulation.DisabledImageType.Webp);
+       }
+@@ -173,9 +177,10 @@ export class EmulationModel extends SDKModel<void> {
+     };
+ 
+     avifFormatDisabledSetting.addChangeListener(updateDisabledImageFormats);
++    jpegXlFormatDisabledSetting.addChangeListener(updateDisabledImageFormats);
+     webpFormatDisabledSetting.addChangeListener(updateDisabledImageFormats);
+ 
+-    if (avifFormatDisabledSetting.get() || webpFormatDisabledSetting.get()) {
++    if (avifFormatDisabledSetting.get() || jpegXlFormatDisabledSetting.get() || webpFormatDisabledSetting.get()) {
+       updateDisabledImageFormats();
+     }
+ 
+diff --git a/front_end/core/sdk/sdk-meta.ts b/front_end/core/sdk/sdk-meta.ts
+index 58fb2498c0..f585e30535 100644
+--- a/front_end/core/sdk/sdk-meta.ts
++++ b/front_end/core/sdk/sdk-meta.ts
+@@ -1,4 +1,4 @@
+-// Copyright 2020 The Chromium Authors. All rights reserved.
++// Copyright 2023 The Chromium Authors, gz83, and Alex313031. All rights reserved.
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
+ 
+@@ -281,6 +281,14 @@ const UIStrings = {
+    *@description Title of a setting that enables AVIF format
+    */
+   enableAvifFormat: 'Enable `AVIF` format',
++  /**
++   *@description Title of a setting that disables JPEG XL format
++   */
++  disableJpegXlFormat: 'Disable `JPEG XL` format',
++  /**
++   *@description Title of a setting that enables JPEG XL format
++   */
++  enableJpegXlFormat: 'Enable `JPEG XL` format',
+   /**
+    *@description Title of a setting that disables WebP format
+    */
+@@ -992,6 +1000,24 @@ Common.Settings.registerSettingExtension({
+   defaultValue: false,
+ });
+ 
++Common.Settings.registerSettingExtension({
++  category: Common.Settings.SettingCategory.RENDERING,
++  settingName: 'jpegXlFormatDisabled',
++  settingType: Common.Settings.SettingType.BOOLEAN,
++  storageType: Common.Settings.SettingStorageType.Session,
++  options: [
++    {
++      value: true,
++      title: i18nLazyString(UIStrings.disableJpegXlFormat),
++    },
++    {
++      value: false,
++      title: i18nLazyString(UIStrings.enableJpegXlFormat),
++    },
++  ],
++  defaultValue: false,
++});
++
+ Common.Settings.registerSettingExtension({
+   category: Common.Settings.SettingCategory.RENDERING,
+   settingName: 'webpFormatDisabled',
+diff --git a/front_end/entrypoints/inspector_main/RenderingOptions.ts b/front_end/entrypoints/inspector_main/RenderingOptions.ts
+index 18522a3494..ef68281f60 100644
+--- a/front_end/entrypoints/inspector_main/RenderingOptions.ts
++++ b/front_end/entrypoints/inspector_main/RenderingOptions.ts
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (C) 2013 Google Inc. All rights reserved.
++ * Copyright (C) 2023 Google Inc, gz83, and Alex313031. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are
+@@ -170,6 +170,11 @@ const UIStrings = {
+    * page from loading images with the AVIF format.
+    */
+   disableAvifImageFormat: 'Disable `AVIF` image format',
++  /**
++   * @description The name of a checkbox setting in the Rendering tool. This setting disables the
++   * page from loading images with the JPEG XL format.
++   */
++  disableJpegXlImageFormat: 'Disable `JPEG XL` image format',
+   /**
+    * @description Explanation text for both the 'Disable AVIF image format' and 'Disable WebP image
+    * format' settings in the Rendering tool.
+@@ -212,6 +217,17 @@ const supportsPrefersContrast = (): boolean => {
+   return window.matchMedia(query).media === query;
+ };
+ 
++const supportsJpegXl = async(): Promise<boolean> => {
++  const JPEG_XL_IMAGE_URL = 'data:image/jxl;base64,/wr/BwiDBAwASyAY';
++  const promise = new Promise<boolean>((resolve): void => {
++    const img = document.createElement('img');
++    img.onload = (): void => resolve(true);
++    img.onerror = (): void => resolve(false);
++    img.src = JPEG_XL_IMAGE_URL;
++  });
++  return promise;
++};
++
+ let renderingOptionsViewInstance: RenderingOptionsView;
+ 
+ export class RenderingOptionsView extends UI.Widget.VBox {
+@@ -298,6 +314,12 @@ export class RenderingOptionsView extends UI.Widget.VBox {
+         Common.Settings.Settings.instance().moduleSetting('webpFormatDisabled'));
+ 
+     this.contentElement.createChild('div').classList.add('panel-section-separator');
++
++    this.#appendCheckbox(
++        i18nString(UIStrings.disableJpegXlImageFormat), i18nString(UIStrings.requiresAPageReloadToApplyAnd),
++        Common.Settings.Settings.instance().moduleSetting('jpegXlFormatDisabled'));
++
++    this.contentElement.createChild('div').classList.add('panel-section-separator');
+   }
+ 
+   static instance(opts: {
+diff --git a/front_end/generated/protocol.ts b/front_end/generated/protocol.ts
+index ec31f5e955..9ca0157d9e 100644
+--- a/front_end/generated/protocol.ts
++++ b/front_end/generated/protocol.ts
+@@ -1,4 +1,4 @@
+-// Copyright (c) 2020 The Chromium Authors. All rights reserved.
++// Copyright (c) 2023 The Chromium Authors, gz83, and Alex313031. All rights reserved.
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
+ 
+@@ -5498,6 +5498,7 @@ export namespace Emulation {
+    */
+   export const enum DisabledImageType {
+     Avif = 'avif',
++    Jxl = "jxl",
+     Webp = 'webp',
+   }
+ 
+diff --git a/test/unittests/front_end/helpers/EnvironmentHelpers.ts b/test/unittests/front_end/helpers/EnvironmentHelpers.ts
+index cfe4897496..65b6c8425a 100644
+--- a/test/unittests/front_end/helpers/EnvironmentHelpers.ts
++++ b/test/unittests/front_end/helpers/EnvironmentHelpers.ts
+@@ -1,4 +1,4 @@
+-// Copyright 2020 The Chromium Authors. All rights reserved.
++// Copyright 2023 The Chromium Authors, gz83, and Alex313031. All rights reserved.
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
+ 
+@@ -185,6 +185,7 @@ export async function initializeGlobalVars({reset = true} = {}) {
+     createSettingValue(Common.Settings.SettingCategory.RENDERING, 'showScrollBottleneckRects', false),
+     createSettingValue(Common.Settings.SettingCategory.RENDERING, 'showWebVitals', false),
+     createSettingValue(Common.Settings.SettingCategory.RENDERING, 'webpFormatDisabled', false),
++    createSettingValue(Common.Settings.SettingCategory.RENDERING, 'jpegXlFormatDisabled', false),
+     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'allowScrollPastEof', true),
+     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'cssSourceMapsEnabled', true),
+     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'inlineVariableValues', true),

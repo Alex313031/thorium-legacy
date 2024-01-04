@@ -11,8 +11,8 @@
 #include <memory>
 #include <utility>
 
-#include "base/bind.h"
 #include "base/debug/alias.h"
+#include "base/functional/bind.h"
 #include "base/i18n/rtl.h"
 #include "base/memory/raw_ptr.h"
 #include "base/command_line.h"
@@ -65,6 +65,7 @@
 #include "ui/base/pointer/touch_ui_controller.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/base/theme_provider.h"
+#include "ui/base/ui_base_features.h"
 #include "ui/compositor/clip_recorder.h"
 #include "ui/compositor/compositor.h"
 #include "ui/gfx/animation/tween.h"
@@ -89,6 +90,10 @@
 #include "ui/views/widget/widget.h"
 #include "ui/views/window/non_client_view.h"
 
+#if BUILDFLAG(IS_WIN)
+#include "ui/views/win/pen_event_handler_util.h"
+#endif
+
 #if defined(USE_AURA)
 #include "ui/aura/env.h"
 #endif
@@ -102,6 +107,12 @@ namespace {
 // tab. This is done to avoid having the title immediately disappear when
 // transitioning a tab from normal to pinned tab.
 constexpr int kPinnedTabExtraWidthToRenderAsNormal = 30;
+
+// Additional padding of close button to the right of the tab
+// indicator when `extra_alert_indicator_padding_` is true.
+constexpr int kTabAlertIndicatorCloseButtonPaddingAdjustmentTouchUI = 8;
+constexpr int kTabAlertIndicatorCloseButtonPaddingAdjustment = 6;
+constexpr int kTabAlertIndicatorCloseButtonPaddingAdjustmentRefresh = 4;
 
 bool g_show_hover_card_on_mouse_hover = true;
 
@@ -124,8 +135,8 @@ int Center(int size, int item_size) {
 
 class TabStyleHighlightPathGenerator : public views::HighlightPathGenerator {
  public:
-  explicit TabStyleHighlightPathGenerator(TabStyle* tab_style)
-      : tab_style_(tab_style) {}
+  explicit TabStyleHighlightPathGenerator(TabStyleViews* tab_style_views)
+      : tab_style_views_(tab_style_views) {}
   TabStyleHighlightPathGenerator(const TabStyleHighlightPathGenerator&) =
       delete;
   TabStyleHighlightPathGenerator& operator=(
@@ -133,11 +144,11 @@ class TabStyleHighlightPathGenerator : public views::HighlightPathGenerator {
 
   // views::HighlightPathGenerator:
   SkPath GetHighlightPath(const views::View* view) override {
-    return tab_style_->GetPath(TabStyle::PathType::kHighlight, 1.0);
+    return tab_style_views_->GetPath(TabStyle::PathType::kHighlight, 1.0);
   }
 
  private:
-  const raw_ptr<TabStyle, DanglingUntriaged> tab_style_;
+  const raw_ptr<TabStyleViews, AcrossTasksDanglingUntriaged> tab_style_views_;
 };
 
 }  // namespace
@@ -195,7 +206,7 @@ Tab::Tab(TabSlotController* controller)
       title_animation_(this) {
   DCHECK(controller);
 
-  tab_style_ = TabStyleViews::CreateForTab(this);
+  tab_style_views_ = TabStyleViews::CreateForTab(this);
 
   // So we get don't get enter/exit on children and don't prematurely stop the
   // hover.
@@ -205,14 +216,15 @@ Tab::Tab(TabSlotController* controller)
 
   // This will cause calls to GetContentsBounds to return only the rectangle
   // inside the tab shape, rather than to its extents.
-  SetBorder(views::CreateEmptyBorder(tab_style()->GetContentsInsets()));
+  SetBorder(views::CreateEmptyBorder(tab_style_views()->GetContentsInsets()));
 
   title_->SetHorizontalAlignment(gfx::ALIGN_TO_HEAD);
   title_->SetElideBehavior(gfx::FADE_TAIL);
   title_->SetHandlesTooltips(false);
   title_->SetAutoColorReadabilityEnabled(false);
   title_->SetText(CoreTabHelper::GetDefaultTitle());
-  title_->SetFontList(tab_style_->GetFontList());
+  title_->SetFontList(tab_style_views_->GetFontList());
+  title_->SetBackgroundColor(SK_ColorTRANSPARENT);
   // |title_| paints on top of an opaque region (the tab background) of a
   // non-opaque layer (the tabstrip's layer), which cannot currently be detected
   // by the subpixel-rendering opacity check.
@@ -220,6 +232,13 @@ Tab::Tab(TabSlotController* controller)
   // need a manual suppression by detecting cases where the text is painted onto
   // onto opaque parts of a not-entirely-opaque layer.
   title_->SetSkipSubpixelRenderingOpacityCheck(true);
+
+  if (features::IsChromeRefresh2023() &&
+      base::FeatureList::IsEnabled(features::kChromeRefresh2023TopChromeFont)) {
+    title_->SetTextContext(views::style::CONTEXT_LABEL);
+    title_->SetTextStyle(views::style::STYLE_BODY_4_EMPHASIS);
+  }
+
   AddChildView(title_.get());
 
   SetEventTargeter(std::make_unique<views::ViewTargeter>(this));
@@ -246,7 +265,8 @@ Tab::Tab(TabSlotController* controller)
   SetFocusBehavior(FocusBehavior::ACCESSIBLE_ONLY);
   views::FocusRing::Install(this);
   views::HighlightPathGenerator::Install(
-      this, std::make_unique<TabStyleHighlightPathGenerator>(tab_style_.get()));
+      this,
+      std::make_unique<TabStyleHighlightPathGenerator>(tab_style_views()));
 
   SetProperty(views::kElementIdentifierKey, kTabElementId);
 }
@@ -276,7 +296,7 @@ bool Tab::GetHitTestMask(SkPath* mask) const {
   // When the window is maximized we don't want to shave off the edges or top
   // shadow of the tab, such that the user can click anywhere along the top
   // edge of the screen to select a tab. Ditto for immersive fullscreen.
-  *mask = tab_style()->GetPath(
+  *mask = tab_style_views()->GetPath(
       TabStyle::PathType::kHitTest,
       GetWidget()->GetCompositor()->device_scale_factor(),
       /* force_active */ false, TabStyle::RenderUnits::kDips);
@@ -290,7 +310,10 @@ void Tab::Layout() {
   UpdateIconVisibility();
 
   int start = contents_rect.x();
-  if (extra_padding_before_content_) {
+
+  // ChromeRefresh doesnt respect this extra padding since it has exact values
+  // for left/right padding.
+  if (extra_padding_before_content_ && !features::IsChromeRefresh2023()) {
     constexpr int kExtraLeftPaddingToBalanceCloseButtonPadding = 4;
     start += kExtraLeftPaddingToBalanceCloseButtonPadding;
   }
@@ -312,9 +335,7 @@ void Tab::Layout() {
     }
     // Add space for insets outside the favicon bounds.
     favicon_bounds.Inset(-icon_->GetInsets());
-    favicon_bounds.set_size(
-        gfx::Size(icon_->GetPreferredSize().width(),
-                  contents_rect.height() - favicon_bounds.y()));
+    favicon_bounds.set_size(icon_->GetPreferredSize());
   }
   icon_->SetBoundsRect(favicon_bounds);
   icon_->SetVisible(showing_icon_);
@@ -323,31 +344,34 @@ void Tab::Layout() {
 
   int close_x = contents_rect.right();
   if (showing_close_button_) {
-    // If the ratio of the close button size to tab width exceeds the maximum.
-    // The close button should be as large as possible so that there is a larger
-    // hit-target for touch events. So the close button bounds extends to the
-    // edges of the tab. However, the larger hit-target should be active only
-    // for touch events, and the close-image should show up in the right place.
-    // So a border is added to the button with necessary padding. The close
-    // button (Tab::TabCloseButton) makes sure the padding is a hit-target only
-    // for touch events.
-    // TODO(pkasting): The padding should maybe be removed, see comments in
-    // TabCloseButton::TargetForRect().
-    const int close_button_size = TabCloseButton::GetGlyphSize();
+    // The visible size is the button's hover shape size. The actual size
+    // includes the border insets for the button.
+    const int close_button_visible_size =
+        GetLayoutConstant(TAB_CLOSE_BUTTON_SIZE);
+    const gfx::Size close_button_actual_size =
+        close_button_->GetPreferredSize();
+
+    // The close button is vertically centered in the contents_rect.
     const int top =
-        contents_rect.y() + Center(contents_rect.height(), close_button_size);
-    // Clamp the close button position to "centered within the tab"; this should
-    // only have an effect when animating in a new active tab, which might start
-    // out narrower than the minimum active tab width.
-    close_x = std::max(contents_rect.right() - close_button_size,
-                       Center(width(), close_button_size));
-    const int left = std::min(after_title_padding, close_x);
-    const int bottom = height() - close_button_size - top;
-    const int right = std::max(0, width() - (close_x + close_button_size));
-    close_button_->SetButtonPadding(
-        gfx::Insets::TLBR(top, left, bottom, right));
+        contents_rect.y() +
+        Center(contents_rect.height(), close_button_actual_size.height());
+
+    // The visible part of the close button should be placed against the
+    // right of the contents rect unless the tab is so small that it would
+    // overflow the left side of the contents_rect, in that case it will be
+    // placed in the middle of the tab.
+    const int visible_left =
+        std::max(close_x - close_button_visible_size,
+                 Center(width(), close_button_visible_size));
+
+    // Offset the new bounds rect by the extra padding in the close button.
+    const int non_visible_left_padding =
+        (close_button_actual_size.width() - close_button_visible_size) / 2;
+
     close_button_->SetBoundsRect(
-        {gfx::Point(close_x - left, 0), close_button_->GetPreferredSize()});
+        {gfx::Point(visible_left - non_visible_left_padding, top),
+         close_button_actual_size});
+    close_x = visible_left - after_title_padding;
   }
   close_button_->SetVisible(showing_close_button_);
 
@@ -355,8 +379,14 @@ void Tab::Layout() {
     int right = contents_rect.right();
     if (showing_close_button_) {
       right = close_x;
-      if (extra_alert_indicator_padding_)
-        right -= ui::TouchUiController::Get()->touch_ui() ? 8 : 6;
+      if (extra_alert_indicator_padding_) {
+        right -=
+            ui::TouchUiController::Get()->touch_ui()
+                ? kTabAlertIndicatorCloseButtonPaddingAdjustmentTouchUI
+                : (features::IsChromeRefresh2023()
+                       ? kTabAlertIndicatorCloseButtonPaddingAdjustmentRefresh
+                       : kTabAlertIndicatorCloseButtonPaddingAdjustment);
+      }
     }
     const gfx::Size image_size = alert_indicator_button_->GetPreferredSize();
     gfx::Rect bounds(
@@ -582,7 +612,7 @@ void Tab::OnMouseCaptureLost() {
 }
 
 void Tab::OnMouseMoved(const ui::MouseEvent& event) {
-  tab_style_->SetHoverLocation(event.location());
+  tab_style_views()->SetHoverLocation(event.location());
   controller_->OnMouseEventInTab(this, event);
 
   // Linux enter/leave events are sometimes flaky, so we don't want to "miss"
@@ -616,7 +646,7 @@ void Tab::MaybeUpdateHoverStatus(const ui::MouseEvent& event) {
 #endif
 
   mouse_hovered_ = true;
-  tab_style_->ShowHover(TabStyle::ShowHoverStyle::kSubtle);
+  tab_style_views()->ShowHover(TabStyle::ShowHoverStyle::kSubtle);
   UpdateForegroundColors();
   Layout();
   if (g_show_hover_card_on_mouse_hover)
@@ -628,7 +658,7 @@ void Tab::OnMouseExited(const ui::MouseEvent& event) {
   if (!mouse_hovered_)
     return;
   mouse_hovered_ = false;
-  tab_style_->HideHover(TabStyle::HideHoverStyle::kGradual);
+  tab_style_views()->HideHover(TabStyle::HideHoverStyle::kGradual);
   UpdateForegroundColors();
   Layout();
 }
@@ -654,8 +684,21 @@ void Tab::OnGestureEvent(ui::GestureEvent* event) {
       ui::GestureEvent cloned_event(event_in_parent, parent(),
                                     static_cast<View*>(this));
 
-      if (!closing())
+      if (!closing()) {
+#if BUILDFLAG(IS_WIN)
+        // If the pen is down on the tab, let pen events fall through to the
+        // default window handler until the pen is raised. This allows the
+        // default window handler to execute drag-drop on the window when it's
+        // moved by its tab, e.g., when the window has a single tab or when a
+        // tab is being detached.
+        const bool is_pen = event->details().primary_pointer_type() ==
+                            ui::EventPointerType::kPen;
+        if (is_pen) {
+          views::UseDefaultHandlerForPenEventsUntilPenUp();
+        }
+#endif
         controller_->MaybeStartDrag(this, cloned_event, original_selection);
+      }
       break;
     }
 
@@ -686,7 +729,8 @@ void Tab::GetAccessibleNodeData(ui::AXNodeData* node_data) {
 }
 
 gfx::Size Tab::CalculatePreferredSize() const {
-  return gfx::Size(TabStyle::GetStandardWidth(), GetLayoutConstant(TAB_HEIGHT));
+  return gfx::Size(tab_style()->GetStandardWidth(),
+                   GetLayoutConstant(TAB_HEIGHT));
 }
 
 void Tab::PaintChildren(const views::PaintInfo& info) {
@@ -697,7 +741,7 @@ void Tab::PaintChildren(const views::PaintInfo& info) {
   // The paint recording scale for tabs is consistent along the x and y axis.
   const float paint_recording_scale = info.paint_recording_scale_x();
 
-  const SkPath clip_path = tab_style()->GetPath(
+  const SkPath clip_path = tab_style_views()->GetPath(
       TabStyle::PathType::kInteriorClip, paint_recording_scale);
 
   clip_recorder.ClipPathWithAntiAliasing(clip_path);
@@ -705,11 +749,17 @@ void Tab::PaintChildren(const views::PaintInfo& info) {
 }
 
 void Tab::OnPaint(gfx::Canvas* canvas) {
-  tab_style()->PaintTab(canvas);
+  tab_style_views()->PaintTab(canvas);
 }
 
 void Tab::AddedToWidget() {
-  UpdateForegroundColors();
+  paint_as_active_subscription_ =
+      GetWidget()->RegisterPaintAsActiveChangedCallback(base::BindRepeating(
+          &Tab::UpdateForegroundColors, base::Unretained(this)));
+}
+
+void Tab::RemovedFromWidget() {
+  paint_as_active_subscription_ = {};
 }
 
 void Tab::OnFocus() {
@@ -736,9 +786,9 @@ TabSlotView::ViewType Tab::GetTabSlotViewType() const {
 }
 
 TabSizeInfo Tab::GetTabSizeInfo() const {
-  return {TabStyle::GetPinnedWidth(), TabStyleViews::GetMinimumActiveWidth(),
-          TabStyleViews::GetMinimumInactiveWidth(),
-          TabStyle::GetStandardWidth()};
+  return {tab_style()->GetPinnedWidth(), tab_style()->GetMinimumActiveWidth(),
+          tab_style()->GetMinimumInactiveWidth(),
+          tab_style()->GetStandardWidth()};
 }
 
 void Tab::SetClosing(bool closing) {
@@ -762,7 +812,7 @@ absl::optional<SkColor> Tab::GetGroupColor() const {
       controller_->GetGroupColorId(group().value()));
 }
 
-SkColor Tab::GetAlertIndicatorColor(TabAlertState state) const {
+ui::ColorId Tab::GetAlertIndicatorColor(TabAlertState state) const {
   const ui::ColorProvider* color_provider = GetColorProvider();
   if (!color_provider)
     return gfx::kPlaceholderColor;
@@ -788,23 +838,23 @@ SkColor Tab::GetAlertIndicatorColor(TabAlertState state) const {
       group = 2;
       break;
   }
-  ui::ColorId color_ids[3][2][2] = {
-      {{kColorTabAlertMediaRecordingInactiveFrameInactive,
-        kColorTabAlertMediaRecordingInactiveFrameActive},
-       {kColorTabAlertMediaRecordingActiveFrameInactive,
-        kColorTabAlertMediaRecordingActiveFrameActive}},
-      {{kColorTabAlertPipPlayingInactiveFrameInactive,
-        kColorTabAlertPipPlayingInactiveFrameActive},
-       {kColorTabAlertPipPlayingActiveFrameInactive,
-        kColorTabAlertPipPlayingActiveFrameActive}},
-      {{kColorTabAlertAudioPlayingInactiveFrameInactive,
-        kColorTabAlertAudioPlayingInactiveFrameActive},
-       {kColorTabAlertAudioPlayingActiveFrameInactive,
-        kColorTabAlertAudioPlayingActiveFrameActive}}};
-  return color_provider->GetColor(
-      color_ids[group]
-               [tab_style_->GetApparentActiveState() == TabActive::kActive]
-               [controller_->ShouldPaintAsActiveFrame()]);
+
+    const ui::ColorId color_ids[3][2][2] = {
+        {{kColorTabAlertMediaRecordingInactiveFrameInactive,
+          kColorTabAlertMediaRecordingInactiveFrameActive},
+         {kColorTabAlertMediaRecordingActiveFrameInactive,
+          kColorTabAlertMediaRecordingActiveFrameActive}},
+        {{kColorTabAlertPipPlayingInactiveFrameInactive,
+          kColorTabAlertPipPlayingInactiveFrameActive},
+         {kColorTabAlertPipPlayingActiveFrameInactive,
+          kColorTabAlertPipPlayingActiveFrameActive}},
+        {{kColorTabAlertAudioPlayingInactiveFrameInactive,
+          kColorTabAlertAudioPlayingInactiveFrameActive},
+         {kColorTabAlertAudioPlayingActiveFrameInactive,
+          kColorTabAlertAudioPlayingActiveFrameActive}}};
+    return color_ids[group][tab_style_views()->GetApparentActiveState() ==
+                            TabActive::kActive]
+                    [GetWidget()->ShouldPaintAsActive()];
 }
 
 bool Tab::IsActive() const {
@@ -814,8 +864,9 @@ bool Tab::IsActive() const {
 void Tab::ActiveStateChanged() {
   UpdateTabIconNeedsAttentionBlocked();
   UpdateForegroundColors();
+  icon_->SetActiveState(IsActive());
   alert_indicator_button_->OnParentTabButtonColorChanged();
-  title_->SetFontList(tab_style_->GetFontList());
+  title_->SetFontList(tab_style_views_->GetFontList());
   Layout();
 }
 
@@ -826,16 +877,20 @@ void Tab::AlertStateChanged() {
   Layout();
 }
 
-void Tab::FrameColorsChanged() {
-  UpdateForegroundColors();
-}
-
 void Tab::SelectedStateChanged() {
   UpdateForegroundColors();
 }
 
 bool Tab::IsSelected() const {
   return controller_->IsTabSelected(this);
+}
+
+bool Tab::IsDiscarded() const {
+  return data().is_tab_discarded;
+}
+
+bool Tab::HasThumbnail() const {
+  return data().thumbnail && data().thumbnail->has_data();
 }
 
 void Tab::SetData(TabRendererData data) {
@@ -937,7 +992,7 @@ void Tab::MaybeAdjustLeftForPinnedTab(gfx::Rect* bounds,
                                       int visual_width) const {
   if (ShouldRenderAsNormalTab())
     return;
-  const int pinned_width = TabStyle::GetPinnedWidth();
+  const int pinned_width = tab_style()->GetPinnedWidth();
   const int ideal_delta = width() - pinned_width;
   const int ideal_x = (pinned_width - visual_width) / 2;
   // TODO(crbug.com/533570): This code is broken when the current width is less
@@ -1000,10 +1055,8 @@ void Tab::UpdateIconVisibility() {
       alert_indicator_button_->GetPreferredSize().width();
   // In case of touch optimized UI, the close button has an extra padding on the
   // left that needs to be considered.
-  const int close_button_width =
-      close_button_->GetPreferredSize().width() -
-      (touch_ui ? close_button_->GetInsets().right()
-                : close_button_->GetInsets().width());
+  const int close_button_width = GetLayoutConstant(TAB_CLOSE_BUTTON_SIZE) +
+                                 GetLayoutConstant(TAB_AFTER_TITLE_PADDING);
   const bool large_enough_for_close_button =
       available_width >= (touch_ui ? kTouchMinimumContentsWidthForCloseButtons
                                    : kMinimumContentsWidthForCloseButtons);
@@ -1064,7 +1117,7 @@ void Tab::UpdateIconVisibility() {
 }
 
 bool Tab::ShouldRenderAsNormalTab() const {
-  return !data().pinned || (width() >= (TabStyle::GetPinnedWidth() +
+  return !data().pinned || (width() >= (tab_style()->GetPinnedWidth() +
                                         kPinnedTabExtraWidthToRenderAsNormal));
 }
 
@@ -1093,13 +1146,15 @@ int Tab::GetWidthOfLargestSelectableRegion() const {
 }
 
 void Tab::UpdateForegroundColors() {
-  TabStyle::TabColors colors = tab_style_->CalculateColors();
+  TabStyle::TabColors colors = tab_style_views()->CalculateTargetColors();
   title_->SetEnabledColor(colors.foreground_color);
   close_button_->SetColors(colors);
   alert_indicator_button_->OnParentTabButtonColorChanged();
   // There may be no focus ring when the tab is closing.
-  if (auto* focus_ring = views::FocusRing::Get(this); focus_ring)
+  if (auto* focus_ring = views::FocusRing::Get(this); focus_ring) {
     focus_ring->SetColorId(colors.focus_ring_color);
+    focus_ring->SetOutsetFocusRingDisabled(true);
+  }
   SchedulePaint();
 }
 
