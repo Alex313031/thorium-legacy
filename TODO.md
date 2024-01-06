@@ -34,3 +34,7 @@ Experiments > Thorium Experiments
 ### Windows 7 Specific
 
  - Restore Win7 WebRTC HW decoding flag (and disable by default) > https://source.chromium.org/chromium/chromium/src/+/3682d7432ea6d3a50661ca565759509a57fe3d4c
+
+ - https://source.chromium.org/chromium/chromium/src/+/056a891186fbf7b5cd3f857c331ab3ad5a69019d
+
+ - https://bugs.chromium.org/p/chromium/issues/detail?id=1385856
