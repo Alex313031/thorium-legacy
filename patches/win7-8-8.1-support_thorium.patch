@@ -1917,9 +1917,9 @@ index d33d6d04c130e..7cbd830715c4f 100644
 +
 +
 +
-+const char kDisableAeroThemeName[] = "Use Classic Theme";
++const char kDisableAeroThemeName[] = "Disable Aero Window Frame Compositing";
 +const char kDisableAeroThemeDescription[] =
-+	"Use the classic Chrome theme designed to mimick \"Aero\" window controls. "
++	"Use the classic Chromium theme designed to mimick \"Aero\" window controls. "
 +	"Typically used when desktop composition is disabled or unavailable.";
  
  const char kForcedColorsName[] = "Forced Colors";
@@ -1928,7 +1928,7 @@ index d33d6d04c130e..7cbd830715c4f 100644
      "prevent the usage of bound credentials outside of the user device.";
  #endif  // BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
  
-+const char kThoriumCustomTabsName[] = "Thorium Custom Tab UI";
++const char kThoriumCustomTabsName[] = "Thorium Trapezoidal Tabs UI";
 +const char kThoriumCustomTabsDescription[] =
 +	"Changes the look of browser tabs to appear with a trapezoidal shape, restoring the pre M72 tabstrip appearance.";
 +
@@ -10410,21 +10410,6 @@ index e079f9ccd09d2..ed9cb666ff09b 100644
      base::win::AssertComApartmentType(base::win::ComApartmentType::STA);
  
      base::win::ScopedHString input_pane_guid = base::win::ScopedHString::Create(
-diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
-index 1efd4d1804251..7911f274cde4e 100644
---- a/ui/base/ui_base_features.cc
-+++ b/ui/base/ui_base_features.cc
-@@ -603,6 +603,10 @@ ChromeRefresh2023Level GetChromeRefresh2023Level() {
- BASE_FEATURE(kBubbleMetricsApi,
-              "BubbleMetricsApi",
-              base::FEATURE_DISABLED_BY_DEFAULT);
-+
-+BASE_FEATURE(kThoriumCustomTabs,
-+             "ThoriumCustomTabs",
-+             base::FEATURE_DISABLED_BY_DEFAULT);
- 
- #if !BUILDFLAG(IS_LINUX)
- BASE_FEATURE(kWebUiSystemFont,
 diff --git a/ui/base/ui_base_features.h b/ui/base/ui_base_features.h
 index 595e592b9d6c6..f9313c29aafc8 100644
 --- a/ui/base/ui_base_features.h

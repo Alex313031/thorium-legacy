@@ -32,10 +32,9 @@
 
 #if BUILDFLAG(IS_WIN)
     {"disable-aero",
-     "Disable Aero Window Frame Compositing",
-     "Use the classic Chromium theme designed to mimick \"Aero\" window controls. "
-     "Typically used when desktop composition is disabled or unavailable.",
-     kOsWin, SINGLE_VALUE_TYPE("disable-aero")},
+     flag_descriptions::kDisableAeroThemeName,
+     flag_descriptions::kDisableAeroThemeDescription,
+     kOsWin, FEATURE_VALUE_TYPE(kDisableAeroTheme)},
 #endif // BUILDFLAG(IS_WIN)
 
     {"custom-ntp",
@@ -166,19 +165,19 @@
 #endif // BUILDFLAG(IS_LINUX)
 
 #if BUILDFLAG(IS_WIN)
+    {"disable-windows-10-custom-titlebar",
+     flag_descriptions::kDisableWindows10CustomTitlebarName,
+	 flag_descriptions::kDisableWindows10CustomTitlebarDescription,
+     kOsWin, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
     {"enable-exclusive-audio",
      "Enable Exclusive Audio Streams",
      "Use exclusive mode audio streaming for Windows Vista and higher. Leads to lower latencies for audio streams which use the AudioParameters::AUDIO_PCM_LOW_LATENCY audio path. "
      "See https://docs.microsoft.com/en-us/windows/win32/coreaudio/exclusive-mode-streams for details.",
      kOsWin, SINGLE_VALUE_TYPE(switches::kEnableExclusiveAudio)},
-    {"disable-windows-10-custom-titlebar",
-     flag_descriptions::kDisableWindows10CustomTitlebarName,
-	 flag_descriptions::kDisableWindows10CustomTitlebarDescription,
-     kOsWin, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
-    {"disable-aero",
-     flag_descriptions::kDisableAeroThemeName,
-     flag_descriptions::kDisableAeroThemeDescription,
-     kOsWin, FEATURE_VALUE_TYPE(kDisableAeroTheme)},
+    {"enable-win7-webrtc-hw-h264-decoding",
+     "Windows 7 WebRTC H.264 Hardware Decoding",
+     "Enables H.264 hardware decode acceleration for WebRTC on Windows 7.",
+     kOsWin, SINGLE_VALUE_TYPE("enable-win7-webrtc-hw-h264-decoding")},
 #endif // BUILDFLAG(IS_WIN)
 
     {"custom-tab-shapes",

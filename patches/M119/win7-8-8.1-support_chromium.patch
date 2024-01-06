@@ -2102,7 +2102,7 @@ index d33d6d04c130e..7cbd830715c4f 100644
 +
 +const char kForceXpThemeName[] = "Use Classic Theme";
 +const char kForceXpThemeDescription[] =
-+	"Use the classic Chrome theme designed to mimick \"Aero\" window controls. "
++	"Use the classic Chromium theme designed to mimick \"Aero\" window controls. "
 +	"Typically used when desktop composition is disabled or unavailable.";
  
  const char kForcedColorsName[] = "Forced Colors";
