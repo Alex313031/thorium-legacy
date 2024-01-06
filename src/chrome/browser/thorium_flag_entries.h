@@ -7,7 +7,7 @@
 
     {"force-dark-mode",
      "Enable Dark Mode",
-     "Enables dark mode for all Thorium instances.",
+     "Enables dark mode for all UI elements (but not web contents - turn on #enable-force-dark for darkening web contents).",
      kOsDesktop, SINGLE_VALUE_TYPE(switches::kForceDarkMode)},
 
 #if BUILDFLAG(IS_LINUX)
@@ -171,8 +171,38 @@
      "Use exclusive mode audio streaming for Windows Vista and higher. Leads to lower latencies for audio streams which use the AudioParameters::AUDIO_PCM_LOW_LATENCY audio path. "
      "See https://docs.microsoft.com/en-us/windows/win32/coreaudio/exclusive-mode-streams for details.",
      kOsWin, SINGLE_VALUE_TYPE(switches::kEnableExclusiveAudio)},
+    {"disable-windows-10-custom-titlebar",
+     flag_descriptions::kDisableWindows10CustomTitlebarName,
+	 flag_descriptions::kDisableWindows10CustomTitlebarDescription,
+     kOsWin, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
+    {"disable-aero",
+     flag_descriptions::kDisableAeroThemeName,
+     flag_descriptions::kDisableAeroThemeDescription,
+     kOsWin, FEATURE_VALUE_TYPE(kDisableAeroTheme)},
 #endif // BUILDFLAG(IS_WIN)
 
-#endif  // CHROME_BROWSER_THORIUM_FLAG_ENTRIES_H_
+    {"custom-tab-shapes",
+     flag_descriptions::kThoriumCustomTabsName,
+     flag_descriptions::kThoriumCustomTabsDescription,
+     kOsAll, FEATURE_VALUE_TYPE(features::kThoriumCustomTabs)},
 
-// kDisableWindows10CustomTitlebar
+#if BUILDFLAG(IS_WIN)
+    {"force-gdi",
+     flag_descriptions::kForceGdiName,
+     flag_descriptions::kForceGdiDescription,
+     kOsWin, SINGLE_VALUE_TYPE("disable-direct-write")},
+#endif // BUILDFLAG(IS_WIN)
+
+    {"incognito-brand-consistency-for-desktop",
+     flag_descriptions::kIncognitoBrandConsistencyForDesktopName,
+     flag_descriptions::kIncognitoBrandConsistencyForDesktopDescription,
+     kOsDesktop, FEATURE_VALUE_TYPE(base::features::kIncognitoBrandConsistencyForDesktop)},
+    {"inherit-native-theme-from-parent-widget",
+     flag_descriptions::kInheritNativeThemeFromParentWidgetName,
+     flag_descriptions::kInheritNativeThemeFromParentWidgetDescription,
+     kOsDesktop, FEATURE_VALUE_TYPE(views::features::kInheritNativeThemeFromParentWidget)},
+    {"disable-download-upload",
+     flag_descriptions::kDisableDownloadUploadName,
+     flag_descriptions::kDisableDownloadUploadDescription,
+     kOsAll, SINGLE_VALUE_TYPE("disable-download-upload")},
+#endif  // CHROME_BROWSER_THORIUM_FLAG_ENTRIES_H_

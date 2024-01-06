@@ -341,9 +341,9 @@ index b7dc8ce05d8ca..e03cfe3014b0e 100644
  
  BASE_FEATURE(kJsonNegativeZero, "JsonNegativeZero", FEATURE_ENABLED_BY_DEFAULT);
 +
-+BASE_FEATURE(kForceDarkModeFlag,
-+             "ForceDarkModeFlag",
-+             base::FEATURE_DISABLED_BY_DEFAULT);
++
++
++
  
 +BASE_FEATURE(kIncognitoBrandConsistencyForDesktop,
 +			"IncognitoBrandConsistencyForDesktop",
@@ -365,7 +365,7 @@ index 756445ec6bed3..134e418aa9af6 100644
  
  BASE_EXPORT BASE_DECLARE_FEATURE(kJsonNegativeZero);
  
-+BASE_EXPORT BASE_DECLARE_FEATURE(kForceDarkModeFlag);
++
 +
 +BASE_EXPORT BASE_DECLARE_FEATURE(kIncognitoBrandConsistencyForDesktop);
 +
@@ -1667,189 +1667,6 @@ index 5c54819e4b85a..8f3f64f29011a 100644
    const std::vector<uint8_t> data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
    Microsoft::WRL::ComPtr<ABI::Windows::Storage::Streams::IBuffer> buffer;
    ASSERT_HRESULT_SUCCEEDED(
-diff --git a/build/config/win/BUILD.gn b/build/config/win/BUILD.gn
-index ddcc94a2d5468..63e278ca02605 100644
---- a/build/config/win/BUILD.gn
-+++ b/build/config/win/BUILD.gn
-@@ -43,6 +43,10 @@ declare_args() {
-   #  and with this switch, clang emits it like this:
-   #    foo/bar.cc:12:34: error: something went wrong
-   use_clang_diagnostics_format = false
-+
-+
-+  # Indicates whether to use /pdbpagesize:8192 to allow PDBs larger than 4 GiB.
-+  use_large_pdbs = false
- }
- 
- # This is included by reference in the //build/config/compiler config that
-@@ -127,7 +131,9 @@ config("compiler") {
-     # microarchitecture. MSVC only supports a subset of architectures, and the
-     # next step after SSE2 will be AVX.
-     if (current_cpu == "x86" || current_cpu == "x64") {
--      cflags += [ "-msse3" ]
-+        if (target_cpu == "x64") {
-+          cflags += [ "-msse3" ]
-+        }
-     }
- 
-     # Enable ANSI escape codes if something emulating them is around (cmd.exe
-@@ -168,7 +174,9 @@ config("compiler") {
-     # Don't look for libpaths in %LIB%, similar to /X in cflags above.
-     ldflags += [ "/lldignoreenv" ]
-   }
--
-+  if (use_large_pdbs) {
-+    # This allows PDBs up to 8 GiB in size. This requires lld-link.exe or
-+    # link.exe from VS 2022 or later.
-   # Some binaries create PDBs larger than 4 GiB. Increasing the PDB page size
-   # to 8 KiB allows 8 GiB PDBs. The larger page size also allows larger block maps
-   # which is a PDB limit that was hit in https://crbug.com/1406510. The page size
-@@ -182,6 +190,12 @@ config("compiler") {
-     ldflags += [ "/pdbpagesize:16384" ]
-   } else {
-     ldflags += [ "/pdbpagesize:8192" ]
-+
-+    if (!defined(configs)) {
-+      configs = []
-+    }
-+    configs += [ ":pdb_larger_than_4gb" ]
-+  }
-   }
- 
-   if (!is_debug && !is_component_build) {
-@@ -688,3 +702,15 @@ config("lean_and_mean") {
- config("nominmax") {
-   defines = [ "NOMINMAX" ]
- }
-+
-+# Some binaries create PDBs larger than 4 GiB. Increasing the PDB page size
-+# to 8 KiB allows 8 GiB PDBs. The larger page size also allows larger block maps
-+# which is a PDB limit that was hit in https://crbug.com/1406510. The page size
-+# can easily be increased in the future to allow even larger PDBs or larger
-+# block maps.
-+config("pdb_larger_than_4gb") {
-+  if (!defined(ldflags)) {
-+    ldflags = []
-+  }
-+  ldflags += [ "/pdbpagesize:8192" ]
-+}
-diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
-index 32e2e14cdb2d9..868daa4c37e5d 100644
---- a/chrome/browser/about_flags.cc
-+++ b/chrome/browser/about_flags.cc
-@@ -15,6 +15,7 @@
- 
- #include "base/base_switches.h"
- #include "base/command_line.h"
-+#include "base/features.h"
- #include "base/feature_list.h"
- #include "base/functional/bind.h"
- #include "base/functional/callback.h"
-@@ -5646,6 +5648,20 @@ const FeatureEntry kFeatureEntries[] = {
-                                     kForceDarkVariations,
-                                     "ForceDarkVariations")},
- #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
-+    {"force-dark-mode",
-+	 flag_descriptions::kForceDarkModeFlagName, flag_descriptions::kForceDarkModeFlagDescription, kOsAll,
-+	 FEATURE_VALUE_TYPE(base::features::kForceDarkModeFlag)},
-+#if BUILDFLAG(IS_WIN)
-+	{"disable-windows-10-custom-titlebar",
-+	 flag_descriptions::kDisableWindows10CustomTitlebarName, flag_descriptions::kDisableWindows10CustomTitlebarDescription, kOsWin,
-+	 SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
-+	{"force-xp-theme",
-+	 flag_descriptions::kForceXpThemeName, flag_descriptions::kForceXpThemeDescription, kOsWin,
-+	 FEATURE_VALUE_TYPE(kForceXpTheme)},
-+	{"force-gdi",
-+	 flag_descriptions::kForceGdiName, flag_descriptions::kForceGdiDescription, kOsWin,
-+	 SINGLE_VALUE_TYPE("disable-direct-write")},
-+#endif
- #if BUILDFLAG(IS_ANDROID)
-     {"enable-accessibility-page-zoom",
-      flag_descriptions::kAccessibilityPageZoomName,
-@@ -6441,6 +6457,18 @@ const FeatureEntry kFeatureEntries[] = {
-     {"memlog-stack-mode", flag_descriptions::kMemlogStackModeName,
-      flag_descriptions::kMemlogStackModeDescription, kOsAll,
-      MULTI_VALUE_TYPE(kMemlogStackModeChoices)},
-+
-+    {"incognito-brand-consistency-for-desktop",
-+     flag_descriptions::kIncognitoBrandConsistencyForDesktopName,
-+     flag_descriptions::kIncognitoBrandConsistencyForDesktopDescription,
-+     kOsDesktop,
-+     FEATURE_VALUE_TYPE(base::features::kIncognitoBrandConsistencyForDesktop)},
-+
-+    {"inherit-native-theme-from-parent-widget",
-+     flag_descriptions::kInheritNativeThemeFromParentWidgetName,
-+     flag_descriptions::kInheritNativeThemeFromParentWidgetDescription,
-+     kOsDesktop,
-+     FEATURE_VALUE_TYPE(views::features::kInheritNativeThemeFromParentWidget)},
- 
-     {"omnibox-max-zero-suggest-matches",
-      flag_descriptions::kOmniboxMaxZeroSuggestMatchesName,
-@@ -7271,10 +7299,6 @@ const FeatureEntry kFeatureEntries[] = {
-      flag_descriptions::kEnableWindowsGamingInputDataFetcherName,
-      flag_descriptions::kEnableWindowsGamingInputDataFetcherDescription, kOsWin,
-      FEATURE_VALUE_TYPE(features::kEnableWindowsGamingInputDataFetcher)},
--
--    {"windows11-mica-titlebar", flag_descriptions::kWindows11MicaTitlebarName,
--     flag_descriptions::kWindows11MicaTitlebarDescription, kOsWin,
--     FEATURE_VALUE_TYPE(kWindows11MicaTitlebar)},
- #endif
- 
- #if BUILDFLAG(IS_ANDROID)
-@@ -11253,6 +11277,12 @@ const FeatureEntry kFeatureEntries[] = {
-      flag_descriptions::kEnableBuiltinHlsDescription, kOsAll,
-      FEATURE_VALUE_TYPE(media::kBuiltInHlsPlayer)},
- #endif
-+
-+
-+
-+	{"disable-download-upload",
-+	 flag_descriptions::kDisableDownloadUploadName, flag_descriptions::kDisableDownloadUploadDescription,
-+	 kOsAll, SINGLE_VALUE_TYPE("disable-download-upload")},
- 
- #if !BUILDFLAG(IS_CHROMEOS_ASH)
-     {"profiles-reordering", flag_descriptions::kProfilesReorderingName,
-@@ -11365,6 +11395,13 @@ const FeatureEntry kFeatureEntries[] = {
-     {"observable-api", flag_descriptions::kObservableAPIName,
-      flag_descriptions::kObservableAPIDescription, kOsAll,
-      FEATURE_VALUE_TYPE(blink::features::kObservableAPI)},
-+
-+    {"custom-tab-shapes",
-+     flag_descriptions::kThoriumCustomTabsName,
-+     flag_descriptions::kThoriumCustomTabsDescription,
-+     kOsAll,
-+     FEATURE_VALUE_TYPE(features::kThoriumCustomTabs)},
-+
- 
-     // NOTE: Adding a new flag requires adding a corresponding entry to enum
-     // "LoginCustomFlags" in tools/metrics/histograms/enums.xml. See "Flag
-diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
-index 9b845c0e331c4..4f3afef7ec231 100644
---- a/chrome/browser/chrome_content_browser_client.cc
-+++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -4476,6 +4476,13 @@ std::string ChromeContentBrowserClient::GetDefaultDownloadName() {
-   return l10n_util::GetStringUTF8(IDS_DEFAULT_DOWNLOAD_FILENAME);
- }
- 
-+base::FilePath ChromeContentBrowserClient::GetFontLookupTableCacheDir() {
-+  base::FilePath user_data_dir;
-+  base::PathService::Get(chrome::DIR_USER_DATA, &user_data_dir);
-+  DCHECK(!user_data_dir.empty());
-+  return user_data_dir.Append(FILE_PATH_LITERAL("FontLookupTableCache"));
-+}
-+
- base::FilePath ChromeContentBrowserClient::GetShaderDiskCacheDirectory() {
-   base::FilePath user_data_dir;
-   base::PathService::Get(chrome::DIR_USER_DATA, &user_data_dir);
-@@ -4893,7 +4900,7 @@ bool ChromeContentBrowserClient::PreSpawnChild(
-     return true;
- 
-   sandbox::MitigationFlags mitigations = config->GetProcessMitigations();
--  mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-+  //mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-   sandbox::ResultCode result = config->SetProcessMitigations(mitigations);
-   if (result != sandbox::SBOX_ALL_OK)
-     return false;
 diff --git a/chrome/browser/chrome_content_browser_client.h b/chrome/browser/chrome_content_browser_client.h
 index db4ede8eb28c8..620168b95cc86 100644
 --- a/chrome/browser/chrome_content_browser_client.h
@@ -1968,7 +1785,7 @@ index 60d6876953def..03db4e06e94b8 100644
    {
      "name": "disallow-doc-written-script-loads",
      "owners": [ "//chrome/browser/data_saver/OWNERS" ],
-@@ -4615,6 +4625,16 @@
+@@ -4621,6 +4631,16 @@
      "owners": [ "chromeos-camera-eng@google.com" ],
      "expiry_milestone": 120
    },
@@ -1985,12 +1802,12 @@ index 60d6876953def..03db4e06e94b8 100644
    {
      "name": "force-gpu-main-thread-to-normal-priority-drdc",
      "owners": [ "vikassoni", "lehoangquyen" ],
-@@ -4676,6 +4696,11 @@
+@@ -4682,6 +4702,11 @@
      // have no access to commandline flags.
      "expiry_milestone": -1
    },
 +  {
-+    "name": "force-xp-theme",
++    "name": "disable-aero",
 +    "owners": [ "win32ss", "alex313031" ],
 +    "expiry_milestone": -1
 +  },
@@ -2026,7 +1843,7 @@ index 5319a2eecd5d5..773fb3d2bd0af 100644
    "force-text-direction",
    "force-ui-direction",
    "force-update-menu-type",
-+  "force-xp-theme",
++  "disable-aero",
    "fullscreen-promos-manager-skip-internal-limits",
    "fullscreen-viewport-adjustment-experiment",
    "gesture-properties-dbus-service",
@@ -2074,7 +1891,7 @@ index d33d6d04c130e..7cbd830715c4f 100644
 +
 +const char kDisableWindows10CustomTitlebarName[] = "Force disabling of Windows 10 custom titlebar";
 +const char kDisableWindows10CustomTitlebarDescription[] =
-+    "Disable the \"Windows 10\" custom titlebar to take advantage of Aero Glass fixes for the operating system.";
++    "Disable the \"Windows 10\" custom titlebar to take advantage of Aero Glass fixes for Windows 7.";
 +
  const char kForceUiDirectionName[] = "Force UI direction";
  const char kForceUiDirectionDescription[] =
@@ -2095,19 +1912,19 @@ index d33d6d04c130e..7cbd830715c4f 100644
  const char kAutoWebContentsDarkModeDescription[] =
      "Automatically render all web contents using a dark theme.";
 +
-+const char kForceDarkModeFlagName[] = "Forced Dark Mode for UI";
-+const char kForceDarkModeFlagDescription[] =
-+	"Enables dark mode for all UI elements (but not web contents - "
-+	"enable #enable-force-dark for darkening web contents).";
 +
-+const char kForceXpThemeName[] = "Use Classic Theme";
-+const char kForceXpThemeDescription[] =
++
++
++
++
++const char kDisableAeroThemeName[] = "Use Classic Theme";
++const char kDisableAeroThemeDescription[] =
 +	"Use the classic Chrome theme designed to mimick \"Aero\" window controls. "
 +	"Typically used when desktop composition is disabled or unavailable.";
  
  const char kForcedColorsName[] = "Forced Colors";
  const char kForcedColorsDescription[] =
-@@ -7749,6 +7787,10 @@ const char kEnableBoundSessionCredentialsDescription[] =
+@@ -7755,6 +7793,10 @@ const char kEnableBoundSessionCredentialsDescription[] =
      "prevent the usage of bound credentials outside of the user device.";
  #endif  // BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
  
@@ -2145,16 +1962,16 @@ index 89d8ca8a55114..80b3a9c62e440 100644
  extern const char kAutoWebContentsDarkModeName[];
  extern const char kAutoWebContentsDarkModeDescription[];
  
-+extern const char kForceDarkModeFlagName[];
-+extern const char kForceDarkModeFlagDescription[];
 +
-+extern const char kForceXpThemeName[];
-+extern const char kForceXpThemeDescription[];
++
++
++extern const char kDisableAeroThemeName[];
++extern const char kDisableAeroThemeDescription[];
 +
  extern const char kForcedColorsName[];
  extern const char kForcedColorsDescription[];
  
-@@ -4487,6 +4505,15 @@ extern const char kEnableBoundSessionCredentialsName[];
+@@ -4492,6 +4510,15 @@ extern const char kEnableBoundSessionCredentialsName[];
  extern const char kEnableBoundSessionCredentialsDescription[];
  #endif  // BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
  
@@ -2359,34 +2176,6 @@ index 34a4c3501ca8b..8715be77976a6 100644
    // Returns a cross platform image for an id.
    gfx::Image GetImageNamed(int id,
                             bool incognito,
-diff --git a/chrome/browser/themes/theme_helper_win.cc b/chrome/browser/themes/theme_helper_win.cc
-index 259668e16470f..aef2186c2dee7 100644
---- a/chrome/browser/themes/theme_helper_win.cc
-+++ b/chrome/browser/themes/theme_helper_win.cc
-@@ -8,6 +8,11 @@
- #include "chrome/browser/themes/theme_properties.h"
- #include "chrome/browser/win/titlebar_config.h"
- #include "chrome/grit/theme_resources.h"
-+#include "base/win/windows_version.h"
-+
-+BASE_FEATURE(kForceXpTheme,
-+             "ForceXpTheme",
-+             base::FEATURE_DISABLED_BY_DEFAULT);
- 
- int ThemeHelperWin::GetDefaultDisplayProperty(int id) const {
-   if (id == ThemeProperties::SHOULD_FILL_BACKGROUND_TAB_COLOR) {
-@@ -19,5 +24,10 @@ int ThemeHelperWin::GetDefaultDisplayProperty(int id) const {
- 
- bool ThemeHelperWin::ShouldUseNativeFrame(
-     const CustomThemeSupplier* theme_supplier) const {
--  return true;
-+		// If it returns false, the XP fallback theme is used.
-+		// And yes, Chromium has muddied the waters of what is considered "native".
-+		// Aero Glass is "native", Mica is "native", and so is the Windows 10-style theme that is drawn
-+		// by Chromium itself.
-+		// Only the "original" Chromium theme that mimicks Aero is not considered native.
-+  return (!HasCustomImage(IDR_THEME_FRAME, theme_supplier) && (base::win::GetVersion() >= base::win::Version::VISTA)) && !base::FeatureList::IsEnabled(kForceXpTheme);
- }
 diff --git a/chrome/browser/themes/theme_service.cc b/chrome/browser/themes/theme_service.cc
 index d0e1d573c1fca..2e4b7f76f3e6d 100644
 --- a/chrome/browser/themes/theme_service.cc
@@ -2545,18 +2334,6 @@ index 298ddbffdd8ed..b7538a3180c05 100644
    Browser* browser = chrome::FindBrowserWithWebContents(&GetWebContents());
    browser->window()->ShowScreenshotCapturedBubble(&GetWebContents(),
                                                    captured_image);
-diff --git a/chrome/browser/ui/startup/bad_flags_prompt.cc b/chrome/browser/ui/startup/bad_flags_prompt.cc
-index fd2bd40a10288..f984e16e57281 100644
---- a/chrome/browser/ui/startup/bad_flags_prompt.cc
-+++ b/chrome/browser/ui/startup/bad_flags_prompt.cc
-@@ -73,7 +73,6 @@ const char* const kBadFlags[] = {
-     sandbox::policy::switches::kDisableGpuSandbox,
-     sandbox::policy::switches::kDisableSeccompFilterSandbox,
-     sandbox::policy::switches::kDisableSetuidSandbox,
--    sandbox::policy::switches::kNoSandbox,
- #if BUILDFLAG(IS_WIN)
-     sandbox::policy::switches::kAllowThirdPartyModules,
- #endif
 diff --git a/chrome/browser/ui/tabs/tab_style.cc b/chrome/browser/ui/tabs/tab_style.cc
 index aa9cd30374311..140fa117e6e7c 100644
 --- a/chrome/browser/ui/tabs/tab_style.cc
@@ -2614,29 +2391,6 @@ index aa9cd30374311..140fa117e6e7c 100644
  }
  
  gfx::Size ChromeRefresh2023TabStyle::GetSeparatorSize() const {
-diff --git a/chrome/browser/ui/test/test_browser_ui.cc b/chrome/browser/ui/test/test_browser_ui.cc
-index 2f61aef15bbf8..2b49f57680e6f 100644
---- a/chrome/browser/ui/test/test_browser_ui.cc
-+++ b/chrome/browser/ui/test/test_browser_ui.cc
-@@ -5,6 +5,7 @@
- #include "chrome/browser/ui/test/test_browser_ui.h"
- 
- #include "base/command_line.h"
-+#include "base/features.h"
- #include "base/test/gtest_util.h"
- #include "base/test/test_switches.h"
- #include "build/build_config.h"
-@@ -159,8 +160,8 @@ void TestBrowserUi::ShowAndVerifyUi() {
-   // Gold files for pixel tests are for light mode, so if dark mode is not
-   // forced, and host is in dark mode, skip test.
-   if (!IsInteractiveUi() &&
--      !base::CommandLine::ForCurrentProcess()->HasSwitch(
--          switches::kForceDarkMode) &&
-+      (!base::CommandLine::ForCurrentProcess()->HasSwitch(
-+          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag) &&
-       ui::NativeTheme::GetInstanceForNativeUi()->ShouldUseDarkColors()) {
-     GTEST_SKIP() << "Host is in dark mode; skipping test";
-   }
 diff --git a/chrome/browser/ui/views/frame/browser_desktop_window_tree_host_win.cc b/chrome/browser/ui/views/frame/browser_desktop_window_tree_host_win.cc
 index ac17822240248..87d4c7ca95ede 100644
 --- a/chrome/browser/ui/views/frame/browser_desktop_window_tree_host_win.cc
@@ -2796,197 +2550,6 @@ index 1bf912250ff05..e768404fabf43 100644
    SetButtons(ui::DIALOG_BUTTON_NONE);
    SetTitle(IDS_BROWSER_SHARING_SCREENSHOT_POST_CAPTURE_TITLE);
  }
-diff --git a/chrome/browser/ui/views/tabs/tab_style_views.cc b/chrome/browser/ui/views/tabs/tab_style_views.cc
-index 3e917d0207c85..2acb3962120f9 100644
---- a/chrome/browser/ui/views/tabs/tab_style_views.cc
-+++ b/chrome/browser/ui/views/tabs/tab_style_views.cc
-@@ -322,87 +322,106 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
-     // stroke width.
- 
-     // Start with the left side of the shape.
--    path.moveTo(left, extended_bottom);
--
--    if (tab_left != left) {
--      // Draw the left edge of the extension.
--      //   ╭─────────╮
--      //   │ Content │
--      // ┏─╯         ╰─┐
--      if (tab_bottom != extended_bottom)
--        path.lineTo(left, tab_bottom);
--
--      // Draw the bottom-left corner.
--      //   ╭─────────╮
--      //   │ Content │
--      // ┌━╝         ╰─┐
--      if (extend_left_to_bottom) {
--        path.lineTo(tab_left, tab_bottom);
--      } else {
--        path.lineTo(tab_left - extension_corner_radius, tab_bottom);
--        path.arcTo(extension_corner_radius, extension_corner_radius, 0,
--                   SkPath::kSmall_ArcSize, SkPathDirection::kCCW, tab_left,
--                   tab_bottom - extension_corner_radius);
--      }
--    }
--
--    // Draw the ascender and top-left curve, if present.
--    if (extend_to_top) {
--      //   ┎─────────╮
--      //   ┃ Content │
--      // ┌─╯         ╰─┐
--      path.lineTo(tab_left, tab_top);
--    } else {
--      //   ╔─────────╮
--      //   ┃ Content │
--      // ┌─╯         ╰─┐
--      path.lineTo(tab_left, tab_top + content_corner_radius);
--      path.arcTo(content_corner_radius, content_corner_radius, 0,
--                 SkPath::kSmall_ArcSize, SkPathDirection::kCW,
--                 tab_left + content_corner_radius, tab_top);
--    }
--
--    // Draw the top crossbar and top-right curve, if present.
--    if (extend_to_top) {
--      //   ┌━━━━━━━━━┑
--      //   │ Content │
--      // ┌─╯         ╰─┐
--      path.lineTo(tab_right, tab_top);
--    } else {
--      //   ╭━━━━━━━━━╗
--      //   │ Content │
--      // ┌─╯         ╰─┐
--      path.lineTo(tab_right - content_corner_radius, tab_top);
--      path.arcTo(content_corner_radius, content_corner_radius, 0,
--                 SkPath::kSmall_ArcSize, SkPathDirection::kCW, tab_right,
--                 tab_top + content_corner_radius);
-+
-+    if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
-+		path.moveTo(left, extended_bottom);
-+		if (tab_left != left) {
-+		  // Draw the left edge of the extension.
-+		  //   ╭─────────╮
-+		  //   │ Content │
-+		  // ┏─╯         ╰─┐
-+		  if (tab_bottom != extended_bottom)
-+			path.lineTo(left, tab_bottom);
-+
-+		  // Draw the bottom-left corner.
-+		  //   ╭─────────╮
-+		  //   │ Content │
-+		  // ┌━╝         ╰─┐
-+		  if (extend_left_to_bottom) {
-+			path.lineTo(tab_left, tab_bottom);
-+		  } else {
-+			path.lineTo(tab_left - extension_corner_radius, tab_bottom);
-+			path.arcTo(extension_corner_radius, extension_corner_radius, 0,
-+					   SkPath::kSmall_ArcSize, SkPathDirection::kCCW, tab_left,
-+					   tab_bottom - extension_corner_radius);
-+		  }
-+		}
-+
-+		// Draw the ascender and top-left curve, if present.
-+		if (extend_to_top) {
-+		  //   ┎─────────╮
-+		  //   ┃ Content │
-+		  // ┌─╯         ╰─┐
-+		  path.lineTo(tab_left, tab_top);
-+		} else {
-+		  //   ╔─────────╮
-+		  //   ┃ Content │
-+		  // ┌─╯         ╰─┐
-+		  path.lineTo(tab_left, tab_top + content_corner_radius);
-+		  path.arcTo(content_corner_radius, content_corner_radius, 0,
-+					 SkPath::kSmall_ArcSize, SkPathDirection::kCW,
-+					 tab_left + content_corner_radius, tab_top);
-+		}
-+
-+		// Draw the top crossbar and top-right curve, if present.
-+		if (extend_to_top) {
-+		  //   ┌━━━━━━━━━┑
-+		  //   │ Content │
-+		  // ┌─╯         ╰─┐
-+		  path.lineTo(tab_right, tab_top);
-+		} else {
-+		  //   ╭━━━━━━━━━╗
-+		  //   │ Content │
-+		  // ┌─╯         ╰─┐
-+		  path.lineTo(tab_right - content_corner_radius, tab_top);
-+		  path.arcTo(content_corner_radius, content_corner_radius, 0,
-+					 SkPath::kSmall_ArcSize, SkPathDirection::kCW, tab_right,
-+					 tab_top + content_corner_radius);
-+		}
-+
-+		if (tab_right != right) {
-+		  // Draw the descender and bottom-right corner.
-+		  //   ╭─────────╮
-+		  //   │ Content ┃
-+		  // ┌─╯         ╚━┐
-+		  if (extend_right_to_bottom) {
-+			path.lineTo(tab_right, tab_bottom);
-+		  } else {
-+			path.lineTo(tab_right, tab_bottom - extension_corner_radius);
-+			path.arcTo(extension_corner_radius, extension_corner_radius, 0,
-+					   SkPath::kSmall_ArcSize, SkPathDirection::kCCW,
-+					   tab_right + extension_corner_radius, tab_bottom);
-+		  }
-+		  if (tab_bottom != extended_bottom)
-+			path.lineTo(right, tab_bottom);
-+		}
-+
-+		// Draw anything remaining: the descender, the bottom right horizontal
-+		// stroke, or the right edge of the extension, depending on which
-+		// conditions fired above.
-+		//   ╭─────────╮
-+		//   │ Content │
-+		// ┌─╯         ╰─┓
-+		path.lineTo(right, extended_bottom);
-     }
--
--    if (tab_right != right) {
--      // Draw the descender and bottom-right corner.
--      //   ╭─────────╮
--      //   │ Content ┃
--      // ┌─╯         ╚━┐
--      if (extend_right_to_bottom) {
--        path.lineTo(tab_right, tab_bottom);
--      } else {
--        path.lineTo(tab_right, tab_bottom - extension_corner_radius);
--        path.arcTo(extension_corner_radius, extension_corner_radius, 0,
--                   SkPath::kSmall_ArcSize, SkPathDirection::kCCW,
--                   tab_right + extension_corner_radius, tab_bottom);
--      }
--      if (tab_bottom != extended_bottom)
--        path.lineTo(right, tab_bottom);
--    }
--
--    // Draw anything remaining: the descender, the bottom right horizontal
--    // stroke, or the right edge of the extension, depending on which
--    // conditions fired above.
--    //   ╭─────────╮
--    //   │ Content │
--    // ┌─╯         ╰─┓
--    path.lineTo(right, extended_bottom);
--
-+	else {
-+		path.moveTo(left, extended_bottom);
-+		if (extend_to_top) {
-+		  // Create the vertical extension by extending the side diagonals until
-+		  // they reach the top of the bounds.
-+			path.cubicTo(left, extended_bottom, (((tab_left + 10) + left) / 2), ((tab_top + extended_bottom) / 2), tab_left + 10,
-+						  tab_top);
-+			path.lineTo(tab_right - 10, tab_top);
-+			path.cubicTo(tab_right - 10, tab_top, (((tab_right - 10) + right) / 2), ((tab_top + extended_bottom) / 2), right,
-+					  extended_bottom);
-+		} else {
-+			path.cubicTo(left, extended_bottom, (((tab_left + 10) + left) / 2), (((tab_top * 0.5) + extended_bottom) / 2), tab_left + 10,
-+						(tab_top * 0.5));
-+			path.cubicTo(tab_left + 10, (tab_top * 0.5), ((tab_left + 10) + (tab_right - 10) /2), tab_top * 0.5, tab_right - 10, tab_top * 0.5);
-+			path.cubicTo(tab_right - 10, (tab_top * 0.5), (((tab_right - 10) + right) / 2), (((tab_top * 0.5) + extended_bottom) / 2), right,
-+					  extended_bottom);
-+		}
-+	}
-     if (path_type != TabStyle::PathType::kBorder) {
-       path.close();
-     }
 diff --git a/chrome/browser/webshare/win/fake_storage_file_statics.cc b/chrome/browser/webshare/win/fake_storage_file_statics.cc
 index 6308ccec3a576..f17033b2d1ec7 100644
 --- a/chrome/browser/webshare/win/fake_storage_file_statics.cc
@@ -3140,7 +2703,7 @@ index 48f413792d5aa..596d9ad041c21 100644
  class BrowserView;
  
  BASE_DECLARE_FEATURE(kWindows11MicaTitlebar);
-+BASE_DECLARE_FEATURE(kForceXpTheme);
++BASE_DECLARE_FEATURE(kDisableAeroTheme);
  
  // Returns whether we should custom draw the titlebar for a browser window.
  bool ShouldBrowserCustomDrawTitlebar(BrowserView* browser_view);
@@ -3410,19 +2973,6 @@ index e5d72ffd39ded..baf105aaf9f48 100644
        CanPinShortcutToTaskbar()) {
      SetInstallerPinnedChromeToTaskbar(properties.pin_to_taskbar && pinned);
    }
-diff --git a/chrome/installer/setup/setup_util.cc b/chrome/installer/setup/setup_util.cc
-index f7f654d7b979a..578c5fd2db6c6 100644
---- a/chrome/installer/setup/setup_util.cc
-+++ b/chrome/installer/setup/setup_util.cc
-@@ -374,7 +374,7 @@ bool ContainsUnsupportedSwitch(const base::CommandLine& cmd_line) {
- 
- bool IsProcessorSupported() {
- #if defined(ARCH_CPU_X86_FAMILY)
--  return base::CPU().has_sse3();
-+  return base::CPU().has_sse2();
- #elif defined(ARCH_CPU_ARM64)
-   return true;
- #else
 diff --git a/chrome/installer/util/install_util.cc b/chrome/installer/util/install_util.cc
 index 5efc79e743383..1bf0bf47f68e4 100644
 --- a/chrome/installer/util/install_util.cc
@@ -4205,7 +3755,7 @@ diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
 index 576f6e3b2ef21..471ef0a39818e 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -2839,6 +2839,8 @@ source_set("browser") {
+@@ -2838,6 +2838,8 @@ source_set("browser") {
        "renderer_host/direct_manipulation_helper_win.h",
        "renderer_host/dwrite_font_file_util_win.cc",
        "renderer_host/dwrite_font_file_util_win.h",
@@ -5889,15 +5439,6 @@ index 0008e3c7c9600..95ebd524d0d67 100644
  std::unique_ptr<WebContentsViewDelegate>
  ShellContentBrowserClient::GetWebContentsViewDelegate(
      WebContents* web_contents) {
-@@ -525,7 +531,7 @@ void ShellContentBrowserClient::OverrideWebkitPrefs(
-     WebContents* web_contents,
-     blink::web_pref::WebPreferences* prefs) {
-   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
--          switches::kForceDarkMode)) {
-+          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag)) {
-     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kDark;
-   } else {
-     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kLight;
 diff --git a/content/shell/browser/shell_content_browser_client.h b/content/shell/browser/shell_content_browser_client.h
 index b33300b6da3ea..ae1480d23acc9 100644
 --- a/content/shell/browser/shell_content_browser_client.h
@@ -5943,27 +5484,6 @@ index e5c7230ffcaad..3906ff44e64a6 100644
  
   private:
    std::vector<FakeFont> fonts_;
-diff --git a/content/web_test/browser/web_test_control_host.cc b/content/web_test/browser/web_test_control_host.cc
-index 645c22bc8340b..d82ce2567048a 100644
---- a/content/web_test/browser/web_test_control_host.cc
-+++ b/content/web_test/browser/web_test_control_host.cc
-@@ -19,6 +19,7 @@
- #include "base/barrier_closure.h"
- #include "base/base64.h"
- #include "base/command_line.h"
-+#include "base/features.h"
- #include "base/containers/contains.h"
- #include "base/functional/bind.h"
- #include "base/functional/callback.h"
-@@ -772,7 +773,7 @@ void WebTestControlHost::OverrideWebkitPrefs(
-     ApplyWebTestDefaultPreferences(prefs);
-   }
-   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
--          switches::kForceDarkMode)) {
-+          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag)) {
-     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kDark;
-   } else {
-     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kLight;
 diff --git a/device/bluetooth/bluetooth_adapter_winrt.cc b/device/bluetooth/bluetooth_adapter_winrt.cc
 index a2ba812053fa5..195ec4ee6afe8 100644
 --- a/device/bluetooth/bluetooth_adapter_winrt.cc
@@ -11366,27 +10886,6 @@ index 2c27d56f29eaa..9c314a5185c7f 100644
 +  // Return default CaptionStyle for pre Win10 versions since system settings
 +  // don't allow caption styling.
    return absl::nullopt;
- }
- 
-diff --git a/ui/native_theme/native_theme.cc b/ui/native_theme/native_theme.cc
-index 18722961833e4..eacaf4425e410 100644
---- a/ui/native_theme/native_theme.cc
-+++ b/ui/native_theme/native_theme.cc
-@@ -7,6 +7,7 @@
- #include <cstring>
- 
- #include "base/command_line.h"
-+#include "base/features.h"
- #include "base/containers/fixed_flat_map.h"
- #include "base/functional/bind.h"
- #include "base/logging.h"
-@@ -214,7 +215,7 @@ void NativeTheme::SetPreferredContrast(
- bool NativeTheme::IsForcedDarkMode() {
-   static bool kIsForcedDarkMode =
-       base::CommandLine::ForCurrentProcess()->HasSwitch(
--          switches::kForceDarkMode);
-+          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag);
-   return kIsForcedDarkMode;
  }
  
 diff --git a/ui/snapshot/snapshot_win.cc b/ui/snapshot/snapshot_win.cc

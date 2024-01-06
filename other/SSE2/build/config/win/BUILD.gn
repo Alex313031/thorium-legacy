@@ -547,13 +547,13 @@ config("static_crt") {
 if (current_cpu == "x64") {
   # The number after the comma is the minimum required OS version.
   # 5.2 = Windows Server 2003.
-  subsystem_version_suffix = ",5.02"
+  subsystem_version_suffix = ",6.0"
 } else if (current_cpu == "arm64") {
   # Windows ARM64 requires Windows 10.
-  subsystem_version_suffix = ",10.0"
+  subsystem_version_suffix = ",8.0"
 } else {
   # 5.1 = Windows XP.
-  subsystem_version_suffix = ",5.01"
+  subsystem_version_suffix = ",6.0"
 }
 
 config("console") {

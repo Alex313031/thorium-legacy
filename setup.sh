@@ -19,6 +19,7 @@ try() { "$@" || die "${RED}Failed $*"; }
 displayHelp () {
 	printf "\n" &&
 	printf "${bold}${GRE}Script to copy Thorium source files over the Chromium source tree.${c0}\n" &&
+	printf "${bold}${YEL}Use the --patch flag to patch Chromium for Windows 7!.${c0}\n" &&
 	printf "${bold}${YEL}Use the --mac flag for MacOS builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --raspi flag for Raspberry Pi builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --woa flag for Windows on ARM builds.${c0}\n" &&
@@ -211,10 +212,15 @@ esac
 printf "${GRE}Done!\n" &&
 
 # Patch Chromium for NT 6.x
-printf "\n" &&
-printf "${YEL}Patching Chromium for Windows 7/8/8.1...${c0}\n" &&
-printf "\n" &&
-. patch.sh &&
+patchNT6 () {
+	printf "\n" &&
+	printf "${YEL}Patching Chromium for Windows 7/8/8.1...${c0}\n" &&
+	printf "\n" &&
+	. patch.sh
+}
+case $1 in
+	--patch) patchNT6;
+esac
 
 printf "\n" &&
 printf "${YEL}Exporting variables and setting handy aliases...${c0}\n" &&
