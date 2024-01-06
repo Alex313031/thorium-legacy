@@ -18,8 +18,8 @@ try() { "$@" || die "${RED}Failed $*"; }
 # --help
 displayHelp () {
 	printf "\n" &&
-	printf "${bold}${GRE}Script to build Thorium on Linux.${c0}\n" &&
-	printf "${underline}${YEL}Usage:${c0} build.sh # (where # is number of jobs)${c0}\n" &&
+	printf "${bold}${GRE}Script to build Thorium for Windows on Linux.${c0}\n" &&
+	printf "${underline}${YEL}Usage:${c0} build_win.sh # (where # is number of jobs)${c0}\n" &&
 	printf "\n"
 }
 case $1 in
@@ -36,19 +36,21 @@ else
 fi
 
 printf "\n" &&
-printf "${YEL}Building Thorium for Linux...\n" &&
-printf "${CYA}\n" &&
+printf "${YEL}Building Thorium for Windows...\n" &&
+printf "${GRE}\n" &&
 
-# Build Thorium
+# Build Thorium and mini_installer
 export NINJA_SUMMARIZE_BUILD=1 &&
 export NINJA_STATUS="[%r processes, %f/%t @ %o/s | %e sec. ] " &&
 
 cd ${CR_SRC_DIR} &&
-autoninja -C out/thorium thorium chrome_sandbox chromedriver clear_key_cdm thorium_shell -j$@ &&
+autoninja -C out/thorium thorium chromedriver clear_key_cdm thorium_shell setup mini_installer -j$@ &&
+
+mv -v -f ${CR_SRC_DIR}/out/thorium/mini_installer.exe ${CR_SRC_DIR}/out/thorium/thorium_mini_installer.exe &&
 
 cat ~/thorium-win7/logos/thorium_logo_ascii_art.txt &&
 
-printf "${GRE}${bold}Build Completed! ${YEL}${bold}You can now run \'./package.sh\' to build installation packages.\n" &&
+printf "${GRE}${bold}Build Completed. ${YEL}${bold}Installer at \'//out/thorium/thorium_mini_installer.exe\'\n" &&
 tput sgr0 &&
 
 exit 0
