@@ -1889,7 +1889,7 @@ index d33d6d04c130e..7cbd830715c4f 100644
 +const char kForceGdiDescription[] =
 +    "Use GDI font rendering in place of DirectWrite font rendering on Windows.";
 +
-+const char kDisableWindows10CustomTitlebarName[] = "Force disabling of Windows 10 custom titlebar";
++const char kDisableWindows10CustomTitlebarName[] = "Force disable Windows 10 custom titlebar";
 +const char kDisableWindows10CustomTitlebarDescription[] =
 +    "Disable the \"Windows 10\" custom titlebar to take advantage of Aero Glass fixes for Windows 7.";
 +
