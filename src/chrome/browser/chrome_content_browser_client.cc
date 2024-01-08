@@ -4904,6 +4904,7 @@ bool ChromeContentBrowserClient::PreSpawnChild(
     return true;
 
   sandbox::MitigationFlags mitigations = config->GetProcessMitigations();
+  // So we can use our own bins
   //mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
   sandbox::ResultCode result = config->SetProcessMitigations(mitigations);
   if (result != sandbox::SBOX_ALL_OK)
