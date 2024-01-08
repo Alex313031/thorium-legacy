@@ -67,7 +67,7 @@ gclient sync --with_branch_heads --with_tags -f -R -D &&
 gclient runhooks &&
 
 # Install all sysroots (i.e. for ARM64)
-build/linux/sysroot_scripts/install-sysroot.py --all &&
+# build/linux/sysroot_scripts/install-sysroot.py --all &&
 
 printf "\n"
 printf "${GRE}Chromium tree is checked out at tag: ${c0}$THOR_VER\n"
