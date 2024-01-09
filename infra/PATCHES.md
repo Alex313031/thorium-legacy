@@ -11,6 +11,9 @@ Fixed AVX Windows Builds as per > https://github.com/RobRich999/Chromium_Clang/i
 
 There are also additional desktop actions: when right clicking the Thorium launcher it gives three additional desktop actions, one to open thorium-shell, another to open in Safe Mode which disables any flags one has set in chrome://flags until the next launch, and lastly to open in Dark Mode which appends the --force-dark-mode flag.
 
+RESTORED WINDOWS 7/8/8.1 SUPPORT!
+ - https://github.com/Alex313031/thorium-win7/blob/main/patches/win7-8-8.1-support_thorium.patch
+
 Ink > https://chromium.googlesource.com/chromium/src/third_party/+/c4f7a938fcdc796ad9fead3ab01e0508c129b831/ink NOTE: Disabled for now due to bugs!
   - Implemented with the args.gn flag "enable_ink = true" Adds PDF annotation features present in CrOS.
 
@@ -175,7 +178,10 @@ Disable fetching Field Trials/Variations Patch - https://github.com/ungoogled-so
 
 Enable double click to close tab flag - https://github.com/bigfoxtail/brave-core/commit/acec5efcbaa98722611f551712f051fb343af120
   - Found by @gz83, modified by me.
-  
+
+Enable disabling tab hover cards patch - https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-for-tab-hover-cards.patch
+ - Credit win32ss for alerting me to this patch.
+
 Enable close confirmation patch - https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-for-close-confirmation.patch
   - Modified by me.
 
