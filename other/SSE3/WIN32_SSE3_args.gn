@@ -5,7 +5,6 @@ visual_studio_version = "2022"
 # clang_base_path = "/usr/lib/llvm-16"
 # clang_version = "16"
 # use_polly = true
-msvc_use_sse2 = true
 target_os = "win"
 target_cpu = "x86"
 is_official_build = true
