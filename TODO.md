@@ -40,6 +40,7 @@ Experiments > Thorium Experiments
 
  - https://github.com/win32ss/supermium/commit/eda9398979e06be019be585da04267025fbcb1fc#diff-1d869308b9cf99a717940a7206e087c34ec4cede65180dc8bd16a1b0a524be50
  - Restore Win7 WebRTC HW decoding flag (and disable by default) > https://source.chromium.org/chromium/chromium/src/+/3682d7432ea6d3a50661ca565759509a57fe3d4c
+ - Make Thorium pin to taskbar by default again
 
  - https://source.chromium.org/chromium/chromium/src/+/056a891186fbf7b5cd3f857c331ab3ad5a69019d
 
