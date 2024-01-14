@@ -1141,9 +1141,11 @@ config("compiler_cpu_abi") {
       cflags += [
         "-m64",
         "-O3",
+        "-mssse3",
+        "-msse4",
         "-msse4.1",
       ]
-      ldflags += [ "-m64", "-Wl,-O3", "-msse4.1", "-Wl,-mllvm,-import-instr-limit=30", "-Wl,-mllvm,-import-hot-multiplier=15", "-Wl,-mllvm,-import-cold-multiplier=2", ]
+      ldflags += [ "-m64", "-Wl,-O3", "-mssse3", "-msse4", "-msse4.1", "-Wl,-mllvm,-import-instr-limit=30", "-Wl,-mllvm,-import-hot-multiplier=15", "-Wl,-mllvm,-import-cold-multiplier=2", ]
     } else if (current_cpu == "x86") {
       cflags += [ "-m32" ]
       ldflags += [ "-m32", "-Wl,-O3", "-msse3", ]
@@ -1151,8 +1153,8 @@ config("compiler_cpu_abi") {
         cflags += [
           "-mfpmath=sse",
           "-O3",
-          "-msse3",
           "-mmmx",
+          "-msse3",
         ]
       }
     } else if (target_cpu == "arm64") {
