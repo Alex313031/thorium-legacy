@@ -1,14 +1,13 @@
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/alex313031/thorium-win7?label=Version%3A) &nbsp;![GitHub](https://img.shields.io/github/license/alex313031/thorium-win7?color=green&label=License%3A) &nbsp;![GitHub commit activity](https://img.shields.io/github/commit-activity/w/alex313031/thorium-win7?color=blueviolet&label=Commit%20Activity%3A) &nbsp;![Subreddit subscribers](https://img.shields.io/reddit/subreddit-subscribers/ChromiumBrowser?style=social)
-# Thorium for Windows 7 / 8 / 8.1
+# Thorium for Windows 7 / 8 / 8.1 <img src="https://raw.githubusercontent.com/alex313031/thorium-win7-win7/main/logos/STAGING/win7/compatible-with-windows-7.png" width="28">
 
 <img src="https://github.com/alex313031/thorium-win7/blob/main/logos/NEW/thorium_ver_2048_grey_old.png">
 
-## Chromium fork named after [radioactive element No. 90](https://en.wikipedia.org/wiki/Thorium). Windows/MacOS/RasPi/Android/Other builds see below.
+## Chromium fork named after [radioactive element No. 90](https://en.wikipedia.org/wiki/Thorium).
 
 - Always built with the latest stable version of [Chromium](https://www.chromium.org/).
 - Intended to behave like and have the featureset of Google Chrome, with differences/patches/enhancements listed below.
 - Includes [Widevine](https://www.widevine.com/), [All Codecs](https://tools.woolyss.com/html5-audio-video-tester/), Chrome Plugins, as well as thinLTO, CFlag, LDFlag, LLVM Loop, and PGO compiler optimizations. It is built with [SSE4](https://en.wikipedia.org/wiki/SSE4), [AVX](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions), and [AES](https://en.wikipedia.org/wiki/AES_instruction_set), so it won't launch on CPU's below 2nd gen Core or AMD FX, but benefits from Advanced Vector EXtensions. If your CPU lacks AVX, you can use the SSE3 builds.
-### Other Builds &nbsp;<img src="https://github.com/alex313031/thorium-win7/blob/main/logos/STAGING/winflag_animated.gif" width="34"> &nbsp;<img src="https://github.com/alex313031/thorium-win7/blob/main/logos/STAGING/AVX2.png" width="48"> &nbsp;<img src="https://github.com/alex313031/thorium-win7/blob/main/logos/STAGING/apple.png" width="30"> &nbsp;<img src="https://github.com/alex313031/thorium-win7/blob/main/logos/STAGING/Android_Robot.svg" width="26"> &nbsp;<img src="https://github.com/alex313031/thorium-win7/blob/main/logos/STAGING/Raspberry_Pi_Logo.svg" width="24"> &nbsp;<img src="https://raw.githubusercontent.com/alex313031/thorium-win7-win7/main/logos/STAGING/win7/compatible-with-windows-7.png" width="28">
 
 ### FEATURES & DIFFERENCES BETWEEN CHROMIUM AND THORIUM <img src="https://github.com/alex313031/thorium-win7/blob/main/logos/NEW/bulb_light.svg#gh-dark-mode-only"> <img src="https://github.com/alex313031/thorium-win7/blob/main/logos/NEW/bulb_dark.svg#gh-light-mode-only">
 > - Various compiler flags that improve performance and target [AVX](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) CPU's (read [PATCHES.md](https://github.com/alex313031/thorium-win7/blob/main/infra/PATCHES.md))
