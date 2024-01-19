@@ -379,6 +379,15 @@ diff --git a/base/files/file_util_win.cc b/base/files/file_util_win.cc
 index d7b5fb20aeb34..490d00454b657 100644
 --- a/base/files/file_util_win.cc
 +++ b/base/files/file_util_win.cc
+@@ -692,7 +692,7 @@ bool GetSecureSystemTemp(FilePath* temp) {
+ 
+   CHECK(temp);
+ 
+-  for (const auto key : {DIR_WINDOWS, DIR_PROGRAM_FILES}) {
++  for (const auto key : {DIR_WINDOWS, DIR_IE_INTERNET_CACHE, DIR_PROGRAM_FILES}) {
+     FilePath secure_system_temp;
+     if (!PathService::Get(key, &secure_system_temp)) {
+       continue;
 @@ -1104,11 +1104,37 @@ bool SetNonBlocking(int fd) {
    return false;
  }
