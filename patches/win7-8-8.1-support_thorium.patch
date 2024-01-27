@@ -2559,6 +2559,49 @@ index 1bf912250ff05..e768404fabf43 100644
    SetButtons(ui::DIALOG_BUTTON_NONE);
    SetTitle(IDS_BROWSER_SHARING_SCREENSHOT_POST_CAPTURE_TITLE);
  }
+diff --git a/chrome/browser/ui/views/tabs/new_tab_button.cc b/chrome/browser/ui/views/tabs/new_tab_button.cc
+index 29cf11f2a0f67..0549095b13916 100644
+--- a/chrome/browser/ui/views/tabs/new_tab_button.cc
++++ b/chrome/browser/ui/views/tabs/new_tab_button.cc
+@@ -107,11 +107,17 @@ void NewTabButton::AnimateToStateForTesting(views::InkDropState state) {
+ 
+ void NewTabButton::AddLayerToRegion(ui::Layer* new_layer,
+                                     views::LayerRegion region) {
+-  ink_drop_container_->AddLayerToRegion(new_layer, region);
++	if (base::FeatureList::IsEnabled(features::kThoriumCustomTabs) {
++	}
++	else
++    	ink_drop_container_->AddLayerToRegion(new_layer, region);
+ }
+ 
+ void NewTabButton::RemoveLayerFromRegions(ui::Layer* old_layer) {
+-  ink_drop_container_->RemoveLayerFromRegions(old_layer);
++	if (base::FeatureList::IsEnabled(features::kThoriumCustomTabs) {
++	}
++	else
++    	ink_drop_container_->RemoveLayerFromRegions(old_layer);
+ }
+ 
+ SkColor NewTabButton::GetForegroundColor() const {
+@@ -262,10 +268,14 @@ void NewTabButton::PaintFill(gfx::Canvas* canvas) const {
+         contents_bounds.y(), x_scale, scale, 0, 0, SkTileMode::kRepeat,
+         SkTileMode::kRepeat, &flags);
+   } else {
+-    flags.setColor(GetColorProvider()->GetColor(
+-        GetWidget()->ShouldPaintAsActive()
+-            ? background_frame_active_color_id_
+-            : background_frame_inactive_color_id_));
++	if(GetState() == STATE_HOVERED) {
++		flags.setColor(SkColorSetRGB(90, 90, 90));
++	} else {
++		flags.setColor(GetColorProvider()->GetColor(
++			GetWidget()->ShouldPaintAsActive()
++				? background_frame_active_color_id_
++				: background_frame_inactive_color_id_));
++	}
+   }
+ 
+   canvas->DrawPath(GetBorderPath(gfx::Point(), scale, false), flags);
 diff --git a/chrome/browser/webshare/win/fake_storage_file_statics.cc b/chrome/browser/webshare/win/fake_storage_file_statics.cc
 index 6308ccec3a576..f17033b2d1ec7 100644
 --- a/chrome/browser/webshare/win/fake_storage_file_statics.cc
