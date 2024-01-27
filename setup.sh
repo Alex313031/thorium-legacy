@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2023 Alex313031.
+# Copyright (c) 2024 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 CYA='\033[1;96m' # Cyan
@@ -168,5 +168,3 @@ cat logos/thorium_ascii_art.txt &&
 printf "${GRE}Enjoy Thorium!\n" &&
 printf "\n" &&
 tput sgr0
-
-exit 0

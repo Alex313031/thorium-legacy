@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2023 Alex313031.
+# Copyright (c) 2024 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 CYA='\033[1;96m' # Cyan
@@ -60,9 +60,9 @@ cp -v thorium-libjxl/src/DEPS ${CR_SRC_DIR}/ &&
 
 cd ${CR_SRC_DIR} &&
 
-gclient sync --with_branch_heads --with_tags -f -R -D &&
+git clean -ffd &&
 
-# git clean -ffd &&
+gclient sync --with_branch_heads --with_tags -f -R -D &&
 
 gclient runhooks &&
 
@@ -92,6 +92,4 @@ printf "\n" &&
 cd ~/thorium-win7 &&
 
 printf "${GRE}Done! ${YEL}You can now run \'./setup.sh\'\n"
-tput sgr0 &&
-
-exit 0
+tput sgr0
