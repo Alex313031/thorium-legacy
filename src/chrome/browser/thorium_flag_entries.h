@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Alex313031. All rights reserved.
+// Copyright (c) 2024 Alex313031. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -20,11 +20,11 @@
     {"prominent-active-tab-titles",
      "Prominent Active Tab Titles",
      "Makes the active tab title bolder so that it is easier to identify.",
-     kOsAll, SINGLE_VALUE_TYPE("prominent-active-tab-titles")},
+     kOsDesktop, SINGLE_VALUE_TYPE("prominent-active-tab-titles")},
     {"force-enable-tab-outlines",
      "Enable Tab Outlines",
      "Force enables tab outline strokes, improving accessiblity in dark mode, incognito mode, and low contrast themes.",
-     kOsAll, SINGLE_VALUE_TYPE("force-enable-tab-outlines")},
+     kOsDesktop, SINGLE_VALUE_TYPE("force-enable-tab-outlines")},
     {"force-high-contrast",
      "Enable High Contrast Mode",
      "Enables high contrast mode for all Thorium instances.",
@@ -55,6 +55,10 @@
      "Allows setting the AutoPlay policy. Use `No User Gesture Required` to enable AutoPlay, and use `Document User Activation Required` to disable AutoPlay "
      "and force all sites to require a click to initiate media playback. `User Gesture Required` is the default, and blocks most AutoPlay annoyances, while allowing some (i.e. WebAudio) to continue.",
      kOsDesktop, MULTI_VALUE_TYPE(kAutoplayPolicyChoices)},
+    {"allow-insecure-downloads",
+     "Allow Insecure Downloads",
+     "Allows downloading files from mixed origin/cross origin schemes.",
+     kOsAll, SINGLE_VALUE_TYPE("allow-insecure-downloads")},
 
 #if !BUILDFLAG(IS_ANDROID)
     {"download-bubble",
@@ -90,13 +94,18 @@
     {"force-gpu-mem-available-mb",
      "Set GPU Available Memory",
      "Sets the total amount of memory (in MB) that may be allocated for GPU resources.",
-     kOsAll, MULTI_VALUE_TYPE(kForceGpuMemAvailableMbChoices)},
+     kOsDesktop, MULTI_VALUE_TYPE(kForceGpuMemAvailableMbChoices)},
 
 #if BUILDFLAG(IS_LINUX)
     {"enable-native-gpu-memory-buffers",
      "Enable Native GPU Memory Buffers",
      "Enables native CPU-mappable GPU memory buffer support on Linux.",
      kOsLinux, SINGLE_VALUE_TYPE(switches::kEnableNativeGpuMemoryBuffers)},
+    {"vaapi-video-decode-linux-gl",
+     "GL Vaapi Video Decode",
+     "Toggle whether the GL backend is used for VAAPI video decode acceleration. "
+     "Enabled by default, but may break some configurations. Thorium flag.",
+     kOsLinux, FEATURE_VALUE_TYPE(media::kVaapiVideoDecodeLinuxGL)},
 #endif // BUILDFLAG(IS_LINUX)
 
     {"gpu-no-context-lost",
@@ -104,19 +113,27 @@
      "Inform Thorium's GPU process that a GPU context will not be lost in power saving mode, screen saving mode, etc. "
      "Note that this flag does not ensure that a GPU context will never be lost in any situation, like say, a GPU reset. "
      "Useful for fixing blank or pink screens/videos upon system resume, etc.",
-     kOsAll, SINGLE_VALUE_TYPE(switches::kGpuNoContextLost)},
+     kOsDesktop, SINGLE_VALUE_TYPE(switches::kGpuNoContextLost)},
     {"enable-ui-devtools",
      "Enable Native UI Inspection in DevTools",
      "Enables inspection of native UI elements in devtools. Inspect at `chrome://inspect/#native-ui`",
      kOsAll, SINGLE_VALUE_TYPE(ui_devtools::switches::kEnableUiDevTools)},
-    {"double-click-close-tab",
-     "Double Click to Close Tab",
-     "Enables double clicking a tab to close it.",
-     kOsDesktop, SINGLE_VALUE_TYPE("double-click-close-tab")},
     {"tab-hover-cards",
      "Tab Hover Cards",
      "Allows removing the tab hover cards or using a tooltip as a replacement.",
      kOsDesktop, MULTI_VALUE_TYPE(kTabHoverCardChoices)},
+    {"double-click-close-tab",
+     "Double Click to Close Tab",
+     "Enables double clicking a tab to close it.",
+     kOsDesktop, SINGLE_VALUE_TYPE("double-click-close-tab")},
+    {"close-confirmation",
+     "Close Confirmation",
+     "Show a warning prompt when closing browser window(s).",
+     kOsDesktop, MULTI_VALUE_TYPE(kCloseConfirmation)},
+    {"close-window-with-last-tab",
+     "Close window with last tab",
+     "Determines whether a window should close once the last tab is closed.",
+     kOsDesktop, MULTI_VALUE_TYPE(kCloseWindowWithLastTab)},
 
 #if !BUILDFLAG(IS_ANDROID)
     {"media-router",
@@ -154,14 +171,6 @@
      "Disable Machine ID",
      "Disables use of a generated machine-specific ID to lock the user data directory to that machine. This is used to enable portable user data directories. Enabled for Thorium Portable.",
      kOsDesktop, SINGLE_VALUE_TYPE("disable-machine-id")},
-    {"close-confirmation",
-     "Close Confirmation",
-     "Show a warning prompt when closing browser window(s).",
-     kOsDesktop, MULTI_VALUE_TYPE(kCloseConfirmation)},
-    {"close-window-with-last-tab",
-     "Close window with last tab",
-     "Determines whether a window should close once the last tab is closed.",
-     kOsDesktop, MULTI_VALUE_TYPE(kCloseWindowWithLastTab)},
 
 #if BUILDFLAG(IS_LINUX)
     {"password-store",
@@ -173,6 +182,10 @@
 #endif // BUILDFLAG(IS_LINUX)
 
 #if BUILDFLAG(IS_WIN)
+    {"force-gdi",
+     flag_descriptions::kForceGdiName,
+     flag_descriptions::kForceGdiDescription,
+     kOsWin, SINGLE_VALUE_TYPE("disable-direct-write")},
     {"disable-windows-10-custom-titlebar",
      flag_descriptions::kDisableWindows10CustomTitlebarName,
 	 flag_descriptions::kDisableWindows10CustomTitlebarDescription,
@@ -191,15 +204,7 @@
     {"custom-tab-shapes",
      flag_descriptions::kThoriumCustomTabsName,
      flag_descriptions::kThoriumCustomTabsDescription,
-     kOsAll, FEATURE_VALUE_TYPE(features::kThoriumCustomTabs)},
-
-#if BUILDFLAG(IS_WIN)
-    {"force-gdi",
-     flag_descriptions::kForceGdiName,
-     flag_descriptions::kForceGdiDescription,
-     kOsWin, SINGLE_VALUE_TYPE("disable-direct-write")},
-#endif // BUILDFLAG(IS_WIN)
-
+     kOsDesktop, FEATURE_VALUE_TYPE(features::kThoriumCustomTabs)},
     {"incognito-brand-consistency-for-desktop",
      flag_descriptions::kIncognitoBrandConsistencyForDesktopName,
      flag_descriptions::kIncognitoBrandConsistencyForDesktopDescription,

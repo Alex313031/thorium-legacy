@@ -51,9 +51,9 @@ REMOVED ~~VDPAU Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blo
 
 Audio Sandbox Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blob/master/debian/patches/fix-audio-sandbox.patch
 
-DoH Secure Mode Patch > https://github.com/bromite/bromite/blob/master/build/patches/DoH-improvements.patch
+DNS Over HTTPS (DoH) Secure Mode Patch > https://github.com/bromite/bromite/blob/master/build/patches/DoH-improvements.patch
 
-DoH Bare Minimum HTTP Headers Patch > https://github.com/bromite/bromite/blob/master/build/patches/Reduce-HTTP-headers-in-DoH-requests-to-bare-minimum.patch
+DNS Over HTTPS (DoH) Bare Minimum HTTP Headers Patch > https://github.com/bromite/bromite/blob/master/build/patches/Reduce-HTTP-headers-in-DoH-requests-to-bare-minimum.patch
 
 Enable Do Not Track By Default Patch > https://github.com/GrapheneOS/Vanadium/blob/main/patches/0045-enable-dubious-Do-Not-Track-feature-by-default.patch
 
@@ -65,6 +65,9 @@ Disable Google API Key Warning Infobar Patch > https://github.com/Eloston/ungoog
   - Modified by me.
 
 Disable Default Browser Infobar Patch
+  - Made by me.
+
+Always Lazy Load Advertisement iFrames
   - Made by me.
 
 Search Engines Patch > https://github.com/saiarcot895/chromium-ubuntu-build/blob/master/debian/patches/additional-search-engines.patch
@@ -169,6 +172,7 @@ Enable multi-threaded HEVC decoding - https://github.com/RobRich999/Chromium_Cla
 
 Enable AC3 and EAC3 for HEVC Patch - https://github.com/Muril-o/electron-chromium-codecs
   - https://github.com/Alex313031/thorium/commit/46893f326c42b08a56769f3de6743aec049b2091#diff-09b3d55a8198fc42186bfd6bf5869fe78b8edad6f67e75b78228446f1d7cf66f
+  - Modified by Midzer and me.
 
 Show the Apps button in Bookmarks Bar by Default Patch - Made by me.
 
@@ -182,11 +186,17 @@ Enable double click to close tab flag - https://github.com/bigfoxtail/brave-core
 Enable disabling tab hover cards patch - https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-for-tab-hover-cards.patch
  - Credit win32ss for alerting me to this patch.
 
+Enable close confirmation patch - https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-for-close-confirmation.patch
+  - Modified by me.
+
 Disable window exit on closing last tab patch - https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-to-close-window-with-last-tab.patch
  - Modified by me.
 
-Enable close confirmation patch - https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/extra/ungoogled-chromium/add-flag-for-close-confirmation.patch
-  - Modified by me.
+Allow Insecure (All) Downloads > https://github.com/Alex313031/thorium/commit/333a2154d6066b1243a7a02d24001e166fd78002
+  - Made by me.
+
+Block annoying Promo Toasts > https://github.com/Alex313031/thorium/commit/2abe24c0db83c3cb5884535830036abe61953c46
+  - Made by me.
 
 CFI Ignores Patch - https://github.com/RobRich999/Chromium_Clang/blob/150e755bdb3f2c389ab3d485f38d62a36414e73a/Linux/linux64-avx.patch#L386
   - Made by RobRich999
