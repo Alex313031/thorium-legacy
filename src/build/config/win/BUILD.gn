@@ -1,4 +1,4 @@
-# Copyright 2023 The Chromium Authors and Alex313031
+# Copyright 2024 The Chromium Authors and Alex313031
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -136,19 +136,19 @@ config("compiler") {
         "-mssse3",
         "-msse4.1",
         "-msse4.2",
-        "-mavx",
         "-maes",
         "-mpclmul",
+        "-mavx",
         "/clang:-O3",
         "/clang:-msse3",
         "/clang:-mssse3",
         "/clang:-msse4.1",
         "/clang:-msse4.2",
-        "/clang:-mavx",
         "/clang:-maes",
         "/clang:-mpclmul",
+        "/clang:-mavx",
         "-Xclang", "-O3",
-        "-Wno-unused-command-line-argument",
+        # "-Wno-unused-command-line-argument",
       ]
     }
 
