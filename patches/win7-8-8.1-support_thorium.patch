@@ -2571,7 +2571,7 @@ index 29cf11f2a0f67..0549095b13916 100644
 +	if (base::FeatureList::IsEnabled(features::kThoriumCustomTabs) {
 +	}
 +	else
-+    	ink_drop_container_->AddLayerToRegion(new_layer, region);
++      ink_drop_container_->AddLayerToRegion(new_layer, region);
  }
  
  void NewTabButton::RemoveLayerFromRegions(ui::Layer* old_layer) {
@@ -2579,7 +2579,7 @@ index 29cf11f2a0f67..0549095b13916 100644
 +	if (base::FeatureList::IsEnabled(features::kThoriumCustomTabs) {
 +	}
 +	else
-+    	ink_drop_container_->RemoveLayerFromRegions(old_layer);
++      ink_drop_container_->RemoveLayerFromRegions(old_layer);
  }
  
  SkColor NewTabButton::GetForegroundColor() const {
@@ -10549,6 +10549,35 @@ index f6867edea301e..2d2d18c212bca 100644
    // Create the COM object.
    auto hstring = base::win::ScopedHString::Create(
        RuntimeClass_Windows_UI_ViewManagement_UISettings);
+diff --git a/ui/gfx/canvas.h b/ui/gfx/canvas.h
+index 8b2004767a03a..349096af5c551 100644
+--- a/ui/gfx/canvas.h
++++ b/ui/gfx/canvas.h
+@@ -82,6 +82,9 @@ class GFX_EXPORT Canvas {
+     // when rendering text onto a fully- or partially-transparent background
+     // that will later be blended with another image.
+     NO_SUBPIXEL_RENDERING = 1 << 9,
++
++    // Workaround for GDI offset rendering issues.
++    GDI_OFFSET_RENDERING = 1 << 10,
+   };
+ 
+   // Creates an empty canvas with image_scale of 1x.
+diff --git a/ui/gfx/canvas_skia.cc b/ui/gfx/canvas_skia.cc
+index dbe920d311c4a..4ea0316952c73 100644
+--- a/ui/gfx/canvas_skia.cc
++++ b/ui/gfx/canvas_skia.cc
+@@ -234,6 +234,10 @@ void Canvas::DrawStringRectWithFlags(const std::u16string& text,
+                      render_text.get());
+     if (range.IsValid())
+       render_text->ApplyStyle(TEXT_STYLE_UNDERLINE, true, range);
++
++    if(flags & GDI_OFFSET_RENDERING)
++      render_text->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
++
+     render_text->Draw(this);
+   }
+ 
 diff --git a/ui/gfx/font_render_params_win.cc b/ui/gfx/font_render_params_win.cc
 index 4769c5853ee61..825b5f901c60e 100644
 --- a/ui/gfx/font_render_params_win.cc
@@ -10572,7 +10601,7 @@ index 4769c5853ee61..825b5f901c60e 100644
        UINT type = 0;
        if (SystemParametersInfo(SPI_GETFONTSMOOTHINGTYPE, 0, &type, 0) &&
 diff --git a/ui/gfx/render_text.cc b/ui/gfx/render_text.cc
-index dab8c9be8d902..6bb60bd6a41c2 100644
+index dab8c9be8d902..8f8b885aab96b 100644
 --- a/ui/gfx/render_text.cc
 +++ b/ui/gfx/render_text.cc
 @@ -11,6 +11,7 @@
@@ -10645,6 +10674,15 @@ index dab8c9be8d902..6bb60bd6a41c2 100644
      }
  #endif
      const int8_t codepoint_category = u_charType(codepoint);
+@@ -363,7 +371,7 @@ void SkiaTextRenderer::DrawPosText(const SkPoint* pos,
+   static_assert(sizeof(*pos) == 2 * sizeof(*run_buffer.pos), "");
+   memcpy(run_buffer.pos, pos, glyph_count * sizeof(*pos));
+ 
+-  canvas_skia_->drawTextBlob(builder.make(), 0, 0, flags_);
++  canvas_skia_->drawTextBlob(builder.make(), 0, 0 + special_y_offset_, flags_);
+ }
+ 
+ void SkiaTextRenderer::DrawUnderline(int x,
 @@ -996,12 +1004,19 @@ int RenderText::GetContentWidth() {
  int RenderText::GetBaseline() {
    if (baseline_ == kInvalidBaseline) {
@@ -10666,14 +10704,61 @@ index dab8c9be8d902..6bb60bd6a41c2 100644
    }
    DCHECK_NE(kInvalidBaseline, baseline_);
    return baseline_;
-@@ -1851,6 +1866,7 @@ Vector2d RenderText::GetAlignmentOffset(size_t line_number) {
+@@ -1027,6 +1042,16 @@ void RenderText::Draw(Canvas* canvas, bool select_all) {
+ 
+     DrawSelections(canvas, draw_selections);
+     internal::SkiaTextRenderer renderer(canvas);
++
++    // This will push down the offending labels in GDI to the point that they will appear centered
++    if (vertical_alignment_ == ALIGN_SPECIAL) {
++      if (base::FeatureList::IsEnabled(features::kChromeRefresh2023)) {
++        renderer.SetSpecialYOffset(4);
++      } else {
++        renderer.SetSpecialYOffset(3);
++      }
++    }
++
+     DrawVisualText(&renderer, draw_selections);
+   }
+ 
+@@ -1851,6 +1876,7 @@ Vector2d RenderText::GetAlignmentOffset(size_t line_number) {
        offset.set_y(0);
        break;
      case ALIGN_MIDDLE:
-+	case ALIGN_SPECIAL:
++    case ALIGN_SPECIAL:
        if (multiline_)
          offset.set_y((display_rect_.height() - GetStringSize().height()) / 2);
        else
+diff --git a/ui/gfx/render_text.h b/ui/gfx/render_text.h
+index 212c98c242ed3..75ae9fd8ed732 100644
+--- a/ui/gfx/render_text.h
++++ b/ui/gfx/render_text.h
+@@ -73,6 +73,7 @@ class GFX_EXPORT SkiaTextRenderer {
+                            bool subpixel_rendering_suppressed);
+   void SetTypeface(sk_sp<SkTypeface> typeface);
+   void SetTextSize(SkScalar size);
++  void SetSpecialYOffset(int y_offset) { special_y_offset_ = y_offset; }
+   void SetForegroundColor(SkColor foreground);
+   void SetShader(sk_sp<cc::PaintShader> shader);
+   // TODO(vmpstr): Change this API to mimic SkCanvas::drawTextBlob instead.
+@@ -89,6 +90,7 @@ class GFX_EXPORT SkiaTextRenderer {
+   raw_ptr<cc::PaintCanvas> canvas_skia_;
+   cc::PaintFlags flags_;
+   SkFont font_;
++  int special_y_offset_ = 0;
+ };
+ 
+ struct TextToDisplayIndex {
+@@ -1056,6 +1058,9 @@ class GFX_EXPORT RenderText {
+ 
+   // Tell whether or not the |layout_text_| needs an update or is up to date.
+   mutable bool layout_text_up_to_date_ = false;
++
++  // Offset of Y used for accurate font positioning in GDI.
++  int y_offset_;
+ };
+ 
+ }  // namespace gfx
 diff --git a/ui/gfx/switches.cc b/ui/gfx/switches.cc
 index 7a4c07887d822..8079de6c60522 100644
 --- a/ui/gfx/switches.cc
@@ -11049,7 +11134,7 @@ index 74d600db1ea5e..d6b9e8fcadd25 100644
 +}  // namespace ui
 \ No newline at end of file
 diff --git a/ui/views/controls/label.cc b/ui/views/controls/label.cc
-index a1a17ca0f4090..c45c6e5b98b4c 100644
+index a1a17ca0f4090..818a5e0b79418 100644
 --- a/ui/views/controls/label.cc
 +++ b/ui/views/controls/label.cc
 @@ -41,6 +41,10 @@
@@ -11063,7 +11148,23 @@ index a1a17ca0f4090..c45c6e5b98b4c 100644
  namespace {
  
  // An enum giving different RenderText properties unique keys for the
-@@ -1153,6 +1157,13 @@ void Label::Init(const std::u16string& text,
+@@ -804,6 +808,15 @@ int Label::GetFontListY() const {
+ void Label::PaintText(gfx::Canvas* canvas) {
+   MaybeBuildDisplayText();
+ 
++#if BUILDFLAG(IS_WIN)
++  if (!gfx::win::IsDirectWriteEnabled()) {
++    // Of note, some UI elements such as the placeholder text in the address bar were not being
++    // having the proper offset applied so the few elements that do not require offsets are
++    // singled out and the rest are given the 4px offset.
++    display_text_->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
++  }
++#endif
++
+   if (display_text_)
+     display_text_->Draw(canvas);
+ 
+@@ -1153,6 +1166,13 @@ void Label::Init(const std::u16string& text,
                   gfx::DirectionalityMode directionality_mode) {
    full_text_ = gfx::RenderText::CreateRenderText();
    full_text_->SetHorizontalAlignment(gfx::ALIGN_CENTER);
@@ -11102,7 +11203,7 @@ index da848fcdc1784..4184e62a9d93f 100644
           (contents_size_ - viewport_size_);
  }
 diff --git a/ui/views/controls/textfield/textfield.cc b/ui/views/controls/textfield/textfield.cc
-index 562d300d13db4..b7ee33b25ef19 100644
+index 562d300d13db4..cf59da155eed0 100644
 --- a/ui/views/controls/textfield/textfield.cc
 +++ b/ui/views/controls/textfield/textfield.cc
 @@ -79,6 +79,7 @@
@@ -11113,20 +11214,19 @@ index 562d300d13db4..b7ee33b25ef19 100644
  #endif
  
  #if BUILDFLAG(IS_LINUX)
-@@ -615,6 +616,12 @@ void Textfield::FitToLocalBounds() {
-   } else {
+@@ -616,6 +617,11 @@ void Textfield::FitToLocalBounds() {
      // The text will draw with the correct vertical alignment if we don't apply
      // the vertical insets.
-+
+     bounds.Inset(gfx::Insets::TLBR(0, insets.left(), 0, insets.right()));
 +	#if BUILDFLAG(IS_WIN)
 +    if (!gfx::win::IsDirectWriteEnabled()) {
 +	  GetRenderText()->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
 +	}
 +	#endif
-     bounds.Inset(gfx::Insets::TLBR(0, insets.left(), 0, insets.right()));
    }
  
-@@ -1785,6 +1792,7 @@ bool Textfield::ChangeTextDirectionAndLayoutAlignment(
+   bounds.set_x(GetMirroredXForRect(bounds));
+@@ -1785,6 +1791,7 @@ bool Textfield::ChangeTextDirectionAndLayoutAlignment(
        modes_match && GetHorizontalAlignment() == gfx::ALIGN_TO_HEAD;
    if (!dir_from_text && GetHorizontalAlignment() != gfx::ALIGN_CENTER)
      SetHorizontalAlignment(default_rtl ? gfx::ALIGN_RIGHT : gfx::ALIGN_LEFT);
@@ -11134,6 +11234,20 @@ index 562d300d13db4..b7ee33b25ef19 100644
    SchedulePaint();
    return true;
  }
+@@ -2682,6 +2689,13 @@ void Textfield::PaintTextAndCursor(gfx::Canvas* canvas) {
+     if (SkColorGetA(GetBackgroundColor()) != SK_AlphaOPAQUE)
+       placeholder_text_draw_flags |= gfx::Canvas::NO_SUBPIXEL_RENDERING;
+ 
++#if BUILDFLAG(IS_WIN)
++  if (!gfx::win::IsDirectWriteEnabled()) {
++    render_text->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
++    placeholder_text_draw_flags |= gfx::Canvas::GDI_OFFSET_RENDERING;
++  }
++#endif
++
+     canvas->DrawStringRectWithFlags(
+         GetPlaceholderText(), placeholder_font_list_.value_or(GetFontList()),
+         placeholder_text_color_.value_or(
 diff --git a/ui/views/views_features.cc b/ui/views/views_features.cc
 index 9c296ba65e0b7..fb9aba323cdba 100644
 --- a/ui/views/views_features.cc
