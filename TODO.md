@@ -45,3 +45,7 @@ Experiments > Thorium Experiments
  - https://source.chromium.org/chromium/chromium/src/+/056a891186fbf7b5cd3f857c331ab3ad5a69019d
 
  - https://bugs.chromium.org/p/chromium/issues/detail?id=1385856
+
+ - Backport all M119 and M120 patches from upstream Thorium
+
+ - Add https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/core/ungoogled-chromium/disable-privacy-sandbox.patch
