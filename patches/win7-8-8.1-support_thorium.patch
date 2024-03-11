@@ -2225,6 +2225,7 @@ index de3be2eec25cc..c5e828982d862 100644
 +     kOsDesktop, MULTI_VALUE_TYPE(kShowAvatarButtonChoices)}
 +	// TODO: move all Supermium-specific flags to new source file.
 +
++
      // NOTE: Adding a new flag requires adding a corresponding entry to enum
      // "LoginCustomFlags" in tools/metrics/histograms/enums.xml. See "Flag
      // Histograms" in tools/metrics/histograms/README.md (run the

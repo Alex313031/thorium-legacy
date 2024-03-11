@@ -36,7 +36,7 @@ else
     export CR_SRC_DIR
 fi
 
-THOR_VER="119.0.6045.214"
+THOR_VER="122.0.6261.127"
 
 export THOR_VER &&
 
@@ -75,7 +75,7 @@ printf "\n"
 printf "${GRE}Chromium tree is checked out at tag: ${c0}$THOR_VER\n"
 printf "\n"
 	
-printf "${YEL}Downloading PGO Profiles for Linux, Windows, and Mac...\n" &&
+printf "${YEL}Downloading PGO Profiles for win32 and win64...\n" &&
 printf "\n" &&
 tput sgr0 &&
 
