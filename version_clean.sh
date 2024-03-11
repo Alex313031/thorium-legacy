@@ -18,7 +18,7 @@ try() { "$@" || die "${RED}Failed $*"; }
 # --help
 displayHelp () {
 	printf "\n" &&
-	printf "${bold}${YEL}Script to check out Chromium tag of current Thorium version.${c0}\n" &&
+	printf "${bold}${YEL}Script to check out Chromium tag of current Win7 version.${c0}\n" &&
 	printf "\n"
 	printf "${RED}NOTE: You may need to run ${c0}${bold}./trunk.sh ${RED}before using this script!${c0}\n" &&
 	printf "\n"
@@ -36,35 +36,33 @@ else
     export CR_SRC_DIR
 fi
 
-THOR_VER="119.0.6045.214"
+CR_VER="122.0.6261.85"
 
-export THOR_VER &&
+export CR_VER &&
 
 printf "\n"
-printf "${GRE}Current Thorium version is:${c0} ${underline}$THOR_VER${c0}\n"
+printf "${GRE}Current Chromium version is:${c0} ${underline}$CR_VER${c0}\n"
 printf "\n"
-printf "${RED}NOTE: ${YEL}Checking out${CYA} tags/$THOR_VER ${YEL}in ${CR_SRC_DIR}...${c0}\n"
+printf "${RED}NOTE: ${YEL}Checking out${CYA} tags/$CR_VER ${YEL}in ${CR_SRC_DIR}...${c0}\n"
 printf "\n"
 
 cd ${CR_SRC_DIR} &&
 
-git checkout -f tags/$THOR_VER &&
-
-cd ~/thorium-win7 &&
-
-cd ${CR_SRC_DIR} &&
+git checkout -f tags/$CR_VER &&
 
 git clean -ffd &&
 
 gclient sync --with_branch_heads --with_tags -f -R -D &&
 
+git clean -ffd &&
+
 gclient runhooks &&
 
 printf "\n"
-printf "${GRE}Chromium tree is checked out at tag: ${c0}$THOR_VER\n"
+printf "${GRE}Chromium tree is checked out at tag: ${c0}$CR_VER\n"
 printf "\n"
 	
-printf "${YEL}Downloading PGO Profiles for Linux, Windows, and Mac...\n" &&
+printf "${YEL}Downloading PGO Profiles...\n" &&
 printf "\n" &&
 tput sgr0 &&
 
@@ -80,7 +78,5 @@ tput sgr0 &&
 python3 v8/tools/builtins-pgo/download_profiles.py --depot-tools=$HOME/depot_tools download &&
 printf "\n" &&
 
-cd ~/thorium-win7 &&
-
-printf "${GRE}Done! ${YEL}You can now run \'./setup.sh\'\n"
+printf "${GRE}Done!\n"
 tput sgr0
