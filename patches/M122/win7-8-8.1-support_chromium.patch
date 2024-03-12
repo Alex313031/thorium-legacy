@@ -1,5 +1,5 @@
 diff --git a/README.md b/README.md
-index 590f4c94f2067..7091f956b88b7 100644
+index 590f4c94f2067..4dc37ee4414cf 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,21 +1,36 @@
@@ -12,7 +12,7 @@ index 590f4c94f2067..7091f956b88b7 100644
 +The Supermium web browser also provides the following features:
  
 -The project's web site is https://www.chromium.org.
-+-Aero Glass and Aero Glass-style titlebars instead of Windows 10-style ones (#disable-aero in chrome://flags for the latter)
++-Aero Glass and Aero Glass-style titlebars instead of Windows 10-style ones (#force-xp-theme in chrome://flags for the latter)
  
 -To check out the source code locally, don't use `git clone`! Instead,
 -follow [the instructions on how to get the code](docs/get_the_code.md).
@@ -317,7 +317,7 @@ index c6445f267971f..5e19e5f01869b 100644
  #if BUILDFLAG(HAS_64_BIT_POINTERS) && \
      (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_ANDROID))
 diff --git a/base/command_line.cc b/base/command_line.cc
-index 69e4303165259..da42a22ed2894 100644
+index 69e4303165259..a1f3ce6071df4 100644
 --- a/base/command_line.cc
 +++ b/base/command_line.cc
 @@ -27,8 +27,8 @@
@@ -334,44 +334,44 @@ index 69e4303165259..da42a22ed2894 100644
  }
  
  bool CommandLine::HasSwitch(const char switch_constant[]) const {
-+
++	
    return HasSwitch(StringPiece(switch_constant));
  }
  
 diff --git a/base/features.cc b/base/features.cc
-index 50cb76282689b..82151c93ffd3e 100644
+index 50cb76282689b..aa95b49ea67d0 100644
 --- a/base/features.cc
 +++ b/base/features.cc
-@@ -34,6 +34,20 @@ BASE_FEATURE(kUseRustJsonParser,
+@@ -33,6 +33,20 @@ BASE_FEATURE(kUseRustJsonParser,
+              FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kJsonNegativeZero, "JsonNegativeZero", FEATURE_ENABLED_BY_DEFAULT);
- 
-+
-+
-+
-+
++			 
++BASE_FEATURE(kForceDarkModeFlag,
++             "ForceDarkModeFlag",
++             base::FEATURE_DISABLED_BY_DEFAULT);
++ 
 +BASE_FEATURE(kIncognitoBrandConsistencyForDesktop,
 +			"IncognitoBrandConsistencyForDesktop",
-+			base::FEATURE_DISABLED_BY_DEFAULT);
-+
++			base::FEATURE_DISABLED_BY_DEFAULT);			 
++			 
 +#if BUILDFLAG(IS_WIN)
 +BASE_FEATURE(kForceGdi,
 +             "ForceGdi",
 +             base::FEATURE_DISABLED_BY_DEFAULT);
 +#endif
-+
+ 
  #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_CHROMEOS)
  // Force to enable LowEndDeviceMode partially on Android 3Gb devices.
- // (see PartialLowEndModeOnMidRangeDevices below)
 diff --git a/base/features.h b/base/features.h
-index a80ac17fb20d1..6b050f7b8bc60 100644
+index a80ac17fb20d1..167b5467076f0 100644
 --- a/base/features.h
 +++ b/base/features.h
 @@ -25,6 +25,14 @@ BASE_EXPORT BASE_DECLARE_FEATURE(kUseRustJsonParser);
  
  BASE_EXPORT BASE_DECLARE_FEATURE(kJsonNegativeZero);
  
-+
++BASE_EXPORT BASE_DECLARE_FEATURE(kForceDarkModeFlag);
 +
 +BASE_EXPORT BASE_DECLARE_FEATURE(kIncognitoBrandConsistencyForDesktop);
 +
@@ -524,14 +524,14 @@ index 96986601f6282..ab0bda806704a 100644
    // Ask for the file mapping with reduced permisions to avoid passing the
    // access control permissions granted by default into unpriviledged process.
 diff --git a/base/message_loop/message_pump_win.cc b/base/message_loop/message_pump_win.cc
-index c30066f515f63..479ba2345565e 100644
+index c30066f515f63..179ff9d07d79a 100644
 --- a/base/message_loop/message_pump_win.cc
 +++ b/base/message_loop/message_pump_win.cc
 @@ -792,6 +792,7 @@ bool MessagePumpForIO::GetIOItem(DWORD timeout, IOItem* item) {
                                     &overlapped, timeout)) {
      if (!overlapped)
        return false;  // Nothing in the queue.
-+
++  
      item->error = GetLastError();
      item->bytes_transfered = 0;
    }
@@ -668,13 +668,23 @@ index 4e7b6563bc229..3925a372ed509 100644
  }
  
 diff --git a/base/process/launch_win.cc b/base/process/launch_win.cc
-index eca51fa33f7fc..af5924614ed2e 100644
+index eca51fa33f7fc..3229f9324d1aa 100644
 --- a/base/process/launch_win.cc
 +++ b/base/process/launch_win.cc
-@@ -273,14 +273,17 @@ Process LaunchProcess(const CommandLine::StringType& cmdline,
+@@ -260,7 +260,7 @@ Process LaunchProcess(const CommandLine::StringType& cmdline,
+   win::StartupInformation startup_info_wrapper;
+   STARTUPINFO* startup_info = startup_info_wrapper.startup_info();
+   DWORD flags = 0;
+-
++  
+   // Count extended attributes before reserving space.
+   DWORD attribute_count = 0;
+   // Count PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY.
+@@ -272,15 +272,18 @@ Process LaunchProcess(const CommandLine::StringType& cmdline,
+   // Count PROC_THREAD_ATTRIBUTE_HANDLE_LIST.
    if (!options.handles_to_inherit.empty())
      ++attribute_count;
- 
+-
 -  // Reserve space for attributes.
 -  if (attribute_count > 0) {
 -    if (!startup_info_wrapper.InitializeProcThreadAttributeList(
@@ -683,7 +693,8 @@ index eca51fa33f7fc..af5924614ed2e 100644
 -      return Process();
 -    }
 -    flags |= EXTENDED_STARTUPINFO_PRESENT;
-+
++  
++	  
 +  if (base::win::GetVersion() >= base::win::Version::VISTA) {
 +	  // Reserve space for attributes.
 +	  if (attribute_count > 0) {
@@ -702,7 +713,7 @@ index eca51fa33f7fc..af5924614ed2e 100644
    // Set PROC_THREAD_ATTRIBUTE_HANDLE_LIST.
    bool inherit_handles = options.inherit_mode == LaunchOptions::Inherit::kAll;
 -  if (!options.handles_to_inherit.empty()) {
-+  if (!options.handles_to_inherit.empty() &&
++  if (!options.handles_to_inherit.empty() && 
 +	  base::win::GetVersion() < base::win::Version::VISTA) {
 +	  inherit_handles = true;
 +  }
@@ -1369,7 +1380,7 @@ index 3cde4acef6f2e..2366a681e72c0 100644
  
  #endif  // BASE_WIN_HSTRING_REFERENCE_H_
 diff --git a/base/win/hstring_reference_unittest.cc b/base/win/hstring_reference_unittest.cc
-index 3f67ff223d87e..60bd3d27a9037 100644
+index 3f67ff223d87e..1809f1da9e4e0 100644
 --- a/base/win/hstring_reference_unittest.cc
 +++ b/base/win/hstring_reference_unittest.cc
 @@ -26,6 +26,8 @@ void VerifyHSTRINGEquals(HSTRING hstring, const wchar_t* test_string) {
@@ -1377,7 +1388,7 @@ index 3f67ff223d87e..60bd3d27a9037 100644
  
  TEST(HStringReferenceTest, Init) {
 +  EXPECT_TRUE(HStringReference::ResolveCoreWinRTStringDelayload());
-+
++ 
    const HStringReference string(kTestString);
    EXPECT_NE(string.Get(), nullptr);
    VerifyHSTRINGEquals(string.Get(), kTestString);
@@ -1406,13 +1417,14 @@ index 7b9dcb90e627e..d24a4b0ede9d5 100644
    LONG result =
        RegNotifyChangeKeyValue(key, /*bWatchSubtree=*/TRUE, filter,
 diff --git a/base/win/scoped_hstring.cc b/base/win/scoped_hstring.cc
-index 20e027e34632b..c3342f122ca25 100644
+index 20e027e34632b..f57b34b30d7fd 100644
 --- a/base/win/scoped_hstring.cc
 +++ b/base/win/scoped_hstring.cc
-@@ -19,23 +19,89 @@
+@@ -18,24 +18,90 @@
+ #include "base/strings/utf_string_conversions.h"
  
  namespace base {
- 
++	
 +namespace {
 +
 +static bool g_load_succeeded = false;
@@ -1473,7 +1485,7 @@ index 20e027e34632b..c3342f122ca25 100644
 +}
 +
 +}  // namespace
-+
+ 
  namespace internal {
  
  // static
@@ -1492,7 +1504,8 @@ index 20e027e34632b..c3342f122ca25 100644
 +}
  
  // static
- ScopedHString ScopedHString::Create(std::wstring_view str) {
+-ScopedHString ScopedHString::Create(std::wstring_view str) {
++ScopedHString ScopedHString::Create(std::wstring_view str) { 
 +  if(!g_load_succeeded) {
 +	  return ScopedHString(nullptr);
 +  }
@@ -1640,7 +1653,7 @@ index 4c93dcfabf658..85f83dab8192b 100644
  
  bool ScopedWinrtInitializer::Succeeded() const {
 diff --git a/base/win/win_util.cc b/base/win/win_util.cc
-index 25cc9b48a4d14..0995e8aad5788 100644
+index 25cc9b48a4d14..20772f3166d8b 100644
 --- a/base/win/win_util.cc
 +++ b/base/win/win_util.cc
 @@ -39,6 +39,7 @@
@@ -1651,13 +1664,14 @@ index 25cc9b48a4d14..0995e8aad5788 100644
  #include "base/files/file_path.h"
  #include "base/logging.h"
  #include "base/metrics/histogram_functions.h"
-@@ -68,6 +69,21 @@ namespace win {
+@@ -67,6 +68,21 @@ namespace base {
+ namespace win {
  
  namespace {
- 
++	
 +// Disables the DirectWrite font rendering system on windows.
 +const char kDisableDirectWrite[] = "disable-direct-write";
-+
++	
 +bool ShouldUseDirectWrite() {
 +  // Considering that there are seemingly some decent DirectWrite implementations
 +  // out there for XP, we will no longer discriminate by OS version.
@@ -1669,10 +1683,9 @@ index 25cc9b48a4d14..0995e8aad5788 100644
 +      *base::CommandLine::ForCurrentProcess();
 +  return !command_line.HasSwitch(kDisableDirectWrite);
 +}
-+
+ 
  // Sets the value of |property_key| to |property_value| in |property_store|.
  bool SetPropVariantValueForPropertyStore(
-     IPropertyStore* property_store,
 @@ -96,10 +112,40 @@ void __cdecl ForceCrashOnSigAbort(int) {
    *((volatile int*)nullptr) = 0x1337;
  }
@@ -1743,10 +1756,10 @@ index 25cc9b48a4d14..0995e8aad5788 100644
 +	  auto get_process_mitigation_policy =
 +      reinterpret_cast<decltype(&GetProcessMitigationPolicy)>(::GetProcAddress(
 +          ::GetModuleHandleA("kernel32.dll"), "GetProcessMitigationPolicy"));
-+
++		  
 +    if(!get_process_mitigation_policy)
 +		return true;
-+
++		  
      PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY policy = {};
 -    if (::GetProcessMitigationPolicy(GetCurrentProcess(),
 +    if (get_process_mitigation_policy(GetCurrentProcess(),
@@ -1787,15 +1800,15 @@ index 5c54819e4b85a..8f3f64f29011a 100644
    Microsoft::WRL::ComPtr<ABI::Windows::Storage::Streams::IBuffer> buffer;
    ASSERT_HRESULT_SUCCEEDED(
 diff --git a/build/config/win/BUILD.gn b/build/config/win/BUILD.gn
-index 6e1417aa40076..a34916dae742b 100644
+index 6e1417aa40076..02c23f642978a 100644
 --- a/build/config/win/BUILD.gn
 +++ b/build/config/win/BUILD.gn
 @@ -43,6 +43,10 @@ declare_args() {
    #  and with this switch, clang emits it like this:
    #    foo/bar.cc:12:34: error: something went wrong
    use_clang_diagnostics_format = false
-+
-+
++  
++ 
 +  # Indicates whether to use /pdbpagesize:8192 to allow PDBs larger than 4 GiB.
 +  use_large_pdbs = false
  }
@@ -1933,7 +1946,7 @@ index 0811d62fd215d..8a64908d27de9 100644
      "//components/no_state_prefetch/browser",
      "//components/no_state_prefetch/common",
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
-index de3be2eec25cc..dd0e76f790ca5 100644
+index de3be2eec25cc..c5e828982d862 100644
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
 @@ -15,6 +15,7 @@
@@ -1944,19 +1957,20 @@ index de3be2eec25cc..dd0e76f790ca5 100644
  #include "base/feature_list.h"
  #include "base/functional/bind.h"
  #include "base/functional/callback.h"
-@@ -3776,6 +3777,63 @@ const FeatureEntry::FeatureVariation
+@@ -3775,6 +3776,63 @@ const FeatureEntry::FeatureVariation
+          std::size(kCompressionDictionaryTransportBackendVersionV1), nullptr},
          {"experimental V2", kCompressionDictionaryTransportBackendVersionV2,
           std::size(kCompressionDictionaryTransportBackendVersionV2), nullptr}};
- 
-+
-+
-+
-+
-+
-+
-+
-+
-+
++		
++const FeatureEntry::Choice kTabHoverCards[] = {
++    {flags_ui::kGenericExperimentChoiceDefault, "", ""},
++    {"None",
++     "tab-hover-cards",
++     "none"},
++    {"Tooltip",
++     "tab-hover-cards",
++     "tooltip"},
++};
 +
 +const FeatureEntry::Choice kBookmarkBarNewTab[] = {
 +    {flags_ui::kGenericExperimentChoiceDefault, "", ""},
@@ -2004,14 +2018,14 @@ index de3be2eec25cc..dd0e76f790ca5 100644
 +     "show-avatar-button",
 +     "never"}
 +};
-+
+ 
  // RECORDING USER METRICS FOR FLAGS:
  // -----------------------------------------------------------------------------
- // The first line of the entry is the internal name.
-@@ -6153,6 +6211,18 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -6152,6 +6210,18 @@ const FeatureEntry kFeatureEntries[] = {
+     {"memlog-stack-mode", flag_descriptions::kMemlogStackModeName,
       flag_descriptions::kMemlogStackModeDescription, kOsAll,
       MULTI_VALUE_TYPE(kMemlogStackModeChoices)},
- 
++	 
 +    {"incognito-brand-consistency-for-desktop",
 +     flag_descriptions::kIncognitoBrandConsistencyForDesktopName,
 +     flag_descriptions::kIncognitoBrandConsistencyForDesktopDescription,
@@ -2023,10 +2037,9 @@ index de3be2eec25cc..dd0e76f790ca5 100644
 +     flag_descriptions::kInheritNativeThemeFromParentWidgetDescription,
 +     kOsDesktop,
 +     FEATURE_VALUE_TYPE(views::features::kInheritNativeThemeFromParentWidget)},
-+
+ 
      {"omnibox-max-zero-suggest-matches",
       flag_descriptions::kOmniboxMaxZeroSuggestMatchesName,
-      flag_descriptions::kOmniboxMaxZeroSuggestMatchesDescription,
 @@ -6975,10 +7045,6 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kEnableWindowsGamingInputDataFetcherName,
       flag_descriptions::kEnableWindowsGamingInputDataFetcherDescription, kOsWin,
@@ -2042,12 +2055,12 @@ index de3be2eec25cc..dd0e76f790ca5 100644
       flag_descriptions::kEnableBuiltinHlsDescription, kOsAll,
       FEATURE_VALUE_TYPE(media::kBuiltInHlsPlayer)},
  #endif
-+	{"ungoogled-thorium",
-+	 flag_descriptions::kUngoogledThoriumName, flag_descriptions::kUngoogledThoriumDescription,
-+	 kOsAll, SINGLE_VALUE_TYPE("ungoogled-thorium")},
++	{"ungoogled-supermium",
++	 flag_descriptions::kUngoogledSupermiumName, flag_descriptions::kUngoogledSupermiumDescription, 
++	 kOsAll, SINGLE_VALUE_TYPE("ungoogled-supermium")},
 +	{"disable-download-upload",
 +	 "Disable Safe Browsing for Downloads and Download Sample Uploads", "Disables prompts about unsafe or uncommon downloads, and "
-+												  "prevents samples of downloads from being sent to Google.",
++												  "prevents samples of downloads from being sent to Google.", 
 +	 kOsAll, SINGLE_VALUE_TYPE("disable-download-upload")},
  
  #if !BUILDFLAG(IS_CHROMEOS_ASH)
@@ -2056,29 +2069,30 @@ index de3be2eec25cc..dd0e76f790ca5 100644
       FEATURE_VALUE_TYPE(syncer::kSyncShowIdentityErrorsForSignedInUsers)},
  #endif  // BUILDFLAG(IS_ANDROID)
  
-+
-+
-+
++    {"force-dark-mode",
++	 flag_descriptions::kForceDarkModeFlagName, flag_descriptions::kForceDarkModeFlagDescription, kOsAll,
++	 FEATURE_VALUE_TYPE(base::features::kForceDarkModeFlag)},
 +#if BUILDFLAG(IS_WIN)
 +	{"disable-windows-10-custom-titlebar",
 +	 flag_descriptions::kDisableWindows10CustomTitlebarName, flag_descriptions::kDisableWindows10CustomTitlebarDescription, kOsWin,
 +	 SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
-+	{"disable-aero",
-+	 flag_descriptions::kDisableAeroThemeName, flag_descriptions::kDisableAeroThemeDescription, kOsWin,
-+	 FEATURE_VALUE_TYPE(kDisableAeroTheme)},
++	{"force-xp-theme",
++	 flag_descriptions::kForceXpThemeName, flag_descriptions::kForceXpThemeDescription, kOsWin,
++	 FEATURE_VALUE_TYPE(kForceXpTheme)},	 
 +	{"force-gdi",
 +	 flag_descriptions::kForceGdiName, flag_descriptions::kForceGdiDescription, kOsWin,
 +	 SINGLE_VALUE_TYPE("disable-direct-write")},
 +#endif
 +    {"custom-tab-shapes",
-+     "Thorium Trapezoidal Tabs UI",
-+     "Changes the look of browser tabs to appear with a trapezoidal shape, restoring the pre M72 tabstrip appearance.",
++     "Supermium Custom Tab UI",
++     "Changes the look of browser tabs to appear with a trapezoidal shape.",
 +     kOsAll,
-+     FEATURE_VALUE_TYPE(features::kThoriumCustomTabs)},
++     FEATURE_VALUE_TYPE(features::kSupermiumCustomTabs)},
 +
-+
-+
-+
++    {"tab-hover-cards",
++     "Tab Hover Cards",
++     "Allows removing the tab hover cards or using a tooltip as a replacement. ungoogled-chromium flag.",
++     kOsDesktop, MULTI_VALUE_TYPE(kTabHoverCards)},
 +    {"custom-ntp",
 +     "Custom New Tab Page",
 +     "Allows setting a custom URL for the new tab page. Value can be internal (e.g. `about:blank` or `chrome://new-tab-page`), external (e.g. `example.com`), or local (e.g. `file:///tmp/startpage.html`). This applies for incognito windows as well when not set to a `chrome://` internal page. ungoogled-chromium flag",
@@ -2212,12 +2226,11 @@ index de3be2eec25cc..dd0e76f790ca5 100644
 +     kOsDesktop, MULTI_VALUE_TYPE(kShowAvatarButtonChoices)}
 +	// TODO: move all Supermium-specific flags to new source file.
 +
-+
      // NOTE: Adding a new flag requires adding a corresponding entry to enum
      // "LoginCustomFlags" in tools/metrics/histograms/enums.xml. See "Flag
      // Histograms" in tools/metrics/histograms/README.md (run the
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
-index 57cb42c63eb6a..b3db6309c5f59 100644
+index 57cb42c63eb6a..33378da815dff 100644
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
 @@ -20,11 +20,13 @@
@@ -2250,10 +2263,11 @@ index 57cb42c63eb6a..b3db6309c5f59 100644
  #include "ppapi/buildflags/buildflags.h"
  #include "printing/buildflags/buildflags.h"
  #include "services/network/public/cpp/features.h"
-@@ -371,6 +375,18 @@ void BrowserProcessImpl::Init() {
+@@ -370,6 +374,18 @@ void BrowserProcessImpl::Init() {
+   // whenever the preference or its controlling policy changes.
    pref_change_registrar_.Add(metrics::prefs::kMetricsReportingEnabled,
                               base::BindRepeating(&ApplyMetricsReportingPolicy));
- 
++							 
 +  int max_connections_per_host = 0;
 +  auto switch_value = base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
 +      "max-connections-per-host");
@@ -2265,10 +2279,9 @@ index 57cb42c63eb6a..b3db6309c5f59 100644
 +    net::ClientSocketPoolManager::set_max_sockets_per_group(
 +        net::HttpNetworkSession::NORMAL_SOCKET_POOL, max_connections_per_host);
 +  }
-+
+ 
    DCHECK(!webrtc_event_log_manager_);
    webrtc_event_log_manager_ = WebRtcEventLogManager::CreateSingletonInstance();
- 
 diff --git a/chrome/browser/browsing_data/chrome_browsing_data_lifetime_manager.cc b/chrome/browser/browsing_data/chrome_browsing_data_lifetime_manager.cc
 index d912e49786837..3b8a9066f376d 100644
 --- a/chrome/browser/browsing_data/chrome_browsing_data_lifetime_manager.cc
@@ -2353,7 +2366,7 @@ index 9851839728f08..fa2ea794f3038 100644
    RegisterWebUIControllerInterfaceBinder<
        browser_command::mojom::CommandHandlerFactory, NewTabPageUI, WhatsNewUI>(
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
-index 8e21b0a1e691a..f760166426d86 100644
+index 8e21b0a1e691a..5691d89e8ab8d 100644
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
 @@ -882,10 +882,15 @@ bool HandleNewTabPageLocationOverride(
@@ -2367,7 +2380,7 @@ index 8e21b0a1e691a..f760166426d86 100644
        profile->GetPrefs()->GetString(prefs::kNewTabPageLocationOverride);
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("custom-ntp"))
 +    ntp_location = base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("custom-ntp");
-+  if (profile->IsOffTheRecord() && ntp_location.find("chrome://") != std::string::npos)
++  if (profile->IsOffTheRecord() && ntp_location.find("chrome://") != std::string::npos) 
 +	return false;
    if (ntp_location.empty())
      return false;
@@ -2557,7 +2570,7 @@ index 929cae16cfdf9..333b3623a4cf3 100644
        base::test::TaskEnvironment::TimeSource::MOCK_TIME};
    raw_ptr<NiceMock<content::MockDownloadManager>, DanglingUntriaged>
 diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrome/browser/download/chrome_download_manager_delegate.cc
-index 201cd68c5175c..aed9ef6c63595 100644
+index 201cd68c5175c..59907c1658642 100644
 --- a/chrome/browser/download/chrome_download_manager_delegate.cc
 +++ b/chrome/browser/download/chrome_download_manager_delegate.cc
 @@ -57,6 +57,7 @@
@@ -2573,7 +2586,7 @@ index 201cd68c5175c..aed9ef6c63595 100644
      download::DownloadItem* item,
      download::DownloadDangerType danger_type) const {
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload) ||
-+		base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kUngoogledThorium))	{
++		base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kUngoogledSupermium))	{
 +	  return false;
 +  }
    // Chrome-initiated background downloads should not be blocked.
@@ -2734,20 +2747,20 @@ index 2a1554690f890..6653161db3b95 100644
      return false;
    }
 diff --git a/chrome/browser/download/download_crx_util.h b/chrome/browser/download/download_crx_util.h
-index 1846c1dcb4028..a50a9af030c77 100644
+index 1846c1dcb4028..a0ddd4e1ba553 100644
 --- a/chrome/browser/download/download_crx_util.h
 +++ b/chrome/browser/download/download_crx_util.h
-@@ -35,6 +35,10 @@ scoped_refptr<extensions::CrxInstaller> CreateCrxInstaller(
+@@ -34,6 +34,10 @@ void SetMockInstallPromptForTesting(
+ scoped_refptr<extensions::CrxInstaller> CreateCrxInstaller(
      Profile* profile,
      const download::DownloadItem& download_item);
- 
++	
 +// Returns true if the user wants all extensions to be downloaded as regular
 +// files.
 +bool ShouldDownloadAsRegularFile();
-+
+ 
  // Returns true if this is an extension download. This also considers user
  // scripts to be extension downloads, since we convert those automatically.
- bool IsExtensionDownload(const download::DownloadItem& download_item);
 diff --git a/chrome/browser/download/download_item_model_unittest.cc b/chrome/browser/download/download_item_model_unittest.cc
 index 76c2cea6fd8a3..849162633b49b 100644
 --- a/chrome/browser/download/download_item_model_unittest.cc
@@ -2877,19 +2890,19 @@ index ff0195c8fd8c6..c9cada3abd5ea 100644
      ComPtr<IWebAuthenticationCoreManagerStatics> auth_manager;
      HRESULT hresult = base::win::GetActivationFactory<
 diff --git a/chrome/browser/extensions/api/downloads/downloads_api.cc b/chrome/browser/extensions/api/downloads/downloads_api.cc
-index 1b72198fd44fd..540d7d82306cf 100644
+index 1b72198fd44fd..5df44dcbab9af 100644
 --- a/chrome/browser/extensions/api/downloads/downloads_api.cc
 +++ b/chrome/browser/extensions/api/downloads/downloads_api.cc
-@@ -1587,6 +1587,9 @@ ExtensionFunction::ResponseAction DownloadsSetShelfEnabledFunction::Run() {
+@@ -1586,6 +1586,9 @@ ExtensionFunction::ResponseAction DownloadsSetShelfEnabledFunction::Run() {
+                           &service, &incognito_service);
  
    MaybeSetUiEnabled(service, incognito_service, extension(), params->enabled);
- 
++  
 +  bool is_bubble_enabled = download::IsDownloadBubbleEnabled(
 +      Profile::FromBrowserContext(browser_context()));
-+
+ 
    BrowserList* browsers = BrowserList::GetInstance();
    if (browsers) {
-     for (Browser* browser : *browsers) {
 @@ -1603,7 +1606,7 @@ ExtensionFunction::ResponseAction DownloadsSetShelfEnabledFunction::Run() {
        // using this API is still compatible with the new download bubble. This
        // API will eventually be deprecated (replaced by the SetUiOptions API
@@ -2899,13 +2912,15 @@ index 1b72198fd44fd..540d7d82306cf 100644
            browser->window()->GetDownloadBubbleUIController()) {
          browser->window()->GetDownloadBubbleUIController()->HideDownloadUi();
        } else if (browser->window()->IsDownloadShelfVisible()) {
-@@ -1643,6 +1646,9 @@ ExtensionFunction::ResponseAction DownloadsSetUiOptionsFunction::Run() {
+@@ -1642,7 +1645,10 @@ ExtensionFunction::ResponseAction DownloadsSetUiOptionsFunction::Run() {
+                           &service, &incognito_service);
  
    MaybeSetUiEnabled(service, incognito_service, extension(), options.enabled);
- 
+-
++  
 +  bool is_bubble_enabled = download::IsDownloadBubbleEnabled(
 +      Profile::FromBrowserContext(browser_context()));
-+
++	  
    BrowserList* browsers = BrowserList::GetInstance();
    if (browsers) {
      for (Browser* browser : *browsers) {
@@ -3015,7 +3030,7 @@ index 16c5b86a66345..6ad24e278dcb0 100644
    if (!global_settings_->install_sources.has_value())
      return false;
 diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
-index d70932e1ad965..f339f340eacdd 100644
+index d70932e1ad965..d1cb63292d160 100644
 --- a/chrome/browser/flag-metadata.json
 +++ b/chrome/browser/flag-metadata.json
 @@ -1765,6 +1765,11 @@
@@ -3026,7 +3041,7 @@ index d70932e1ad965..f339f340eacdd 100644
 +    "name": "disable-download-upload",
 +    "owners": [ "win32", "supermium" ],
 +    "expiry_milestone": -1
-+  },
++  },  
    {
      "name": "disable-explicit-dma-fences",
      "owners": [ "chromeos-gfx@google.com" ],
@@ -3036,7 +3051,7 @@ index d70932e1ad965..f339f340eacdd 100644
    },
 +  {
 +    "name": "disable-windows-10-custom-titlebar",
-+    "owners": [ "win32ss", "alex313031" ],
++    "owners": [ "win32", "supermium" ],
 +    "expiry_milestone": -1
 +  },
    {
@@ -3047,8 +3062,8 @@ index d70932e1ad965..f339f340eacdd 100644
      "expiry_milestone": -1
    },
 +  {
-+    "name": "disable-aero",
-+    "owners": [ "win32ss", "alex313031" ],
++    "name": "force-xp-theme",
++    "owners": [ "win32", "supermium" ],
 +    "expiry_milestone": -1
 +  },
    {
@@ -3067,7 +3082,7 @@ index d70932e1ad965..f339f340eacdd 100644
      "name": "install-isolated-web-app-from-url",
      "owners": [ "kuragin@chromium.org", "reillyg@chromium.org", "rmcelrath@chromium.org" ],
 diff --git a/chrome/browser/flag-never-expire-list.json b/chrome/browser/flag-never-expire-list.json
-index a0af02d2a73eb..d91f528af0605 100644
+index a0af02d2a73eb..31e92aa0fc8b7 100644
 --- a/chrome/browser/flag-never-expire-list.json
 +++ b/chrome/browser/flag-never-expire-list.json
 @@ -32,10 +32,12 @@
@@ -3095,7 +3110,7 @@ index a0af02d2a73eb..d91f528af0605 100644
    "force-text-direction",
    "force-ui-direction",
    "force-update-menu-type",
-+  "disable-aero",
++  "force-xp-theme",
    "fullscreen-promos-manager-skip-internal-limits",
    "fullscreen-viewport-adjustment-experiment",
    "gesture-properties-dbus-service",
@@ -3103,33 +3118,33 @@ index a0af02d2a73eb..d91f528af0605 100644
    "ui-debug-tools",
    "ui-disable-partial-swap",
    "ui-slow-animations",
-+  "ungoogled-thorium",
++  "ungoogled-supermium",
    "unsafely-treat-insecure-origin-as-secure",
    "update-menu-item-custom-summary",
    "use-android-staging-smds",
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
-index 8385c597f050e..0c3074038033a 100644
+index 8385c597f050e..91863d7248b7a 100644
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -1818,6 +1818,18 @@ const char kDrawImmediatelyWhenInteractiveDescription[] =
+@@ -1817,6 +1817,18 @@ const char kDrawImmediatelyWhenInteractiveName[] =
+ const char kDrawImmediatelyWhenInteractiveDescription[] =
      "Causes viz to activate and draw frames immediately during a touch "
      "interaction or scroll.";
- 
++	
 +const char kIncognitoBrandConsistencyForDesktopName[] =
 +    "Enable Incognito brand consistency in desktop.";
 +const char kIncognitoBrandConsistencyForDesktopDescription[] =
 +    "When enabled, removes any theme or background customization done by the "
 +    "user on the Incognito UI.";
-+
++	
 +const char kInheritNativeThemeFromParentWidgetName[] =
 +    "Allow widgets to inherit native theme from its parent widget.";
 +const char kInheritNativeThemeFromParentWidgetDescription[] =
 +    "When enabled, secondary UI like menu, dialog etc would be in dark mode "
 +    "when Incognito mode is open.";
-+
+ 
  const char kFillingAcrossGroupedSitesName[] =
      "Password filling across grouped websites";
- const char kFillingAcrossGroupedSitesDescription[] =
 @@ -1854,6 +1866,14 @@ const char kForceTextDirectionDescription[] =
  const char kForceDirectionLtr[] = "Left-to-right";
  const char kForceDirectionRtl[] = "Right-to-left";
@@ -3138,43 +3153,43 @@ index 8385c597f050e..0c3074038033a 100644
 +const char kForceGdiDescription[] =
 +    "Use GDI font rendering in place of DirectWrite font rendering on Windows.";
 +
-+const char kDisableWindows10CustomTitlebarName[] = "Force disable Windows 10 custom titlebar";
++const char kDisableWindows10CustomTitlebarName[] = "Force disabling of Windows 10 custom titlebar";
 +const char kDisableWindows10CustomTitlebarDescription[] =
-+    "Disable the \"Windows 10\" custom titlebar to take advantage of Aero Glass fixes for Windows 7.";
++    "Disable the \"Windows 10\" custom titlebar to take advantage of Aero Glass fixes for the operating system.";
 +
  const char kForceUiDirectionName[] = "Force UI direction";
  const char kForceUiDirectionDescription[] =
      "Explicitly force the UI to left-to-right (LTR) or right-to-left (RTL) "
-@@ -2004,6 +2024,10 @@ const char kHideIncognitoMediaMetadataDescription[] =
+@@ -2003,6 +2023,10 @@ const char kHideIncognitoMediaMetadataName[] =
+ const char kHideIncognitoMediaMetadataDescription[] =
      "When enabled, media metadata will be hidden from your OS' media player "
      "if you are in an Incognito session.";
++	
++const char kUngoogledSupermiumName[] = "\"Ungoogled\" Supermium Mode";
++const char kUngoogledSupermiumDescription[] = "A work in progress - this rolls all new privacy-protecting "
++											"features in Supermium into one option";
  
-+const char kUngoogledThoriumName[] = "\"Ungoogled\" Thorium Mode";
-+const char kUngoogledThoriumDescription[] = "A work in progress - this rolls all new privacy-protecting "
-+											"features in Thorium into one option";
-+
  const char kTabAudioMutingName[] = "Tab audio muting UI control";
  const char kTabAudioMutingDescription[] =
-     "When enabled, the audio indicators in the tab strip double as tab audio "
-@@ -2814,6 +2838,16 @@ const char kAutoWebContentsDarkModeName[] = "Auto Dark Mode for Web Contents";
+@@ -2813,6 +2837,16 @@ const char kPdfXfaFormsDescription[] =
+ const char kAutoWebContentsDarkModeName[] = "Auto Dark Mode for Web Contents";
  const char kAutoWebContentsDarkModeDescription[] =
      "Automatically render all web contents using a dark theme.";
- 
-+
-+
-+
-+
-+
-+const char kDisableAeroThemeName[] = "Use Classic Theme: Disable Aero Window Frame Compositing";
-+const char kDisableAeroThemeDescription[] =
-+	"Use the classic Chromium theme designed to mimick \"Aero\" window controls. "
++	
++const char kForceDarkModeFlagName[] = "Forced Dark Mode for UI";
++const char kForceDarkModeFlagDescription[] = 
++	"Enables dark mode for all UI elements (but not web contents - " 
++	"enable #enable-force-dark for darkening web contents).";
++	
++const char kForceXpThemeName[] = "Use Classic Theme";
++const char kForceXpThemeDescription[] =
++	"Use the classic Chrome theme designed to mimick \"Aero\" window controls. "
 +	"Typically used when desktop composition is disabled or unavailable.";
-+
+ 
  const char kForcedColorsName[] = "Forced Colors";
  const char kForcedColorsDescription[] =
-     "Enables forced colors mode for web content.";
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
-index a023e473a3c31..65b2961e8b4ff 100644
+index a023e473a3c31..c84be067714a6 100644
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
 @@ -1601,6 +1601,18 @@ extern const char kParallelDownloadingDescription[];
@@ -3184,8 +3199,8 @@ index a023e473a3c31..65b2961e8b4ff 100644
 +extern const char kDisableDownloadUploadName[];
 +extern const char kDisableDownloadUploadDescription[];
 +
-+extern const char kUngoogledThoriumName[];
-+extern const char kUngoogledThoriumDescription[];
++extern const char kUngoogledSupermiumName[];
++extern const char kUngoogledSupermiumDescription[];
 +
 +extern const char kForceGdiName[];
 +extern const char kForceGdiDescription[];
@@ -3200,11 +3215,11 @@ index a023e473a3c31..65b2961e8b4ff 100644
  extern const char kAutoWebContentsDarkModeName[];
  extern const char kAutoWebContentsDarkModeDescription[];
  
++extern const char kForceDarkModeFlagName[];
++extern const char kForceDarkModeFlagDescription[];
 +
-+
-+
-+extern const char kDisableAeroThemeName[];
-+extern const char kDisableAeroThemeDescription[];
++extern const char kForceXpThemeName[];
++extern const char kForceXpThemeDescription[];
 +
  extern const char kForcedColorsName[];
  extern const char kForcedColorsDescription[];
@@ -3237,10 +3252,10 @@ index 4013c8788b569..38fdd6c19a8e1 100644
         std::cref(safe_browsing::kDownloadTailoredWarnings),
         base::FeatureList::OVERRIDE_ENABLE_FEATURE},
 diff --git a/chrome/browser/notifications/notification_platform_bridge_win.cc b/chrome/browser/notifications/notification_platform_bridge_win.cc
-index f8f6950152bcb..b951f482802a2 100644
+index 7e03b25b999fc..f1a2d52f28f50 100644
 --- a/chrome/browser/notifications/notification_platform_bridge_win.cc
 +++ b/chrome/browser/notifications/notification_platform_bridge_win.cc
-@@ -714,7 +714,7 @@ class NotificationPlatformBridgeWinImpl
+@@ -775,7 +775,7 @@ class NotificationPlatformBridgeWinImpl
          InstallUtil::IsStartMenuShortcutWithActivatorGuidInstalled();
  
      int status = static_cast<int>(SetReadyCallbackStatus::kSuccess);
@@ -3249,7 +3264,7 @@ index f8f6950152bcb..b951f482802a2 100644
  
      if (!enabled) {
        if (!shortcut_installed) {
-@@ -725,6 +725,8 @@ class NotificationPlatformBridgeWinImpl
+@@ -786,6 +786,8 @@ class NotificationPlatformBridgeWinImpl
          status |= static_cast<int>(
              SetReadyCallbackStatus::kComServerMisconfiguration);
        }
@@ -3259,10 +3274,10 @@ index f8f6950152bcb..b951f482802a2 100644
  
      LogSetReadyCallbackStatus(static_cast<SetReadyCallbackStatus>(status));
 diff --git a/chrome/browser/notifications/win/notification_metrics.h b/chrome/browser/notifications/win/notification_metrics.h
-index 8dfbaea83d66c..aab0938792430 100644
+index 7332d8bf3fa45..8d8fc295ba4ac 100644
 --- a/chrome/browser/notifications/win/notification_metrics.h
 +++ b/chrome/browser/notifications/win/notification_metrics.h
-@@ -137,8 +137,8 @@ enum class SetReadyCallbackStatus {
+@@ -139,8 +139,8 @@ enum class SetReadyCallbackStatus {
    kSuccess = 0,
    kShortcutMisconfiguration = 1 << 0,
    kComServerMisconfiguration = 1 << 1,
@@ -4648,10 +4663,10 @@ index 0000000000000..9a360fba45cdc
 +
 +customElements.define(BookmarksListElement.is, BookmarksListElement);
 diff --git a/chrome/browser/sharing/features.cc b/chrome/browser/sharing/features.cc
-index b82544d1eb4ab..2358483c69a41 100644
+index b82544d1eb4ab..cf567d07235e2 100644
 --- a/chrome/browser/sharing/features.cc
 +++ b/chrome/browser/sharing/features.cc
-@@ -6,12 +6,14 @@
+@@ -6,11 +6,13 @@
  
  #include "build/build_config.h"
  
@@ -4661,12 +4676,11 @@ index b82544d1eb4ab..2358483c69a41 100644
  BASE_FEATURE(kSharingMatchPulseInterval,
               "SharingMatchPulseInterval",
               base::FEATURE_DISABLED_BY_DEFAULT);
- 
++			 
 +BASE_FEATURE(kDisableQRGenerator, "DisableQRGenerator", base::FEATURE_DISABLED_BY_DEFAULT);
-+
+ 
  const base::FeatureParam<int> kSharingPulseDeltaDesktopHours = {
      &kSharingMatchPulseInterval, "SharingPulseDeltaDesktopHours", 24};
- 
 diff --git a/chrome/browser/sharing/features.h b/chrome/browser/sharing/features.h
 index f1c8b48443cf3..daea87ef05d6c 100644
 --- a/chrome/browser/sharing/features.h
@@ -4681,7 +4695,7 @@ index f1c8b48443cf3..daea87ef05d6c 100644
  // expired, for Desktop devices. Chrome on Desktop is expected to update the
  // last updated timestamp quite frequently because it can do this when
 diff --git a/chrome/browser/sharing_hub/sharing_hub_features.cc b/chrome/browser/sharing_hub/sharing_hub_features.cc
-index 57d5a500579aa..168b1b576f47a 100644
+index 57d5a500579aa..70adab20b266d 100644
 --- a/chrome/browser/sharing_hub/sharing_hub_features.cc
 +++ b/chrome/browser/sharing_hub/sharing_hub_features.cc
 @@ -4,6 +4,7 @@
@@ -4696,7 +4710,7 @@ index 57d5a500579aa..168b1b576f47a 100644
  }  // namespace
  
  bool SharingHubOmniboxEnabled(content::BrowserContext* context) {
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-sharing-hub"))
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-sharing-hub")) 
 +	  return false;
  #if BUILDFLAG(IS_CHROMEOS)
    return false;
@@ -4711,7 +4725,7 @@ index 57d5a500579aa..168b1b576f47a 100644
  #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS)
  void RegisterProfilePrefs(PrefRegistrySimple* registry) {
 diff --git a/chrome/browser/themes/theme_helper.cc b/chrome/browser/themes/theme_helper.cc
-index 43b03f9c3dce7..b09f78acef546 100644
+index 43b03f9c3dce7..937a6d540de88 100644
 --- a/chrome/browser/themes/theme_helper.cc
 +++ b/chrome/browser/themes/theme_helper.cc
 @@ -5,6 +5,7 @@
@@ -4767,7 +4781,7 @@ index 43b03f9c3dce7..b09f78acef546 100644
 +}
 +
 +
-+// static
++// static 
 +bool ThemeHelper::UseIncognitoColor(int id,
 +                                    const CustomThemeSupplier* theme_supplier) {
 +  // Incognito is disabled for any non-ignored custom theme colors so they apply
@@ -4792,18 +4806,19 @@ index 43b03f9c3dce7..b09f78acef546 100644
  
  gfx::ImageSkia* ThemeHelper::GetImageSkiaNamed(
 diff --git a/chrome/browser/themes/theme_helper.h b/chrome/browser/themes/theme_helper.h
-index 095e3d1c69a43..628fa729b5c63 100644
+index 095e3d1c69a43..056ca4f356875 100644
 --- a/chrome/browser/themes/theme_helper.h
 +++ b/chrome/browser/themes/theme_helper.h
-@@ -95,9 +95,21 @@ class ThemeHelper {
+@@ -94,10 +94,22 @@ class ThemeHelper {
+ 
   private:
    friend class theme_service_internal::ThemeServiceTest;
- 
++  
 +  // Whether the default incognito color/tint for |id| should be used, if
 +  // available.
 +  static bool UseIncognitoColor(int id,
 +                                const CustomThemeSupplier* theme_supplier);
-+
+ 
    // Whether dark default colors/tints should be used, if available.
    static bool UseDarkModeColors(const CustomThemeSupplier* theme_supplier);
  
@@ -4813,10 +4828,53 @@ index 095e3d1c69a43..628fa729b5c63 100644
 +      int id,
 +      bool incognito,
 +      const CustomThemeSupplier* theme_supplier);
-+
++	  
    // Returns a cross platform image for an id.
    gfx::Image GetImageNamed(int id,
                             bool incognito,
+diff --git a/chrome/browser/themes/theme_helper_win.cc b/chrome/browser/themes/theme_helper_win.cc
+index 259668e16470f..aef2186c2dee7 100644
+--- a/chrome/browser/themes/theme_helper_win.cc
++++ b/chrome/browser/themes/theme_helper_win.cc
+@@ -8,6 +8,11 @@
+ #include "chrome/browser/themes/theme_properties.h"
+ #include "chrome/browser/win/titlebar_config.h"
+ #include "chrome/grit/theme_resources.h"
++#include "base/win/windows_version.h"
++
++BASE_FEATURE(kForceXpTheme,
++             "ForceXpTheme",
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ int ThemeHelperWin::GetDefaultDisplayProperty(int id) const {
+   if (id == ThemeProperties::SHOULD_FILL_BACKGROUND_TAB_COLOR) {
+@@ -19,5 +24,10 @@ int ThemeHelperWin::GetDefaultDisplayProperty(int id) const {
+ 
+ bool ThemeHelperWin::ShouldUseNativeFrame(
+     const CustomThemeSupplier* theme_supplier) const {
+-  return true;
++		// If it returns false, the XP fallback theme is used.
++		// And yes, Chromium has muddied the waters of what is considered "native".
++		// Aero Glass is "native", Mica is "native", and so is the Windows 10-style theme that is drawn
++		// by Chromium itself.
++		// Only the "original" Chromium theme that mimicks Aero is not considered native.
++  return (!HasCustomImage(IDR_THEME_FRAME, theme_supplier) && (base::win::GetVersion() >= base::win::Version::VISTA)) && !base::FeatureList::IsEnabled(kForceXpTheme);
+ }
+diff --git a/chrome/browser/themes/theme_properties.cc b/chrome/browser/themes/theme_properties.cc
+index afeeddccbb9e4..d20c44473831d 100644
+--- a/chrome/browser/themes/theme_properties.cc
++++ b/chrome/browser/themes/theme_properties.cc
+@@ -259,8 +259,8 @@ color_utils::HSL ThemeProperties::GetDefaultTint(int id,
+       return {-1, 0.54, 0.567};  // Roughly kGoogleGrey900 -> kGoogleGrey800
+ 
+     if (incognito)
+-      return {0.57, 0.65, 0.1405};  // #DEE1E6 -> kGoogleGrey800
+-    return {-1, -1, 0.642};         // #DEE1E6 -> #E7EAED
++      return {0.57, 0.65, 0.87};  // #DEE1E6 -> kGoogleGrey800
++    return {-1, -1, 0.75};         // #DEE1E6 -> #E7EAED
+   }
+ 
+   return {-1, -1, -1};
 diff --git a/chrome/browser/themes/theme_service.cc b/chrome/browser/themes/theme_service.cc
 index ae7735b2bee81..fc84a77bd4a99 100644
 --- a/chrome/browser/themes/theme_service.cc
@@ -5280,7 +5338,7 @@ index 0ee4b04c7bb63..26b70281e679b 100644
          browser, /*skip_tab_checking=*/false);
  
 diff --git a/chrome/browser/ui/tabs/tab_style.cc b/chrome/browser/ui/tabs/tab_style.cc
-index aa9cd30374311..019087d8f5b19 100644
+index aa9cd30374311..2c3e0a11b0284 100644
 --- a/chrome/browser/ui/tabs/tab_style.cc
 +++ b/chrome/browser/ui/tabs/tab_style.cc
 @@ -4,6 +4,7 @@
@@ -5316,7 +5374,7 @@ index aa9cd30374311..019087d8f5b19 100644
  
  gfx::Size GM2TabStyle::GetSeparatorSize() const {
 -  return gfx::Size(kGM2SeparatorThickness,
-+  if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
++  if (!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs)) {
 +	  if(base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
 +		  return gfx::Size(kGM2SeparatorThickness,
 +                   GetLayoutConstant(TAB_SEPARATOR_HEIGHT) * 0.6);
@@ -5368,7 +5426,7 @@ index aa9cd30374311..019087d8f5b19 100644
 +#else
 +  const SkColor inactive_color = color_provider.GetColor(
 +      frame_active ? kColorTabBackgroundInactiveFrameActive
-+                   : kColorTabBackgroundInactiveFrameInactive);
++                   : kColorTabBackgroundInactiveFrameInactive);	
 +#endif
    if (hovered) {
      return active_color;
@@ -5388,6 +5446,29 @@ index aa9cd30374311..019087d8f5b19 100644
  }
  
  gfx::Size ChromeRefresh2023TabStyle::GetSeparatorSize() const {
+diff --git a/chrome/browser/ui/test/test_browser_ui.cc b/chrome/browser/ui/test/test_browser_ui.cc
+index 2f61aef15bbf8..2b49f57680e6f 100644
+--- a/chrome/browser/ui/test/test_browser_ui.cc
++++ b/chrome/browser/ui/test/test_browser_ui.cc
+@@ -5,6 +5,7 @@
+ #include "chrome/browser/ui/test/test_browser_ui.h"
+ 
+ #include "base/command_line.h"
++#include "base/features.h"
+ #include "base/test/gtest_util.h"
+ #include "base/test/test_switches.h"
+ #include "build/build_config.h"
+@@ -159,8 +160,8 @@ void TestBrowserUi::ShowAndVerifyUi() {
+   // Gold files for pixel tests are for light mode, so if dark mode is not
+   // forced, and host is in dark mode, skip test.
+   if (!IsInteractiveUi() &&
+-      !base::CommandLine::ForCurrentProcess()->HasSwitch(
+-          switches::kForceDarkMode) &&
++      (!base::CommandLine::ForCurrentProcess()->HasSwitch(
++          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag) &&
+       ui::NativeTheme::GetInstanceForNativeUi()->ShouldUseDarkColors()) {
+     GTEST_SKIP() << "Host is in dark mode; skipping test";
+   }
 diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
 index a5621a1406701..a89093804ccfc 100644
 --- a/chrome/browser/ui/ui_features.cc
@@ -5913,7 +5994,7 @@ index 213540e0cc6f3..e76cdef698660 100644
      views::View::ConvertPointToScreen(button, &button_center);
      ASSERT_TRUE(ui_controls::SendMouseMoveNotifyWhenDone(
 diff --git a/chrome/browser/ui/views/bookmarks/bookmark_bubble_view.cc b/chrome/browser/ui/views/bookmarks/bookmark_bubble_view.cc
-index 6c809c86fbac2..648b69fb793ea 100644
+index 6c809c86fbac2..fb6072bbafe25 100644
 --- a/chrome/browser/ui/views/bookmarks/bookmark_bubble_view.cc
 +++ b/chrome/browser/ui/views/bookmarks/bookmark_bubble_view.cc
 @@ -326,8 +326,10 @@ class BookmarkBubbleView::BookmarkBubbleDelegate
@@ -5929,23 +6010,32 @@ index 6c809c86fbac2..648b69fb793ea 100644
    }
  
    RecentlyUsedFoldersComboModel* GetFolderModel() {
-@@ -391,6 +393,7 @@ void BookmarkBubbleView::ShowBubble(
-     product_info = shopping_service->GetAvailableProductInfoForUrl(url);
-   }
+@@ -385,12 +387,13 @@ void BookmarkBubbleView::ShowBubble(
  
+   auto dialog_model_builder =
+       ui::DialogModel::Builder(std::move(bubble_delegate_unique));
+-
++	  
+   std::optional<commerce::ProductInfo> product_info = std::nullopt;
+   if (shopping_service->IsShoppingListEligible()) {
+     product_info = shopping_service->GetAvailableProductInfoForUrl(url);
+-  }
+-
++  }  
++  
 +  if (base::FeatureList::IsEnabled(features::kPowerBookmarksSidePanel)) {
    if (product_info.has_value() && !product_info->image_url.is_empty()) {
      HandleImageUrlResponse(profile, product_info->image_url);
    } else {
-@@ -400,10 +403,20 @@ void BookmarkBubbleView::ShowBubble(
+@@ -400,9 +403,19 @@ void BookmarkBubbleView::ShowBubble(
  
    // Display favicon while awaiting one of the above options to load.
    const auto centered_favicon = GetFaviconForWebContents(web_contents);
-+
++  
    gfx::ImageSkia main_image = centered_favicon;
  
    dialog_model_builder.SetMainImage(ui::ImageModel::FromImageSkia(main_image));
- 
++  
 +  } else {
 +    dialog_model_builder.AddExtraButton(
 +        base::BindRepeating(&BookmarkBubbleDelegate::OnEditButton,
@@ -5954,10 +6044,9 @@ index 6c809c86fbac2..648b69fb793ea 100644
 +            .SetLabel(l10n_util::GetStringUTF16(IDS_BOOKMARK_BUBBLE_OPTIONS))
 +            .AddAccelerator(ui::Accelerator(ui::VKEY_E, ui::EF_ALT_DOWN)));
 +  }
-+
+ 
    ui::ElementIdentifier initially_focused_field = kBookmarkNameFieldId;
    std::u16string secondary_button_label =
-       l10n_util::GetStringUTF16(IDS_BOOKMARK_BUBBLE_REMOVE_BOOKMARK);
 @@ -490,6 +503,9 @@ void BookmarkBubbleView::ShowBubble(
      bool is_price_tracked = shopping_service->IsSubscribedFromCache(
          commerce::BuildUserSubscriptionForClusterId(
@@ -6232,7 +6321,7 @@ index 79932141f03c9..804287d21ca79 100644
    std::unique_ptr<DownloadBubbleRowViewInfo> info_;
    std::unique_ptr<DownloadBubbleRowView> row_view_;
 diff --git a/chrome/browser/ui/views/extensions/extensions_toolbar_container.cc b/chrome/browser/ui/views/extensions/extensions_toolbar_container.cc
-index bd44a6dfc03ed..2388b5f0f2635 100644
+index bd44a6dfc03ed..56ddb75ef4714 100644
 --- a/chrome/browser/ui/views/extensions/extensions_toolbar_container.cc
 +++ b/chrome/browser/ui/views/extensions/extensions_toolbar_container.cc
 @@ -7,6 +7,7 @@
@@ -6260,7 +6349,7 @@ index bd44a6dfc03ed..2388b5f0f2635 100644
    widget->widget_delegate()->AsBubbleDialogDelegate()->SetAnchorView(
        anchor_view && anchor_view->GetVisible() ? anchor_view
                                                 : GetExtensionsButton());
-+
++											   
 +  // Fix the position of widgets. Without this fix, extension-installed-bubble
 +  // and extension-uninstall-dialog may be out of the window border on Linux.
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("hide-extensions-menu"))
@@ -6284,7 +6373,7 @@ index bd44a6dfc03ed..2388b5f0f2635 100644
    // no extensions.
    if (!HasAnyExtensions())
 diff --git a/chrome/browser/ui/views/frame/browser_desktop_window_tree_host_win.cc b/chrome/browser/ui/views/frame/browser_desktop_window_tree_host_win.cc
-index 625c6931ab746..a387da94cc498 100644
+index 625c6931ab746..feb7b817a9574 100644
 --- a/chrome/browser/ui/views/frame/browser_desktop_window_tree_host_win.cc
 +++ b/chrome/browser/ui/views/frame/browser_desktop_window_tree_host_win.cc
 @@ -367,12 +367,20 @@ bool BrowserDesktopWindowTreeHostWin::GetDwmFrameInsetsInPixels(
@@ -6316,9 +6405,9 @@ index 625c6931ab746..a387da94cc498 100644
  }
  
  views::FrameMode BrowserDesktopWindowTreeHostWin::GetFrameMode() const {
-+  if (browser_view_->GetIsWebAppType())
-+	  return views::FrameMode::CUSTOM_DRAWN;
-+
++  if (browser_view_->GetIsWebAppType()) 
++	  return views::FrameMode::CUSTOM_DRAWN; 
++  
    const views::FrameMode system_frame_mode =
        ShouldBrowserCustomDrawTitlebar(browser_view_)
            ? views::FrameMode::SYSTEM_DRAWN_NO_CONTROLS
@@ -6480,7 +6569,7 @@ index a3090da2ca8b4..3c13e0d5f5f39 100644
    }
    if (!download_shelf_) {
 diff --git a/chrome/browser/ui/views/frame/tab_strip_region_view.cc b/chrome/browser/ui/views/frame/tab_strip_region_view.cc
-index 1dd00552036cb..9e131e95d0982 100644
+index 1dd00552036cb..8bc61b0546494 100644
 --- a/chrome/browser/ui/views/frame/tab_strip_region_view.cc
 +++ b/chrome/browser/ui/views/frame/tab_strip_region_view.cc
 @@ -4,6 +4,7 @@
@@ -6495,7 +6584,7 @@ index 1dd00552036cb..9e131e95d0982 100644
      // Reserve some space for the frame to be grabbed by, even if the tabstrip
      // is full.
      // TODO(tbergquist): Define this relative to the NTB insets again.
-+	if (base::CommandLine::ForCurrentProcess()->HasSwitch("remove-grab-handle"))
++	if (base::CommandLine::ForCurrentProcess()->HasSwitch("remove-grab-handle")) 
 +		return gfx::Size(0, 0);
      return gfx::Size(42, 0);
    }
@@ -6557,7 +6646,7 @@ index b4b2f01a846a7..aacfb61847cd0 100644
      params.types_enabled.push_back(PageActionIconType::kTranslate);
      params.types_enabled.push_back(PageActionIconType::kZoom);
 diff --git a/chrome/browser/ui/views/location_bar/location_icon_view.cc b/chrome/browser/ui/views/location_bar/location_icon_view.cc
-index 1f3878e1879a6..6f4a84bde8cd0 100644
+index 1f3878e1879a6..480a9e5aece02 100644
 --- a/chrome/browser/ui/views/location_bar/location_icon_view.cc
 +++ b/chrome/browser/ui/views/location_bar/location_icon_view.cc
 @@ -21,6 +21,7 @@
@@ -6578,7 +6667,7 @@ index 1f3878e1879a6..6f4a84bde8cd0 100644
 +	  if (icon.IsVectorIcon() && icon.GetVectorIcon().vector_icon()->name != omnibox::kProductChromeRefreshIcon.name &&
 +       icon.GetVectorIcon().vector_icon()->name != omnibox::kProductIcon.name)
 +	    SetImageModel(icon);
-+	   else if (!icon.IsVectorIcon())
++	   else if (!icon.IsVectorIcon())	   
 +		SetImageModel(icon);
 +	  else
 +		SetImageModel(ui::ImageModel());
@@ -6587,7 +6676,7 @@ index 1f3878e1879a6..6f4a84bde8cd0 100644
  
  void LocationIconView::UpdateBackground() {
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_text_view.cc b/chrome/browser/ui/views/omnibox/omnibox_text_view.cc
-index dce591e1acdf1..9e1a1f5406431 100644
+index dce591e1acdf1..46bb212ad130d 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_text_view.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_text_view.cc
 @@ -28,6 +28,10 @@
@@ -6608,7 +6697,7 @@ index dce591e1acdf1..9e1a1f5406431 100644
 +
 +  #if BUILDFLAG(IS_WIN)
 +  if (!gfx::win::IsDirectWriteEnabled()) {
-+	  render_text_->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
++	  render_text_->SetVerticalAlignment(gfx::ALIGN_SPECIAL);	
 +  }
 +  #endif
    render_text_->SetDisplayRect(GetContentsBounds());
@@ -6700,7 +6789,7 @@ index 27e784aa16b31..ffdfb435fad62 100644
    std::unique_ptr<views::FlexLayout> layout =
        std::make_unique<views::FlexLayout>();
 diff --git a/chrome/browser/ui/views/tabs/new_tab_button.cc b/chrome/browser/ui/views/tabs/new_tab_button.cc
-index 9e77662e57e76..5074cb3dfadd5 100644
+index 9e77662e57e76..887244ca27f71 100644
 --- a/chrome/browser/ui/views/tabs/new_tab_button.cc
 +++ b/chrome/browser/ui/views/tabs/new_tab_button.cc
 @@ -7,6 +7,7 @@
@@ -6716,10 +6805,10 @@ index 9e77662e57e76..5074cb3dfadd5 100644
  void NewTabButton::AddLayerToRegion(ui::Layer* new_layer,
                                      views::LayerRegion region) {
 -  ink_drop_container_->AddLayerToRegion(new_layer, region);
-+	if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++	if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
 +			!base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default")) ||
-+			(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
-+			base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) {
++			(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++			base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) {    
 +	}
 +	else
 +		ink_drop_container_->AddLayerToRegion(new_layer, region);
@@ -6727,10 +6816,10 @@ index 9e77662e57e76..5074cb3dfadd5 100644
  
  void NewTabButton::RemoveLayerFromRegions(ui::Layer* old_layer) {
 -  ink_drop_container_->RemoveLayerFromRegions(old_layer);
-+	if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++	if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
 +		!base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default")) ||
-+		(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
-+		base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) {
++		(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++		base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) { 
 +	}
 +	else
 +		ink_drop_container_->RemoveLayerFromRegions(old_layer);
@@ -6752,10 +6841,10 @@ index 9e77662e57e76..5074cb3dfadd5 100644
 -  } else {
 -    path.addCircle(origin.x() + radius, origin.y() + radius, radius);
 -  }
-+  if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++  if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
 +	    base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default")) ||
-+		(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
-+	    !base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) {
++		(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++	    !base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) {  
 +	  if (extend_to_top) {
 +		path.moveTo(origin.x(), 0);
 +		const float diameter = radius * 2;
@@ -6776,14 +6865,23 @@ index 9e77662e57e76..5074cb3dfadd5 100644
    return path;
  }
  
+@@ -179,7 +202,7 @@ void NewTabButton::OnMouseReleased(const ui::MouseEvent& event) {
+     views::ImageButton::OnMouseReleased(event);
+     return;
+   }
+-
++  
+   // TODO(pkasting): If we handled right-clicks on the frame, and we made sure
+   // this event was not handled, it seems like things would Just Work.
+   gfx::Point point = event.location();
 @@ -209,7 +232,12 @@ void NewTabButton::NotifyClick(const ui::Event& event) {
  
  void NewTabButton::PaintButtonContents(gfx::Canvas* canvas) {
    PaintFill(canvas);
 -  PaintIcon(canvas);
-+  if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++  if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
 +	    base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default")) ||
-+		(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++		(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
 +	    !base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) {
 +	PaintIcon(canvas);
 +  }
@@ -6798,10 +6896,10 @@ index 9e77662e57e76..5074cb3dfadd5 100644
 -        GetWidget()->ShouldPaintAsActive()
 -            ? background_frame_active_color_id_
 -            : background_frame_inactive_color_id_));
-+	if(((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++	if(((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
 +			!base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default")) ||
-+			(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
-+			base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default"))) &&
++			(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++			base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default"))) && 
 +			GetState() == STATE_HOVERED) {
 +		flags.setColor(SkColorSetRGB(90, 90, 90));
 +	} else {
@@ -6813,9 +6911,9 @@ index 9e77662e57e76..5074cb3dfadd5 100644
 +    if (base::CommandLine::ForCurrentProcess()->HasSwitch("transparent-tabs"))
 +		flags.setAlphaf(0.7f);
      canvas->DrawPath(GetBorderPath(gfx::Point(), false), flags);
-+	if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++	if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
 +			!base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default")) ||
-+			(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++			(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
 +			base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default"))) {
 +	flags.setAlphaf(1.0f);
 +	flags.setColor(SkColorSetRGB(0, 0, 0));
@@ -6870,8 +6968,29 @@ index 7b2f9ecb903b2..1e2a746faf3a4 100644
      if (showing_close_button_) {
        available_width -= close_button_width;
      }
+diff --git a/chrome/browser/ui/views/tabs/tab_strip.cc b/chrome/browser/ui/views/tabs/tab_strip.cc
+index 87f6543bb0da0..a03097a466fc4 100644
+--- a/chrome/browser/ui/views/tabs/tab_strip.cc
++++ b/chrome/browser/ui/views/tabs/tab_strip.cc
+@@ -15,6 +15,7 @@
+ #include <vector>
+ 
+ #include "base/compiler_specific.h"
++#include "base/command_line.h"
+ #include "base/containers/adapters.h"
+ #include "base/containers/contains.h"
+ #include "base/containers/flat_map.h"
+@@ -1762,6 +1763,8 @@ void TabStrip::OnMouseEventInTab(views::View* source,
+ }
+ 
+ void TabStrip::UpdateHoverCard(Tab* tab, HoverCardUpdateType update_type) {
++  if (base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("tab-hover-cards") == "tooltip" ||
++      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("tab-hover-cards") == "none") return;
+   tab_container_->UpdateHoverCard(tab, update_type);
+ }
+ 
 diff --git a/chrome/browser/ui/views/tabs/tab_style_views.cc b/chrome/browser/ui/views/tabs/tab_style_views.cc
-index 33c62c24cc521..ccd2eebbf1f2c 100644
+index 33c62c24cc521..8a8aa36abadd9 100644
 --- a/chrome/browser/ui/views/tabs/tab_style_views.cc
 +++ b/chrome/browser/ui/views/tabs/tab_style_views.cc
 @@ -7,6 +7,7 @@
@@ -6924,23 +7043,8 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
 -      path.arcTo(content_corner_radius, content_corner_radius, 0,
 -                 SkPath::kSmall_ArcSize, SkPathDirection::kCW,
 -                 tab_left + content_corner_radius, tab_top);
--    }
- 
--    // Draw the top crossbar and top-right curve, if present.
--    if (extend_to_top) {
--      //   ┌━━━━━━━━━┑
--      //   │ Content │
--      // ┌─╯         ╰─┐
--      path.lineTo(tab_right, tab_top);
--    } else {
--      //   ╭━━━━━━━━━╗
--      //   │ Content │
--      // ┌─╯         ╰─┐
--      path.lineTo(tab_right - content_corner_radius, tab_top);
--      path.arcTo(content_corner_radius, content_corner_radius, 0,
--                 SkPath::kSmall_ArcSize, SkPathDirection::kCW, tab_right,
--                 tab_top + content_corner_radius);
-+    if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
++    
++    if (!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs)) {
 +		path.moveTo(left, extended_bottom);
 +		if (tab_left != left) {
 +		  // Draw the left edge of the extension.
@@ -7022,6 +7126,22 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
 +		path.lineTo(right, extended_bottom);
      }
 -
+-    // Draw the top crossbar and top-right curve, if present.
+-    if (extend_to_top) {
+-      //   ┌━━━━━━━━━┑
+-      //   │ Content │
+-      // ┌─╯         ╰─┐
+-      path.lineTo(tab_right, tab_top);
+-    } else {
+-      //   ╭━━━━━━━━━╗
+-      //   │ Content │
+-      // ┌─╯         ╰─┐
+-      path.lineTo(tab_right - content_corner_radius, tab_top);
+-      path.arcTo(content_corner_radius, content_corner_radius, 0,
+-                 SkPath::kSmall_ArcSize, SkPathDirection::kCW, tab_right,
+-                 tab_top + content_corner_radius);
+-    }
+-
 -    if (tab_right != right) {
 -      // Draw the descender and bottom-right corner.
 -      //   ╭─────────╮
@@ -7068,7 +7188,7 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
      if (path_type != TabStyle::PathType::kBorder) {
        path.close();
      }
-@@ -664,6 +684,9 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
+@@ -664,12 +684,16 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
  
    const Tab* adjacent_tab =
        tab_->controller()->GetAdjacentTab(tab_, leading ? -1 : 1);
@@ -7078,14 +7198,13 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
  
    const Tab* left_tab = leading ? adjacent_tab : tab_.get();
    const Tab* right_tab = leading ? tab_.get() : adjacent_tab;
-@@ -671,6 +694,7 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
+   const bool adjacent_to_header =
        right_tab && right_tab->group().has_value() &&
        (!left_tab || left_tab->group() != right_tab->group());
++  
  
-+
    // If the current tab is selected, default to hiding the separator. Only show
    // the separator if it's adjacent to other selected tabs.
-   if (tab_->IsSelected()) {
 @@ -936,8 +960,21 @@ void GM2TabStyleViews::PaintTabBackgroundFill(
      cc::PaintFlags flags;
      flags.setAntiAlias(true);
@@ -7095,9 +7214,9 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
 +		flags.setAlphaf(0.7f);
      canvas->DrawRect(gfx::ScaleToEnclosingRect(tab_->GetLocalBounds(), scale),
                       flags);
-+	if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++	if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
 +	    !base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default")) ||
-+		(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++		(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
 +	    base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default"))) {
 +	flags.setAlphaf(1.0f);
 +	flags.setColor(SkColorSetRGB(0, 0, 0));
@@ -7284,7 +7403,7 @@ index 15f2def437648..021f9f2b55471 100644
    // structure on the DataTransferManager, excluding it from things
    // used by RoGetActivationFactory like GetIids(). Because of this,
 diff --git a/chrome/browser/win/titlebar_config.cc b/chrome/browser/win/titlebar_config.cc
-index f088a7071b1e0..3e829274cd26b 100644
+index f088a7071b1e0..94ee2d3c44b75 100644
 --- a/chrome/browser/win/titlebar_config.cc
 +++ b/chrome/browser/win/titlebar_config.cc
 @@ -4,28 +4,57 @@
@@ -7309,10 +7428,10 @@ index f088a7071b1e0..3e829274cd26b 100644
 +bool ShouldCustomDrawSystemTitlebar() {
 +  // Some extra code added here because those with pre-win8 and no DWM will have to fallback on the custom titlebar.
 +  BOOL result = FALSE;
-+
++	
 +  typedef HRESULT(WINAPI* DwmIsCompositionEnabledFunc)(BOOL* enabled);
 +  DwmIsCompositionEnabledFunc func_ = nullptr;
-+
++	
 +  HMODULE dwmapi_library_ = LoadLibraryW(L"dwmapi.dll");
 +  if (dwmapi_library_) {
 +    func_ = reinterpret_cast<DwmIsCompositionEnabledFunc>(
@@ -7320,7 +7439,7 @@ index f088a7071b1e0..3e829274cd26b 100644
 +  }
 +  else
 +	  return true;
-+
++  
 +  if (func_) {
 +	  func_(&result);
 +  }
@@ -7372,14 +7491,14 @@ index f088a7071b1e0..3e829274cd26b 100644
 +  return base::win::GetVersion() >= base::win::Version::WIN11;
  }
 diff --git a/chrome/browser/win/titlebar_config.h b/chrome/browser/win/titlebar_config.h
-index 48f413792d5aa..9a828bd5a7773 100644
+index 48f413792d5aa..596d9ad041c21 100644
 --- a/chrome/browser/win/titlebar_config.h
 +++ b/chrome/browser/win/titlebar_config.h
 @@ -10,10 +10,18 @@
  class BrowserView;
  
  BASE_DECLARE_FEATURE(kWindows11MicaTitlebar);
-+BASE_DECLARE_FEATURE(kDisableAeroTheme);
++BASE_DECLARE_FEATURE(kForceXpTheme);
  
  // Returns whether we should custom draw the titlebar for a browser window.
  bool ShouldBrowserCustomDrawTitlebar(BrowserView* browser_view);
@@ -7618,7 +7737,7 @@ index 9070b9d93a6f0..687042ec330c7 100644
  // Import Address Table hooking support
  //------------------------------------------------------------------------------
 diff --git a/chrome/common/chrome_switches.cc b/chrome/common/chrome_switches.cc
-index 356739e4e088a..bc7dce68e4d77 100644
+index 356739e4e088a..30895836c3b8a 100644
 --- a/chrome/common/chrome_switches.cc
 +++ b/chrome/common/chrome_switches.cc
 @@ -779,7 +779,15 @@ const char kRelauncherProcessDMGDevice[] = "dmg-device";
@@ -7627,7 +7746,7 @@ index 356739e4e088a..bc7dce68e4d77 100644
  
 +const char kDisableDownloadUpload[] = "disable-download-upload";
 +
-+const char kUngoogledThorium[] = "ungoogled-thorium";
++const char kUngoogledSupermium[] = "ungoogled-supermium";
 +
  #if BUILDFLAG(IS_WIN)
 +// Disables custom-drawing the window titlebar on Windows 10.
@@ -7638,7 +7757,7 @@ index 356739e4e088a..bc7dce68e4d77 100644
  // they use a custom-user-data-dir which disables this.
  const char kEnableProfileShortcutManager[] = "enable-profile-shortcut-manager";
 diff --git a/chrome/common/chrome_switches.h b/chrome/common/chrome_switches.h
-index 96ce2223297a2..e3d8006e1bf5d 100644
+index 96ce2223297a2..02e9da6efd1ea 100644
 --- a/chrome/common/chrome_switches.h
 +++ b/chrome/common/chrome_switches.h
 @@ -246,7 +246,11 @@ extern const char kRelauncherProcessDMGDevice[];
@@ -7646,7 +7765,7 @@ index 96ce2223297a2..e3d8006e1bf5d 100644
  #endif  // BUILDFLAG(IS_MAC)
  
 +extern const char kDisableDownloadUpload[];
-+extern const char kUngoogledThorium[];
++extern const char kUngoogledSupermium[];
 +
  #if BUILDFLAG(IS_WIN)
 +extern const char kDisableWindows10CustomTitlebar[];
@@ -9223,7 +9342,7 @@ index 0000000000000..deb0258397bf1
 +  RunTest("side_panel/bookmarks/bookmarks_list_focus_test.js", "mocha.run()");
 +}
 diff --git a/chrome/updater/net/network_fetcher_win.cc b/chrome/updater/net/network_fetcher_win.cc
-index 102ff03867ebc..dc6c1d31f037a 100644
+index 102ff03867ebc..b69baa995ab8c 100644
 --- a/chrome/updater/net/network_fetcher_win.cc
 +++ b/chrome/updater/net/network_fetcher_win.cc
 @@ -21,10 +21,12 @@
@@ -9239,10 +9358,11 @@ index 102ff03867ebc..dc6c1d31f037a 100644
  #include "chrome/updater/win/user_info.h"
  #include "components/update_client/network.h"
  #include "components/winhttp/proxy_configuration.h"
-@@ -34,6 +36,56 @@
+@@ -33,6 +35,56 @@
+ 
  namespace updater {
  namespace {
- 
++	
 +	std::wstring FromCharOrEmpty(const wchar_t* str) {
 +  return str ? std::wstring(str) : std::wstring();
 +}
@@ -9292,10 +9412,9 @@ index 102ff03867ebc..dc6c1d31f037a 100644
 +}
 +
 +
-+
+ 
  // Factory method for the proxy configuration strategy.
  scoped_refptr<winhttp::ProxyConfiguration> GetProxyConfiguration(
-     std::optional<PolicyServiceProxyConfiguration>
 @@ -50,7 +102,32 @@ scoped_refptr<winhttp::ProxyConfiguration> GetProxyConfiguration(
  
    VLOG(1) << "Using the system configuration for proxy.";
@@ -9448,7 +9567,7 @@ index 6609908af5fcc..1535067d72f08 100644
  }
  
 diff --git a/components/download/internal/common/base_file_win.cc b/components/download/internal/common/base_file_win.cc
-index 1db03ae8852aa..4de26908df8bc 100644
+index 1db03ae8852aa..0f6c659d5cd14 100644
 --- a/components/download/internal/common/base_file_win.cc
 +++ b/components/download/internal/common/base_file_win.cc
 @@ -14,6 +14,7 @@
@@ -9672,11 +9791,12 @@ index 1db03ae8852aa..4de26908df8bc 100644
  class FileOperationProgressSink
      : public Microsoft::WRL::RuntimeClass<
            Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>,
-@@ -244,6 +451,35 @@ DownloadInterruptReason BaseFile::MoveFileAndAdjustPermissions(
+@@ -243,6 +450,35 @@ DownloadInterruptReason BaseFile::MoveFileAndAdjustPermissions(
+     const base::FilePath& new_path) {
    base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                  base::BlockingType::MAY_BLOCK);
- 
-+  if(base::win::GetVersion() < base::win::Version::VISTA) {
++												
++  if(base::win::GetVersion() < base::win::Version::VISTA) {	  
 +	  // The parameters to SHFileOperation must be terminated with 2 NULL chars.
 +	  base::FilePath::StringType source = full_path_.value();
 +	  base::FilePath::StringType target = new_path.value();
@@ -9700,16 +9820,15 @@ index 1db03ae8852aa..4de26908df8bc 100644
 +		interrupt_reason = MapShFileOperationCodes(result);
 +
 +	  if (interrupt_reason != DOWNLOAD_INTERRUPT_REASON_NONE)
-+		return LogInterruptReason("SHFileOperation", result, interrupt_reason);
++		return LogInterruptReason("SHFileOperation", result, interrupt_reason);	
 +
-+	  return interrupt_reason;
++	  return interrupt_reason;	
 +  }
-+
+ 
    base::win::AssertComInitialized();
    Microsoft::WRL::ComPtr<IShellItem> original_path;
-   HRESULT hr = SHCreateItemFromParsingName(full_path_.value().c_str(), nullptr,
 diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
-index 44cf15e1b4703..5dfe3eaee5ba0 100644
+index 44cf15e1b4703..44b13f2186182 100644
 --- a/components/embedder_support/user_agent_utils.cc
 +++ b/components/embedder_support/user_agent_utils.cc
 @@ -88,13 +88,45 @@ int GetPreRS5UniversalApiContractVersion() {
@@ -9746,10 +9865,10 @@ index 44cf15e1b4703..5dfe3eaee5ba0 100644
 +	}
 +	if (version == base::win::Version::XP) {
 +		return 51;
-+	}
++	}	
 +	if (version == base::win::Version::PRE_XP) {
 +		return 50;
-+	}
++	}	
 +	return 0;
 +}
 +
@@ -9770,16 +9889,16 @@ index 44cf15e1b4703..5dfe3eaee5ba0 100644
            base::win::RegKey version_key(
                HKEY_LOCAL_MACHINE, kWindowsRuntimeWellKnownContractsRegKeyName,
 diff --git a/components/flags_ui/flags_state.cc b/components/flags_ui/flags_state.cc
-index 35dea65d76a69..2ab8de1b9780e 100644
+index 35dea65d76a69..c8b42e66c48df 100644
 --- a/components/flags_ui/flags_state.cc
 +++ b/components/flags_ui/flags_state.cc
 @@ -221,6 +221,10 @@ std::string GetCombinedOriginListValue(const FlagsStorage& flags_storage,
        command_line.GetSwitchValueASCII(command_line_switch);
    const std::string new_value =
        flags_storage.GetOriginListFlag(internal_entry_name);
-+  if (command_line_switch == "custom-ntp")
++  if (command_line_switch == "custom-ntp") 
 +	  return existing_value.empty() ? new_value : existing_value;
-+  if (command_line_switch == "http-accept-header")
++  if (command_line_switch == "http-accept-header") 
 +	  return existing_value.empty() ? new_value : existing_value;
    return CombineAndSanitizeOriginLists(existing_value, new_value);
  }
@@ -9881,7 +10000,7 @@ index 4b2270d10a86d..e97bde5ddf5d1 100644
        *bios_type = Motherboard::BiosType::kLegacy;
      } else if (firmware_type == FirmwareTypeUefi) {
 diff --git a/components/omnibox/browser/autocomplete_controller.cc b/components/omnibox/browser/autocomplete_controller.cc
-index bb091060cf93e..73210ab0662f4 100644
+index bb091060cf93e..e512ad38c4f50 100644
 --- a/components/omnibox/browser/autocomplete_controller.cc
 +++ b/components/omnibox/browser/autocomplete_controller.cc
 @@ -19,6 +19,7 @@
@@ -9892,10 +10011,12 @@ index bb091060cf93e..73210ab0662f4 100644
  #include "base/containers/contains.h"
  #include "base/feature_list.h"
  #include "base/format_macros.h"
-@@ -394,6 +395,15 @@ AutocompleteController::AutocompleteController(
+@@ -393,7 +394,16 @@ AutocompleteController::AutocompleteController(
+       steady_state_omnibox_position_(
            metrics::OmniboxEventProto::UNKNOWN_POSITION) {
    provider_types &= ~OmniboxFieldTrial::GetDisabledProviderTypes();
- 
+-
++  
 +if (base::CommandLine::ForCurrentProcess()->HasSwitch("omnibox-autocomplete-filtering")) {
 +    const std::string flag_value = base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("omnibox-autocomplete-filtering");
 +    provider_types &= AutocompleteProvider::TYPE_KEYWORD | AutocompleteProvider::TYPE_SEARCH |
@@ -9910,13 +10031,13 @@ index bb091060cf93e..73210ab0662f4 100644
    // for the other sync providers to complete.
 diff --git a/components/omnibox/browser/autocomplete_controller.cc.rej b/components/omnibox/browser/autocomplete_controller.cc.rej
 new file mode 100644
-index 0000000000000..8bbf0d4a1cf13
+index 0000000000000..e9812a81d706e
 --- /dev/null
 +++ b/components/omnibox/browser/autocomplete_controller.cc.rej
 @@ -0,0 +1,9 @@
 +diff a/components/omnibox/browser/autocomplete_controller.cc b/components/omnibox/browser/autocomplete_controller.cc	(rejected hunks)
 +@@ -19,6 +19,7 @@
-+
++ 
 + #include "base/barrier_callback.h"
 + #include "base/check_op.h"
 ++#include "base/command_line.h"
@@ -9958,7 +10079,7 @@ index 9ef95f00eaacc..11378f7e96981 100644
      return;
  
 diff --git a/components/os_crypt/async/browser/dpapi_key_provider.cc b/components/os_crypt/async/browser/dpapi_key_provider.cc
-index 98e208939a55a..c5717354dcd1e 100644
+index 98e208939a55a..f3796cfceeaca 100644
 --- a/components/os_crypt/async/browser/dpapi_key_provider.cc
 +++ b/components/os_crypt/async/browser/dpapi_key_provider.cc
 @@ -9,6 +9,7 @@
@@ -9973,7 +10094,7 @@ index 98e208939a55a..c5717354dcd1e 100644
  
  std::optional<std::vector<uint8_t>> DecryptKeyWithDPAPI(
      base::span<const uint8_t> ciphertext) {
-+
++		
 +   if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-encryption")) {
 +        return std::vector<uint8_t>(ciphertext.data(),
 +                              ciphertext.data() + ciphertext.size());
@@ -10053,7 +10174,7 @@ index c9cd78f4fdb7e..d566ecd9b8b13 100644
  // server-side.
  BASE_DECLARE_FEATURE(kDownloadTailoredWarnings);
 diff --git a/components/search_engines/template_url_service.cc b/components/search_engines/template_url_service.cc
-index 48b351d2e56ad..0bd04aa016505 100644
+index 48b351d2e56ad..dee5561253b80 100644
 --- a/components/search_engines/template_url_service.cc
 +++ b/components/search_engines/template_url_service.cc
 @@ -15,6 +15,7 @@
@@ -10101,7 +10222,7 @@ index 48b351d2e56ad..0bd04aa016505 100644
  
  void TemplateURLService::Init() {
 +  should_autocollect_ = ShouldAutocollect();
-+
++  
    if (client_)
      client_->SetOwner(this);
  
@@ -10115,18 +10236,18 @@ index 48b351d2e56ad..0bd04aa016505 100644
    if (!urls)
      return true;
 diff --git a/components/search_engines/template_url_service.h b/components/search_engines/template_url_service.h
-index e2b43ef5d67bb..52280dcd3882b 100644
+index e2b43ef5d67bb..cd0ab7868a4d3 100644
 --- a/components/search_engines/template_url_service.h
 +++ b/components/search_engines/template_url_service.h
-@@ -878,6 +878,8 @@ class TemplateURLService final : public WebDataServiceConsumer,
+@@ -877,6 +877,8 @@ class TemplateURLService final : public WebDataServiceConsumer,
+ 
    // ---------- Browser state related members ---------------------------------
    raw_ptr<PrefService> prefs_ = nullptr;
- 
++  
 +  bool should_autocollect_; // Whether search engines should be auto-collected
-+
+ 
    raw_ptr<search_engines::SearchEngineChoiceService>
        search_engine_choice_service_ = nullptr;
- 
 diff --git a/components/system_media_controls/win/system_media_controls_win.cc b/components/system_media_controls/win/system_media_controls_win.cc
 index c932ad09c40ac..a855edb420af1 100644
 --- a/components/system_media_controls/win/system_media_controls_win.cc
@@ -10281,7 +10402,7 @@ index 516c7f65097f1..000815240587e 100644
      DisableGpuCompositing(nullptr);
    }
 diff --git a/content/browser/font_access/font_enumeration_data_source_win.cc b/content/browser/font_access/font_enumeration_data_source_win.cc
-index 094283551322c..01dc697c6178d 100644
+index 094283551322c..c87aca46d88b9 100644
 --- a/content/browser/font_access/font_enumeration_data_source_win.cc
 +++ b/content/browser/font_access/font_enumeration_data_source_win.cc
 @@ -4,6 +4,7 @@
@@ -10299,7 +10420,7 @@ index 094283551322c..01dc697c6178d 100644
 +int CALLBACK EnumFontFamProc(ENUMLOGFONTA* lpelf,
 +                             NEWTEXTMETRICA* lpntm,
 +                             DWORD FontType,
-+                             LPARAM lParam)
++                             LPARAM lParam) 
 +{
 +  blink::FontEnumerationTable* font_enumeration_table =
 +      (blink::FontEnumerationTable*)lParam;
@@ -11463,7 +11584,7 @@ index 0000000000000..cee91dd4e059b
 +#endif  // CONTENT_BROWSER_RENDERER_HOST_DWRITE_FONT_LOOKUP_TABLE_BUILDER_WIN_H_
 \ No newline at end of file
 diff --git a/content/browser/renderer_host/dwrite_font_proxy_impl_win.cc b/content/browser/renderer_host/dwrite_font_proxy_impl_win.cc
-index 257f8480a4c49..955f34a4b2973 100644
+index 257f8480a4c49..5a7385049f5cc 100644
 --- a/content/browser/renderer_host/dwrite_font_proxy_impl_win.cc
 +++ b/content/browser/renderer_host/dwrite_font_proxy_impl_win.cc
 @@ -36,6 +36,9 @@
@@ -11600,13 +11721,13 @@ index 257f8480a4c49..955f34a4b2973 100644
 +
 +  if(factory3_  == nullptr) {
 +  hr = factory_->GetSystemFontCollection(&collection_);
-   DCHECK(SUCCEEDED(hr));
++  DCHECK(SUCCEEDED(hr));
 +  }
 +  else {
 +  hr = GetLocalFontCollection(factory3_, &collection_);
-+  DCHECK(SUCCEEDED(hr));
+   DCHECK(SUCCEEDED(hr));
 +  }
-+
++  
  
    if (!collection_) {
      return;
@@ -11689,10 +11810,10 @@ index 5f8c1b00295ce..152f73280e000 100644
  
  }  // namespace content
 diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content/browser/renderer_host/render_process_host_impl.cc
-index 545c860afff13..2694bbb816b17 100644
+index b656054d342f5..1fe6db41ba459 100644
 --- a/content/browser/renderer_host/render_process_host_impl.cc
 +++ b/content/browser/renderer_host/render_process_host_impl.cc
-@@ -3578,7 +3578,9 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+@@ -3569,7 +3569,9 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
      switches::kRendererWaitForJavaDebugger,
  #endif
  #if BUILDFLAG(IS_WIN)
@@ -11703,7 +11824,7 @@ index 545c860afff13..2694bbb816b17 100644
      switches::kRaiseTimerFrequency,
  #endif
 diff --git a/content/child/dwrite_font_proxy/dwrite_font_proxy_init_impl_win.cc b/content/child/dwrite_font_proxy/dwrite_font_proxy_init_impl_win.cc
-index 896d975020696..f6857fa9353f2 100644
+index 896d975020696..fac7ce56ad2d6 100644
 --- a/content/child/dwrite_font_proxy/dwrite_font_proxy_init_impl_win.cc
 +++ b/content/child/dwrite_font_proxy/dwrite_font_proxy_init_impl_win.cc
 @@ -41,9 +41,19 @@ base::RepeatingCallback<mojo::PendingRemote<blink::mojom::DWriteFontProxy>(
@@ -11713,7 +11834,7 @@ index 896d975020696..f6857fa9353f2 100644
 +  using DWriteCreateFactoryProc = decltype(DWriteCreateFactory)*;
 +
 +  HMODULE dwrite_dll = GetModuleHandleW(L"dwrite.dll");
-+
++  
    PatchServiceManagerCalls();
  
 -  CHECK(SUCCEEDED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_ISOLATED,
@@ -11727,17 +11848,19 @@ index 896d975020696..f6857fa9353f2 100644
                                        __uuidof(IDWriteFactory),
                                        reinterpret_cast<IUnknown**>(factory))));
  }
-@@ -53,6 +63,10 @@ void CreateDirectWriteFactory(IDWriteFactory** factory) {
+@@ -53,7 +63,11 @@ void CreateDirectWriteFactory(IDWriteFactory** factory) {
  void InitializeDWriteFontProxy() {
    TRACE_EVENT0("dwrite,fonts", "InitializeDWriteFontProxy");
    mswr::ComPtr<IDWriteFactory> factory;
+-
 +  // Halt the init process if the DLL is not there.
 +  HMODULE dwrite_dll = LoadLibraryW(L"dwrite.dll");
 +  if (!dwrite_dll)
 +    return;
- 
++ 
    CreateDirectWriteFactory(&factory);
  
+   if (!g_font_collection) {
 @@ -79,7 +93,7 @@ void InitializeDWriteFontProxy() {
  
    skia::OverrideDefaultSkFontMgr(std::move(skia_font_manager));
@@ -12330,7 +12453,7 @@ index ecbcf12493f77..c3279cea45f70 100644
    bool IsWebRtcHWDecodingEnabled() override;
    bool IsWebRtcSrtpEncryptedHeadersEnabled() override;
 diff --git a/content/renderer/renderer_main.cc b/content/renderer/renderer_main.cc
-index 4953e20861803..c7521519c31aa 100644
+index 4953e20861803..60f58ecd6c376 100644
 --- a/content/renderer/renderer_main.cc
 +++ b/content/renderer/renderer_main.cc
 @@ -94,6 +94,11 @@
@@ -12354,7 +12477,7 @@ index 4953e20861803..c7521519c31aa 100644
 +    bool need_sandbox = true;
 +    if(base::win::GetVersion() >= base::win::Version::WIN8) {
 +	// Windows 8+ specific limitations required renderer sandbox disabled for GDI
-+    need_sandbox = gfx::win::ShouldUseDirectWrite() &&
++    need_sandbox = gfx::win::ShouldUseDirectWrite() && 
          !command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
 +	}
 +	else
@@ -12366,7 +12489,7 @@ index 4953e20861803..c7521519c31aa 100644
      if (!need_sandbox) {
        // The post-sandbox actions still need to happen at some point.
 diff --git a/content/renderer/renderer_main_platform_delegate_win.cc b/content/renderer/renderer_main_platform_delegate_win.cc
-index e7b8caa9ab118..45b9f2823affb 100644
+index e7b8caa9ab118..430b6371d4f00 100644
 --- a/content/renderer/renderer_main_platform_delegate_win.cc
 +++ b/content/renderer/renderer_main_platform_delegate_win.cc
 @@ -27,6 +27,18 @@
@@ -12395,9 +12518,9 @@ index e7b8caa9ab118..45b9f2823affb 100644
 -  bool no_sandbox =
 -      command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
 +  bool no_sandbox =command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
-+
++	  
 +  bool use_direct_write = gfx::win::ShouldUseDirectWrite();
-+
++  
 +  if (use_direct_write) {
 +      InitializeDWriteFontProxy();
 +    } else {
@@ -12408,7 +12531,7 @@ index e7b8caa9ab118..45b9f2823affb 100644
    if (!no_sandbox) {
      // ICU DateFormat class (used in base/time_format.cc) needs to get the
 diff --git a/content/shell/browser/shell_content_browser_client.cc b/content/shell/browser/shell_content_browser_client.cc
-index 3e0b86f6834c5..bcbfe32cdb23c 100644
+index 3e0b86f6834c5..3762ae6ac5267 100644
 --- a/content/shell/browser/shell_content_browser_client.cc
 +++ b/content/shell/browser/shell_content_browser_client.cc
 @@ -14,6 +14,7 @@
@@ -12439,6 +12562,15 @@ index 3e0b86f6834c5..bcbfe32cdb23c 100644
  std::unique_ptr<WebContentsViewDelegate>
  ShellContentBrowserClient::GetWebContentsViewDelegate(
      WebContents* web_contents) {
+@@ -542,7 +547,7 @@ void ShellContentBrowserClient::OverrideWebkitPrefs(
+     WebContents* web_contents,
+     blink::web_pref::WebPreferences* prefs) {
+   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+-          switches::kForceDarkMode)) {
++          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag)) {
+     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kDark;
+   } else {
+     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kLight;
 diff --git a/content/shell/browser/shell_content_browser_client.h b/content/shell/browser/shell_content_browser_client.h
 index 83253e9feb3eb..fc91dcc11ae5f 100644
 --- a/content/shell/browser/shell_content_browser_client.h
@@ -12484,19 +12616,40 @@ index e5c7230ffcaad..3906ff44e64a6 100644
  
   private:
    std::vector<FakeFont> fonts_;
+diff --git a/content/web_test/browser/web_test_control_host.cc b/content/web_test/browser/web_test_control_host.cc
+index 5b66607001fd5..e0e6e87d9affa 100644
+--- a/content/web_test/browser/web_test_control_host.cc
++++ b/content/web_test/browser/web_test_control_host.cc
+@@ -19,6 +19,7 @@
+ #include "base/barrier_closure.h"
+ #include "base/base64.h"
+ #include "base/command_line.h"
++#include "base/features.h"
+ #include "base/containers/contains.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback.h"
+@@ -788,7 +789,7 @@ void WebTestControlHost::OverrideWebkitPrefs(
+     ApplyWebTestDefaultPreferences(prefs);
+   }
+   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+-          switches::kForceDarkMode)) {
++          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag)) {
+     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kDark;
+   } else {
+     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kLight;
 diff --git a/crypto/unexportable_key_win.cc b/crypto/unexportable_key_win.cc
-index 7e39e10de7be3..a3ad47adbfc54 100644
+index 7e39e10de7be3..069c6928476a6 100644
 --- a/crypto/unexportable_key_win.cc
 +++ b/crypto/unexportable_key_win.cc
 @@ -367,6 +367,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
      ScopedNCryptProvider provider;
      {
        SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
++	  
 +	  if(!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return absl::nullopt;
 +	  }
-+
++	  
        if (FAILED(NCryptOpenStorageProvider(
                ScopedNCryptProvider::Receiver(provider).get(),
                MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
@@ -12504,11 +12657,11 @@ index 7e39e10de7be3..a3ad47adbfc54 100644
      ScopedNCryptProvider provider;
      {
        SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
++	  
 +	  if(!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return nullptr;
 +	  }
-+
++	  
        if (FAILED(NCryptOpenStorageProvider(
                ScopedNCryptProvider::Receiver(provider).get(),
                MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
@@ -12520,7 +12673,7 @@ index 7e39e10de7be3..a3ad47adbfc54 100644
 +	  if(!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return absl::nullopt;
 +	  }
-+
++	  
        SECURITY_STATUS status = NCryptOpenStorageProvider(
            ScopedNCryptProvider::Receiver(provider).get(),
            MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
@@ -12528,11 +12681,11 @@ index 7e39e10de7be3..a3ad47adbfc54 100644
      ScopedNCryptProvider provider;
      {
        SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
++	  
 +	  if(!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return nullptr;
 +	  }
-+
++	  
        SECURITY_STATUS status = NCryptOpenStorageProvider(
            ScopedNCryptProvider::Receiver(provider).get(),
            MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
@@ -12605,12 +12758,12 @@ index a5a27848749a2..450ad10130f76 100644
  
    using Factory =
 diff --git a/docs/README.md b/docs/README.md
-index 6eadc1f036521..bc969fe8d1478 100644
+index 6eadc1f036521..8b3a5b64761c0 100644
 --- a/docs/README.md
 +++ b/docs/README.md
 @@ -1,20 +1,33 @@
 -# Chromium docs
-+# Supermium + Thorium - an up-to-date, open-source browser for legacy Windows users
++# Supermium - an up-to-date, open-source browser for legacy Windows users
  
 -This directory contains [chromium project](https://www.chromium.org/Home/)
 -documentation in [Gitiles-flavored Markdown]. It is automatically
@@ -12852,7 +13005,7 @@ index 185790836e1b8..c20ada15e5e8f 100644
    }();
  
 diff --git a/media/audio/win/audio_manager_win.cc b/media/audio/win/audio_manager_win.cc
-index b160875beda79..2e27bcf22d3e5 100644
+index b160875beda79..8e340c1065af6 100644
 --- a/media/audio/win/audio_manager_win.cc
 +++ b/media/audio/win/audio_manager_win.cc
 @@ -28,6 +28,7 @@
@@ -13003,7 +13156,7 @@ index b160875beda79..2e27bcf22d3e5 100644
    return CoreAudioUtil::GetDefaultOutputDeviceID();
  }
  
-@@ -335,79 +379,91 @@ AudioParameters AudioManagerWin::GetPreferredOutputStreamParameters(
+@@ -335,78 +379,90 @@ AudioParameters AudioManagerWin::GetPreferredOutputStreamParameters(
    int min_buffer_size = 0;
    int max_buffer_size = 0;
  
@@ -13032,6 +13185,50 @@ index b160875beda79..2e27bcf22d3e5 100644
 -      // GetInputStreamParameters.
 -      DLOG(ERROR) << "GetPreferredAudioParameters failed: " << std::hex << hr;
 -      return AudioParameters();
+-    }
+-    DVLOG(1) << params.AsHumanReadableString();
+-    DCHECK(params.IsValid());
+-
+-    channel_layout_config = params.channel_layout_config();
+-    buffer_size = params.frames_per_buffer();
+-    sample_rate = params.sample_rate();
+-    effects = params.effects();
+-
+-    AudioParameters::HardwareCapabilities hardware_capabilities =
+-        params.hardware_capabilities().value_or(
+-            AudioParameters::HardwareCapabilities());
+-    min_buffer_size = hardware_capabilities.min_frames_per_buffer;
+-    max_buffer_size = hardware_capabilities.max_frames_per_buffer;
+-  }
+-
+-  if (input_params.IsValid()) {
+-    // If the user has enabled checking supported channel layouts or we don't
+-    // have a valid channel layout yet, try to use the input layout.  See bugs
+-    // http://crbug.com/259165 and http://crbug.com/311906 for more details.
+-    if (cmd_line->HasSwitch(switches::kTrySupportedChannelLayouts) ||
+-        channel_layout_config.channel_layout() == CHANNEL_LAYOUT_UNSUPPORTED) {
+-      // Check if it is possible to open up at the specified input channel
+-      // layout but avoid checking if the specified layout is the same as the
+-      // hardware (preferred) layout. We do this extra check to avoid the
+-      // CoreAudioUtil::IsChannelLayoutSupported() overhead in most cases.
+-      if (input_params.channel_layout() !=
+-          channel_layout_config.channel_layout()) {
+-        // TODO(henrika): Internally, IsChannelLayoutSupported does many of the
+-        // operations that have already been done such as opening up a client
+-        // and fetching the WAVEFORMATPCMEX format.  Ideally we should only do
+-        // that once.  Then here, we can check the layout from the data we
+-        // already hold.
+-        if (CoreAudioUtil::IsChannelLayoutSupported(
+-                output_device_id, eRender, eConsole,
+-                input_params.channel_layout())) {
+-          // Open up using the same channel layout as the source if it is
+-          // supported by the hardware.
+-          channel_layout_config = input_params.channel_layout_config();
+-          DVLOG(1) << "Hardware channel layout is not used; using same layout"
+-                   << " as the source instead ("
+-                   << channel_layout_config.channel_layout() << ")";
+-        }
+-      }
 +  if (CoreAudioUtil::IsSupported()) {
 +	  if (cmd_line->HasSwitch(switches::kEnableExclusiveAudio)) {
 +		// TODO(rtoy): tune these values for best possible WebAudio
@@ -13104,50 +13301,9 @@ index b160875beda79..2e27bcf22d3e5 100644
 +		  }
 +		}
      }
--    DVLOG(1) << params.AsHumanReadableString();
--    DCHECK(params.IsValid());
 -
--    channel_layout_config = params.channel_layout_config();
--    buffer_size = params.frames_per_buffer();
--    sample_rate = params.sample_rate();
--    effects = params.effects();
--
--    AudioParameters::HardwareCapabilities hardware_capabilities =
--        params.hardware_capabilities().value_or(
--            AudioParameters::HardwareCapabilities());
--    min_buffer_size = hardware_capabilities.min_frames_per_buffer;
--    max_buffer_size = hardware_capabilities.max_frames_per_buffer;
--  }
-+    effects |= input_params.effects();
- 
--  if (input_params.IsValid()) {
--    // If the user has enabled checking supported channel layouts or we don't
--    // have a valid channel layout yet, try to use the input layout.  See bugs
--    // http://crbug.com/259165 and http://crbug.com/311906 for more details.
--    if (cmd_line->HasSwitch(switches::kTrySupportedChannelLayouts) ||
--        channel_layout_config.channel_layout() == CHANNEL_LAYOUT_UNSUPPORTED) {
--      // Check if it is possible to open up at the specified input channel
--      // layout but avoid checking if the specified layout is the same as the
--      // hardware (preferred) layout. We do this extra check to avoid the
--      // CoreAudioUtil::IsChannelLayoutSupported() overhead in most cases.
--      if (input_params.channel_layout() !=
--          channel_layout_config.channel_layout()) {
--        // TODO(henrika): Internally, IsChannelLayoutSupported does many of the
--        // operations that have already been done such as opening up a client
--        // and fetching the WAVEFORMATPCMEX format.  Ideally we should only do
--        // that once.  Then here, we can check the layout from the data we
--        // already hold.
--        if (CoreAudioUtil::IsChannelLayoutSupported(
--                output_device_id, eRender, eConsole,
--                input_params.channel_layout())) {
--          // Open up using the same channel layout as the source if it is
--          // supported by the hardware.
--          channel_layout_config = input_params.channel_layout_config();
--          DVLOG(1) << "Hardware channel layout is not used; using same layout"
--                   << " as the source instead ("
--                   << channel_layout_config.channel_layout() << ")";
--        }
--      }
+     effects |= input_params.effects();
++	
 +    if (!CoreAudioUtil::IsSupported()) {
 +      // If WASAPI isn't supported we'll fallback to WaveOut, which will take
 +      // care of resampling and bits per sample changes.  By setting these
@@ -13157,13 +13313,10 @@ index b160875beda79..2e27bcf22d3e5 100644
 +      buffer_size = input_params.frames_per_buffer();
 +      sample_rate = input_params.sample_rate();
 +	  channel_layout_config = input_params.channel_layout_config();
-     }
++    }
  
--    effects |= input_params.effects();
--
      // Allow non-default buffer sizes if we have a valid min and max.
      if (min_buffer_size > 0 && max_buffer_size > 0) {
-       buffer_size =
 @@ -438,6 +494,23 @@ AudioParameters AudioManagerWin::GetPreferredOutputStreamParameters(
    return params;
  }
@@ -13189,13 +13342,14 @@ index b160875beda79..2e27bcf22d3e5 100644
  std::unique_ptr<AudioManager> CreateAudioManager(
      std::unique_ptr<AudioThread> audio_thread,
 diff --git a/media/audio/win/audio_manager_win.h b/media/audio/win/audio_manager_win.h
-index 0a53e62efa795..5417b2902a95f 100644
+index 0a53e62efa795..f0370bf026081 100644
 --- a/media/audio/win/audio_manager_win.h
 +++ b/media/audio/win/audio_manager_win.h
-@@ -74,6 +74,15 @@ class MEDIA_EXPORT AudioManagerWin : public AudioManagerBase {
+@@ -73,6 +73,15 @@ class MEDIA_EXPORT AudioManagerWin : public AudioManagerBase {
+  private:
    // Allow unit test to modify the utilized enumeration API.
    friend class AudioManagerTest;
- 
++  
 +  // Returns a PCMWaveInAudioInputStream instance or NULL on failure.
 +  // This method converts MMDevice-style device ID to WaveIn-style device ID if
 +  // necessary.
@@ -13204,12 +13358,11 @@ index 0a53e62efa795..5417b2902a95f 100644
 +  AudioInputStream* CreatePCMWaveInAudioInputStream(
 +      const AudioParameters& params,
 +      const std::string& device_id);
-+
+ 
    // Helper methods for performing expensive initialization tasks on the audio
    // thread instead of on the UI thread which AudioManager is constructed on.
-   void InitializeOnAudioThread();
 diff --git a/media/audio/win/device_enumeration_win.cc b/media/audio/win/device_enumeration_win.cc
-index 11b1678768a10..75f9ac80ec71b 100644
+index 11b1678768a10..b72c5e3a6385c 100644
 --- a/media/audio/win/device_enumeration_win.cc
 +++ b/media/audio/win/device_enumeration_win.cc
 @@ -165,6 +165,54 @@ bool GetOutputDeviceNamesWinXP(AudioDeviceNames* device_names) {
@@ -13261,7 +13414,7 @@ index 11b1678768a10..75f9ac80ec71b 100644
 +  }
 +
 +  return std::string();
-+
++  
 +}
 +
  std::string GetDeviceSuffixWin(const std::string& controller_id) {
@@ -13995,7 +14148,7 @@ index 1c5142a49ceb7..fa36708b609a6 100644
  
  }  // namespace sandbox::policy
 diff --git a/sandbox/policy/win/sandbox_win.cc b/sandbox/policy/win/sandbox_win.cc
-index 714422bd2d088..3780b5ab6033e 100644
+index 714422bd2d088..fd36f75a3bbb3 100644
 --- a/sandbox/policy/win/sandbox_win.cc
 +++ b/sandbox/policy/win/sandbox_win.cc
 @@ -63,6 +63,7 @@
@@ -14055,19 +14208,19 @@ index 714422bd2d088..3780b5ab6033e 100644
    if (result != SBOX_ALL_OK)
      return result;
  
-@@ -582,6 +589,12 @@ ResultCode GenerateConfigForSandboxedProcess(const base::CommandLine& cmd_line,
+@@ -581,6 +588,12 @@ ResultCode GenerateConfigForSandboxedProcess(const base::CommandLine& cmd_line,
+       MITIGATION_SEHOP | MITIGATION_NONSYSTEM_FONT_DISABLE |
        MITIGATION_IMAGE_LOAD_NO_REMOTE | MITIGATION_IMAGE_LOAD_NO_LOW_LABEL |
        MITIGATION_RESTRICT_INDIRECT_BRANCH_PREDICTION | MITIGATION_KTM_COMPONENT;
- 
++	  
 +  #if !defined(NACL_WIN64)
 +    // Don't block font loading with GDI.
 +    if (!gfx::win::ShouldUseDirectWrite())
 +      mitigations &= ~(MITIGATION_NONSYSTEM_FONT_DISABLE | MITIGATION_HEAP_TERMINATE);
 +  #endif
-+
+ 
    // CET is enabled with the CETCOMPAT bit on chrome.exe so must be
    // disabled for processes we know are not compatible.
-   if (!delegate->CetCompatible())
 @@ -624,10 +637,12 @@ ResultCode GenerateConfigForSandboxedProcess(const base::CommandLine& cmd_line,
          return result;
        }
@@ -14115,7 +14268,7 @@ index 714422bd2d088..3780b5ab6033e 100644
    // Check not enabling twice. Should not happen.
    DCHECK_EQ(0U, flags & MITIGATION_WIN32K_DISABLE);
 diff --git a/sandbox/win/src/app_container_base.cc b/sandbox/win/src/app_container_base.cc
-index 8fd0b01040c31..5f32fcc4eb818 100644
+index 8fd0b01040c31..64110e1b12701 100644
 --- a/sandbox/win/src/app_container_base.cc
 +++ b/sandbox/win/src/app_container_base.cc
 @@ -20,6 +20,18 @@ namespace sandbox {
@@ -14147,7 +14300,7 @@ index 8fd0b01040c31..5f32fcc4eb818 100644
 +      reinterpret_cast<CreateAppContainerProfileFunc*>(GetProcAddress(
 +          GetModuleHandle(L"userenv"), "CreateAppContainerProfile"));
 +  if (!create_app_container_profile)
-+    return nullptr;
++    return nullptr; 
 +
 + PSID package_sid_ptr = nullptr;
 +  HRESULT hr = create_app_container_profile(
@@ -14231,7 +14384,7 @@ index a522652988a63..638dcd0c5513e 100644
    for (const HandleMap::value_type& handle_to_close : handles_to_close_) {
      ProcessHandleMap::iterator result = handle_map->find(handle_to_close.first);
 diff --git a/sandbox/win/src/interception.cc b/sandbox/win/src/interception.cc
-index ee6c56e762753..ad04012dd4293 100644
+index ee6c56e762753..4a013a91d583f 100644
 --- a/sandbox/win/src/interception.cc
 +++ b/sandbox/win/src/interception.cc
 @@ -19,6 +19,7 @@
@@ -14250,7 +14403,7 @@ index ee6c56e762753..ad04012dd4293 100644
 +  std::unique_ptr<ServiceResolverThunk> thunk;
 +#if defined(_WIN64)
 +  thunk = std::make_unique<ServiceResolverThunk>(child_->Process(), true);
-+#else
++#else  
 +  DWORD base_code = 0;
 +  DWORD bytes_read = 0;
 +  base::win::OSInfo* os_info = base::win::OSInfo::GetInstance();
@@ -14453,7 +14606,7 @@ index 72d96b96f4fd4..c3dedf262abcf 100644
  #pragma clang diagnostic ignored "-Wenum-constexpr-conversion"
  constexpr auto ProcessHandleTable = static_cast<PROCESSINFOCLASS>(58);
 diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
-index 2b870c0ebd409..498d207d4249c 100644
+index 2b870c0ebd409..d132f18eedbfb 100644
 --- a/sandbox/win/src/process_mitigations.cc
 +++ b/sandbox/win/src/process_mitigations.cc
 @@ -24,6 +24,7 @@
@@ -14530,11 +14683,13 @@ index 2b870c0ebd409..498d207d4249c 100644
        << "SetProcessMitigationPolicy failed with Policy: " << policy;
  
    return true;
-@@ -99,21 +124,35 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
+@@ -98,22 +123,36 @@ bool ApplyProcessMitigationsToCurrentProcess(MitigationFlags starting_flags,
+     return true;
  
    base::win::Version version = base::win::GetVersion();
- 
+-
 -  if (flags & MITIGATION_DLL_SEARCH_ORDER) {
++  
 +  #if !defined(NACL_WIN64)
 +  // Don't block font loading with GDI.
 +  if (!gfx::win::ShouldUseDirectWrite())
@@ -16101,7 +16256,7 @@ index 9406c2b456dd4..c5c1eb0b183a5 100644
      return nullptr;
    }
 diff --git a/services/preferences/tracked/device_id_win.cc b/services/preferences/tracked/device_id_win.cc
-index 48ce95f869c95..2cd6bfb10cc8e 100644
+index 48ce95f869c95..43be90093b31a 100644
 --- a/services/preferences/tracked/device_id_win.cc
 +++ b/services/preferences/tracked/device_id_win.cc
 @@ -10,11 +10,16 @@
@@ -16113,11 +16268,12 @@ index 48ce95f869c95..2cd6bfb10cc8e 100644
  
  MachineIdStatus GetDeterministicMachineSpecificId(std::string* machine_id) {
    DCHECK(machine_id);
- 
+-
++  
 +if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-machine-id")) {
 +    return MachineIdStatus::NOT_IMPLEMENTED;
 +  }
-+
++  
    wchar_t computer_name[MAX_COMPUTERNAME_LENGTH + 1] = {};
    DWORD computer_name_size = std::size(computer_name);
  
@@ -16771,7 +16927,7 @@ index 275beac2b5d90..e2b1763bc7cf0 100644
        FontFormatCheck::ProbeVariableFont(base_typeface_);
    bool synthetic_bold = bold;
 diff --git a/third_party/blink/renderer/platform/fonts/font_fallback_iterator.cc b/third_party/blink/renderer/platform/fonts/font_fallback_iterator.cc
-index 5192a65c008ff..e01b47dc0f648 100644
+index 5192a65c008ff..abfa690f60878 100644
 --- a/third_party/blink/renderer/platform/fonts/font_fallback_iterator.cc
 +++ b/third_party/blink/renderer/platform/fonts/font_fallback_iterator.cc
 @@ -83,8 +83,9 @@ scoped_refptr<FontDataForRangeSet> FontFallbackIterator::UniqueOrNext(
@@ -16792,25 +16948,25 @@ index 5192a65c008ff..e01b47dc0f648 100644
 -    if (!first_candidate_)
 -      FontCache::CrashWithFontInfo(&font_description_);
 +    if (!first_candidate_) {
-+		FontCache::CrashWithFontInfo(&font_description_);
++		FontCache::CrashWithFontInfo(&font_description_);		
 +	}
      return first_candidate_;
    }
  
 diff --git a/third_party/blink/renderer/platform/fonts/font_platform_data_cache.cc b/third_party/blink/renderer/platform/fonts/font_platform_data_cache.cc
-index fae5547d5ef83..4aa202fbc5640 100644
+index fae5547d5ef83..33cc33aaa4424 100644
 --- a/third_party/blink/renderer/platform/fonts/font_platform_data_cache.cc
 +++ b/third_party/blink/renderer/platform/fonts/font_platform_data_cache.cc
 @@ -116,6 +116,7 @@ FontPlatformData* FontPlatformDataCache::GetOrCreateFontPlatformData(
    FontPlatformData* const platform_data = GetOrCreateFontPlatformData(
        font_cache, font_description, create_by_alternate_family,
        AlternateFontName::kNoAlternate);
-+
++  
    if (!platform_data)
      return nullptr;
  
 diff --git a/third_party/blink/renderer/platform/fonts/skia/font_cache_skia.cc b/third_party/blink/renderer/platform/fonts/skia/font_cache_skia.cc
-index 1b7be19308566..3ea7a0003eac4 100644
+index 1b7be19308566..e90cd3656a285 100644
 --- a/third_party/blink/renderer/platform/fonts/skia/font_cache_skia.cc
 +++ b/third_party/blink/renderer/platform/fonts/skia/font_cache_skia.cc
 @@ -194,7 +194,6 @@ scoped_refptr<SimpleFontData> FontCache::GetLastResortFallbackFont(
@@ -16836,7 +16992,7 @@ index 1b7be19308566..3ea7a0003eac4 100644
 +#if BUILDFLAG(IS_WIN)
 +  if(!useDirectWrite()) {
 +	return sk_sp<SkTypeface>(font_manager->legacyMakeTypeface(
-+      name.empty() ? nullptr : name.c_str(), font_description.SkiaFontStyle()));
++      name.empty() ? nullptr : name.c_str(), font_description.SkiaFontStyle()));	  
 +  }
 +#endif
    return sk_sp<SkTypeface>(font_manager->matchFamilyStyle(
@@ -17109,7 +17265,7 @@ index 0000000000000..0363fdca92dde
 +
 +}  // namespace blink
 diff --git a/third_party/blink/renderer/platform/fonts/win/font_cache_skia_win.cc b/third_party/blink/renderer/platform/fonts/win/font_cache_skia_win.cc
-index 01e6acd3c8dbc..b7e2f9a024e08 100644
+index 01e6acd3c8dbc..f67b998194b30 100644
 --- a/third_party/blink/renderer/platform/fonts/win/font_cache_skia_win.cc
 +++ b/third_party/blink/renderer/platform/fonts/win/font_cache_skia_win.cc
 @@ -42,6 +42,8 @@
@@ -17179,15 +17335,6 @@ index 01e6acd3c8dbc..b7e2f9a024e08 100644
 +    return FontDataFromFontPlatformData(data, kDoNotRetain);
 +  } else {
 +    std::string family_name = font_description.Family().FamilyName().Utf8();
-+
-+    Bcp47Vector locales;
-+    locales.push_back(fallback_locale->LocaleForSkFontMgr());
-+    sk_sp<SkTypeface> typeface(font_manager_->matchFamilyStyleCharacter(
-+        family_name.c_str(), font_description.SkiaFontStyle(), locales.data(),
-+        locales.size(), codepoint));
-+
-+    if (!typeface)
-+      return nullptr;
  
 -  SkString skia_family;
 -  typeface->getFamilyName(&skia_family);
@@ -17199,6 +17346,15 @@ index 01e6acd3c8dbc..b7e2f9a024e08 100644
 -      GetFontPlatformData(fallback_updated_font_description, create_by_family);
 -  if (!data || !data->FontContainsCharacter(codepoint)) {
 -    return nullptr;
++    Bcp47Vector locales;
++    locales.push_back(fallback_locale->LocaleForSkFontMgr());
++    sk_sp<SkTypeface> typeface(font_manager_->matchFamilyStyleCharacter(
++        family_name.c_str(), font_description.SkiaFontStyle(), locales.data(),
++        locales.size(), codepoint));
++
++    if (!typeface)
++      return nullptr;
++
 +    SkString skia_family;
 +    typeface->getFamilyName(&skia_family);
 +    FontDescription fallback_updated_font_description(font_description);
@@ -17230,6 +17386,15 @@ index 01e6acd3c8dbc..b7e2f9a024e08 100644
      return GetDWriteFallbackFamily(font_description, character,
                                     fallback_priority);
    }
+@@ -439,7 +487,7 @@ std::unique_ptr<FontPlatformData> FontCache::CreateFontPlatformData(
+ 
+   } else {
+     typeface = CreateTypeface(font_description, creation_params, name);
+-
++    
+     // For a family match, Windows will always give us a valid pointer here,
+     // even if the face name is non-existent. We have to double-check and see if
+     // the family name was really used.
 diff --git a/third_party/blink/renderer/platform/fonts/win/font_fallback_win.cc b/third_party/blink/renderer/platform/fonts/win/font_fallback_win.cc
 index fe7c9a5c819bd..12b8e76a39921 100644
 --- a/third_party/blink/renderer/platform/fonts/win/font_fallback_win.cc
@@ -17613,7 +17778,7 @@ index 9b52fcd0f4181..d3bfdbe614076 100644
      // will inherit every inheritable handle.
      creation_flags = 0;
 diff --git a/third_party/crashpad/crashpad/snapshot/win/process_snapshot_win.cc b/third_party/crashpad/crashpad/snapshot/win/process_snapshot_win.cc
-index 6c06165f6870b..071daa79d0e5e 100644
+index 6c06165f6870b..8ab06f7e41a2a 100644
 --- a/third_party/crashpad/crashpad/snapshot/win/process_snapshot_win.cc
 +++ b/third_party/crashpad/crashpad/snapshot/win/process_snapshot_win.cc
 @@ -287,10 +287,13 @@ void ProcessSnapshotWin::InitializeUnloadedModules() {
@@ -17624,7 +17789,7 @@ index 6c06165f6870b..071daa79d0e5e 100644
    ULONG* element_size;
    ULONG* element_count;
    void* event_trace_address;
-+
++  
 +  if (!GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlGetUnloadEventTraceEx"))
 +    return;
 +
@@ -17695,14 +17860,14 @@ index c99fd18826153..5d4a41a4d64c2 100644
  #elif BUILDFLAG(IS_OZONE)
 diff --git a/ui/base/ime/init/input_method_factory.cc.rej b/ui/base/ime/init/input_method_factory.cc.rej
 new file mode 100644
-index 0000000000000..4f39721ff4fdd
+index 0000000000000..51c53c3bb0d15
 --- /dev/null
 +++ b/ui/base/ime/init/input_method_factory.cc.rej
 @@ -0,0 +1,10 @@
 +diff a/ui/base/ime/init/input_method_factory.cc b/ui/base/ime/init/input_method_factory.cc	(rejected hunks)
 +@@ -54,7 +54,7 @@ std::unique_ptr<InputMethod> CreateInputMethod(
 +     return base::WrapUnique(new MockInputMethod(ime_key_event_dispatcher));
-+
++ 
 + #if BUILDFLAG(IS_WIN)
 +-  if (base::FeatureList::IsEnabled(features::kTSFImeSupport)) {
 ++  if (features::IsUsingTSFForIME()) {
@@ -19113,7 +19278,7 @@ index e079f9ccd09d2..ed9cb666ff09b 100644
  
      base::win::ScopedHString input_pane_guid = base::win::ScopedHString::Create(
 diff --git a/ui/base/ime/win/tsf_bridge.cc b/ui/base/ime/win/tsf_bridge.cc
-index 8b3e5acd96ea1..944fde7fc17ed 100644
+index 8b3e5acd96ea1..f581501b08522 100644
 --- a/ui/base/ime/win/tsf_bridge.cc
 +++ b/ui/base/ime/win/tsf_bridge.cc
 @@ -16,6 +16,7 @@
@@ -19128,10 +19293,10 @@ index 8b3e5acd96ea1..944fde7fc17ed 100644
  
  HRESULT TSFBridgeImpl::Initialize() {
    DCHECK(base::CurrentUIThread::IsSet());
-+
++  
 +// if (!features::IsUsingTSFForIME())
 + //    return E_FAIL;
-+
++ 
    if (client_id_ != TF_CLIENTID_NULL) {
      DVLOG(1) << "Already initialized.";
      return S_OK;  // shouldn't return error code in this case.
@@ -19156,7 +19321,7 @@ index 8b3e5acd96ea1..944fde7fc17ed 100644
  }
  
 diff --git a/ui/base/ime/win/tsf_input_scope.cc b/ui/base/ime/win/tsf_input_scope.cc
-index e2a79de6f846f..ea7ef9cc26f30 100644
+index e2a79de6f846f..3e94599e1ff03 100644
 --- a/ui/base/ime/win/tsf_input_scope.cc
 +++ b/ui/base/ime/win/tsf_input_scope.cc
 @@ -10,6 +10,7 @@
@@ -19186,7 +19351,7 @@ index e2a79de6f846f..ea7ef9cc26f30 100644
 +  // Thread safety is not required because this function is under UI thread.
 +  if (!g_get_proc_done) {
 +    g_get_proc_done = true;
-+
++	
 +	// For stability reasons, we do not support Windows XP.
 +    if (base::win::GetVersion() < base::win::Version::VISTA)
 +      return;
@@ -19282,7 +19447,7 @@ index 5d352b58257ef..cd238276358fc 100644
        case ui::mojom::WindowOpenDisposition::NEW_WINDOW:
          *out = WindowOpenDisposition::NEW_WINDOW;
 diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
-index 152122c117cdd..a4ed4dcebce1e 100644
+index 152122c117cdd..8832e0fccbf2d 100644
 --- a/ui/base/ui_base_features.cc
 +++ b/ui/base/ui_base_features.cc
 @@ -11,6 +11,10 @@
@@ -19302,7 +19467,7 @@ index 152122c117cdd..a4ed4dcebce1e 100644
  
 +// Enables using TSF (over IMM32) for IME.
 +BASE_FEATURE(kTSFImeSupport, "TSFImeSupport", base::FEATURE_ENABLED_BY_DEFAULT);
-+
++ 
 +bool IsUsingTSFForIME() {
 +  return base::win::GetVersion() >= base::win::Version::VISTA &&
 +			base::FeatureList::IsEnabled(kTSFImeSupport);
@@ -19325,19 +19490,19 @@ index 152122c117cdd..a4ed4dcebce1e 100644
  }
  
  #endif  // BUILDFLAG(IS_WIN)
-@@ -592,6 +607,10 @@ BASE_FEATURE(kBubbleMetricsApi,
+@@ -591,6 +606,10 @@ ChromeRefresh2023Level GetChromeRefresh2023Level() {
+ BASE_FEATURE(kBubbleMetricsApi,
               "BubbleMetricsApi",
               base::FEATURE_DISABLED_BY_DEFAULT);
- 
-+BASE_FEATURE(kThoriumCustomTabs,
-+             "ThoriumCustomTabs",
++			 
++BASE_FEATURE(kSupermiumCustomTabs,
++             "SupermiumCustomTabs",
 +             base::FEATURE_DISABLED_BY_DEFAULT);
-+
+ 
  #if BUILDFLAG(IS_MAC)
  // When enabled, images will be written to the system clipboard as both a TIFF
- // and a PNG (as opposed to just a TIFF). This requires encoding the sanitized
 diff --git a/ui/base/ui_base_features.h b/ui/base/ui_base_features.h
-index 67f99842c04e5..a8aac0c1e041f 100644
+index 67f99842c04e5..f4e851550102d 100644
 --- a/ui/base/ui_base_features.h
 +++ b/ui/base/ui_base_features.h
 @@ -27,6 +27,7 @@ COMPONENT_EXPORT(UI_BASE_FEATURES)
@@ -19361,7 +19526,7 @@ index 67f99842c04e5..a8aac0c1e041f 100644
  BASE_DECLARE_FEATURE(kBubbleMetricsApi);
  
 +// Enables customization of the shape of the browser tabs.
-+COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kThoriumCustomTabs);
++COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kSupermiumCustomTabs);
 +
  #if BUILDFLAG(IS_MAC)
  COMPONENT_EXPORT(UI_BASE_FEATURES)
@@ -19440,31 +19605,31 @@ index f6867edea301e..2d2d18c212bca 100644
    auto hstring = base::win::ScopedHString::Create(
        RuntimeClass_Windows_UI_ViewManagement_UISettings);
 diff --git a/ui/gfx/canvas.h b/ui/gfx/canvas.h
-index 8b2004767a03a..b6b331b1ef9e7 100644
+index 8b2004767a03a..d50aa14e49857 100644
 --- a/ui/gfx/canvas.h
 +++ b/ui/gfx/canvas.h
 @@ -82,6 +82,9 @@ class GFX_EXPORT Canvas {
      // when rendering text onto a fully- or partially-transparent background
      // that will later be blended with another image.
      NO_SUBPIXEL_RENDERING = 1 << 9,
-+
++	
 +	// Workaround for GDI offset rendering issues.
 +	GDI_OFFSET_RENDERING = 1 << 10,
    };
  
    // Creates an empty canvas with image_scale of 1x.
 diff --git a/ui/gfx/canvas_skia.cc b/ui/gfx/canvas_skia.cc
-index 11d7121476942..3a3e0119c198c 100644
+index 11d7121476942..f0862c74659df 100644
 --- a/ui/gfx/canvas_skia.cc
 +++ b/ui/gfx/canvas_skia.cc
 @@ -235,6 +235,10 @@ void Canvas::DrawStringRectWithFlags(const std::u16string& text,
                       render_text.get());
      if (range.IsValid())
        render_text->ApplyStyle(TEXT_STYLE_UNDERLINE, true, range);
-+
++  
 +    if(flags & GDI_OFFSET_RENDERING)
-+		render_text->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
-+
++		render_text->SetVerticalAlignment(gfx::ALIGN_SPECIAL);  
++	
      render_text->Draw(this);
    }
  
@@ -19491,7 +19656,7 @@ index db0200908f88a..32d3b94a06fc8 100644
        UINT type = 0;
        if (SystemParametersInfo(SPI_GETFONTSMOOTHINGTYPE, 0, &type, 0) &&
 diff --git a/ui/gfx/render_text.cc b/ui/gfx/render_text.cc
-index cf08dd7f0a3ad..4d745ea654673 100644
+index cf08dd7f0a3ad..e6b73bed2319a 100644
 --- a/ui/gfx/render_text.cc
 +++ b/ui/gfx/render_text.cc
 @@ -12,6 +12,7 @@
@@ -19588,7 +19753,7 @@ index cf08dd7f0a3ad..4d745ea654673 100644
      DrawSelections(canvas, draw_selections);
 +
      internal::SkiaTextRenderer renderer(canvas);
-+
++	
 +	if (vertical_alignment_ == ALIGN_SPECIAL) {
 +		renderer.SetSpecialYOffset(4); // This will push down the offending labels in GDI to the point that they will appear centred
 +	}
@@ -19599,10 +19764,10 @@ index cf08dd7f0a3ad..4d745ea654673 100644
                base::ClampCeil(Clamp(xspan.GetMin()));
      }
    }
-+
++  
    Size line_size = gfx::ToCeiledSize(GetLineSizeF(caret));
    size_t line = GetLineContainingCaret(caret);
-+
++  
 +  if (vertical_alignment_ == ALIGN_SPECIAL) {
 +	  line_size.set_height(line_size.height() + 8);
 +  }
@@ -19619,7 +19784,7 @@ index cf08dd7f0a3ad..4d745ea654673 100644
          offset.set_y((display_rect_.height() - GetStringSize().height()) / 2);
        else
 diff --git a/ui/gfx/render_text.h b/ui/gfx/render_text.h
-index 5b3eda36fa332..6d691f7715052 100644
+index 5b3eda36fa332..96a3d59bf59c8 100644
 --- a/ui/gfx/render_text.h
 +++ b/ui/gfx/render_text.h
 @@ -73,6 +73,7 @@ class GFX_EXPORT SkiaTextRenderer {
@@ -19642,28 +19807,28 @@ index 5b3eda36fa332..6d691f7715052 100644
  
    // Tell whether or not the |layout_text_| needs an update or is up to date.
    mutable bool layout_text_up_to_date_ = false;
-+
++  
 +  // Offset of Y used for accurate font positioning in GDI.
 +  int y_offset_;
  };
  
  }  // namespace gfx
 diff --git a/ui/gfx/switches.cc b/ui/gfx/switches.cc
-index 1bf6fffae1614..36866a98d1d24 100644
+index 1bf6fffae1614..89893baa96c4c 100644
 --- a/ui/gfx/switches.cc
 +++ b/ui/gfx/switches.cc
-@@ -9,6 +9,11 @@
+@@ -8,6 +8,11 @@
+ #include "build/build_config.h"
  
  namespace switches {
- 
++	
 +#if BUILDFLAG(IS_WIN)
 +// Disables the DirectWrite font rendering system on windows.
 +const char kDisableDirectWrite[] = "disable-direct-write";
 +#endif
-+
+ 
  // Scale factor to apply to every animation duration. Must be >= 0.0. This will
  // only apply to LinearAnimation and its subclasses.
- const char kAnimationDurationScale[] = "animation-duration-scale";
 diff --git a/ui/gfx/switches.h b/ui/gfx/switches.h
 index 98697d908f507..d7ee70f862826 100644
 --- a/ui/gfx/switches.h
@@ -19693,10 +19858,10 @@ index eaa6ea0c42037..275bd3708da69 100644
  
  // The directionality modes used to determine the base text direction.
 diff --git a/ui/gfx/win/direct_write.cc b/ui/gfx/win/direct_write.cc
-index cf0f70a55333a..24643275b66d5 100644
+index cf0f70a55333a..878539cbfb0c7 100644
 --- a/ui/gfx/win/direct_write.cc
 +++ b/ui/gfx/win/direct_write.cc
-@@ -8,10 +8,12 @@
+@@ -8,18 +8,34 @@
  
  #include <string>
  
@@ -19709,10 +19874,10 @@ index cf0f70a55333a..24643275b66d5 100644
  #include "skia/ext/font_utils.h"
  #include "third_party/skia/include/core/SkFontMgr.h"
  #include "third_party/skia/include/ports/SkTypeface_win.h"
-@@ -19,8 +21,22 @@
+ 
  namespace gfx {
  namespace win {
- 
++	
 +GFX_EXPORT bool ShouldUseDirectWrite() {
 +  // Considering that there are seemingly some decent DirectWrite implementations
 +  // out there for XP, we will no longer discriminate by OS version.
@@ -19724,14 +19889,13 @@ index cf0f70a55333a..24643275b66d5 100644
 +      *base::CommandLine::ForCurrentProcess();
 +  return !command_line.HasSwitch("disable-direct-write");;
 +}
-+
- namespace {
  
+ namespace {
++	
 +static bool dwrite_enabled = false;
-+
+ 
  // Pointer to the global IDWriteFactory interface.
  IDWriteFactory* g_direct_write_factory = nullptr;
- 
 @@ -35,9 +51,24 @@ void SetDirectWriteFactory(IDWriteFactory* factory) {
  }  // anonymous namespace
  
@@ -19751,7 +19915,7 @@ index cf0f70a55333a..24643275b66d5 100644
 +    return;
 +
    Microsoft::WRL::ComPtr<IUnknown> factory_unknown;
-+
++  
    HRESULT hr =
 -      DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
 +      dwrite_create_factory_proc(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
@@ -19823,16 +19987,17 @@ index cf0f70a55333a..24643275b66d5 100644
 +}  // namespace gfx
 \ No newline at end of file
 diff --git a/ui/gfx/win/direct_write.h b/ui/gfx/win/direct_write.h
-index 72022056d29c4..88839b7621ce2 100644
+index 72022056d29c4..6185acdd2c2de 100644
 --- a/ui/gfx/win/direct_write.h
 +++ b/ui/gfx/win/direct_write.h
-@@ -14,9 +14,15 @@
+@@ -13,10 +13,16 @@
+ 
  namespace gfx {
  namespace win {
- 
++	
 +// Returns whether DirectWrite font rendering should be used.
 +GFX_EXPORT bool ShouldUseDirectWrite();
-+
+ 
  GFX_EXPORT void InitializeDirectWrite();
  
 -// Creates a DirectWrite factory.
@@ -19889,8 +20054,29 @@ index 2c27d56f29eaa..9c314a5185c7f 100644
    return absl::nullopt;
  }
  
+diff --git a/ui/native_theme/native_theme.cc b/ui/native_theme/native_theme.cc
+index 17c3b9f659a3b..5beb81eafe785 100644
+--- a/ui/native_theme/native_theme.cc
++++ b/ui/native_theme/native_theme.cc
+@@ -7,6 +7,7 @@
+ #include <cstring>
+ 
+ #include "base/command_line.h"
++#include "base/features.h"
+ #include "base/containers/fixed_flat_map.h"
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
+@@ -249,7 +250,7 @@ void NativeTheme::SetPreferredContrast(
+ bool NativeTheme::IsForcedDarkMode() {
+   static bool kIsForcedDarkMode =
+       base::CommandLine::ForCurrentProcess()->HasSwitch(
+-          switches::kForceDarkMode);
++          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag);
+   return kIsForcedDarkMode;
+ }
+ 
 diff --git a/ui/native_theme/native_theme_win.cc b/ui/native_theme/native_theme_win.cc
-index 50647269ec84f..4633d10f74e6c 100644
+index 50647269ec84f..f5de3b2e7c6e5 100644
 --- a/ui/native_theme/native_theme_win.cc
 +++ b/ui/native_theme/native_theme_win.cc
 @@ -268,26 +268,61 @@ void NativeThemeWin::Paint(cc::PaintCanvas* canvas,
@@ -19932,12 +20118,12 @@ index 50647269ec84f..4633d10f74e6c 100644
 +		  CommonThemePaintMenuItemBackground(this, color_provider, canvas, state,
 +											 rect,
 +											 absl::get<MenuItemExtraParams>(extra));
-+		  return;
++		  return;     
 +		default:
 +		  break;
 +	  }
-+  }
-+
+   }
++  
 +  PaintIndirect(canvas, part, state, rect, extra);
 +  return;
 +}
@@ -19963,7 +20149,7 @@ index 50647269ec84f..4633d10f74e6c 100644
 +    case NativeThemeWin::kNumStates:
 +      NOTREACHED();
 +      break;
-   }
++  }
 +
 +  if (handle)
 +    return DrawThemeBackground(handle, hdc, MENU_POPUPITEM, state_id, &rect_win, NULL);
@@ -20026,7 +20212,7 @@ index 50647269ec84f..4633d10f74e6c 100644
 +    DrawThemeBackground(handle, hdc, SBP_ARROWBTN, state_id, rect, NULL);
 +	return;
 +  }
-+
++													
    int classic_state = DFCS_SCROLLDOWN;
    switch (part) {
      case kScrollbarDownArrow:
@@ -20035,13 +20221,13 @@ index 50647269ec84f..4633d10f74e6c 100644
        break;
    }
 -  DrawFrameControl(hdc, rect, DFC_SCROLL, classic_state);
-+
++  
 +  DrawFrameControl(hdc, rect, DFC_SCROLL, classic_state | DFCS_BUTTONPUSH);
  }
  
  void NativeThemeWin::PaintScrollbarTrackClassic(
 diff --git a/ui/shell_dialogs/execute_select_file_win.cc b/ui/shell_dialogs/execute_select_file_win.cc
-index 9361287ac3411..bd0eea9c913e0 100644
+index 9361287ac3411..2c5002880087b 100644
 --- a/ui/shell_dialogs/execute_select_file_win.cc
 +++ b/ui/shell_dialogs/execute_select_file_win.cc
 @@ -4,6 +4,8 @@
@@ -20069,15 +20255,15 @@ index 9361287ac3411..bd0eea9c913e0 100644
 +  if (!title.empty()) {
 +    open_file_name->lpstrTitle = (LPCWSTR)title.c_str();
 +  }
-+
++  
 +  if (dialog_options & FOS_ALLOWMULTISELECT) {
 +	open_file_name->Flags |= OFN_ALLOWMULTISELECT;
 +  }
-+
++  
 +  if (!default_path.empty()) {
 +        open_file_name->lpstrInitialDir = (LPCWSTR)default_path.value().c_str();
 +  }
-+
++  
 +  if (filter.empty())
 +    return true;
 +
@@ -20089,16 +20275,16 @@ index 9361287ac3411..bd0eea9c913e0 100644
 +    filter_buffer.append(filter_str);
 +  }
 +  filter_buffer.push_back(0);
-+
++  
 +  PWSTR c_filter_buffer = (PWSTR) ::HeapAlloc(::GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WCHAR)*filter_buffer.length());
-+
++  
 +  for (size_t i = 0; i < filter_buffer.length(); i++)
 +  {
 +	  c_filter_buffer[i] = filter_buffer.at(i);
 +  }
-+
++  
 +  open_file_name->lpstrFilter = c_filter_buffer;
-+
++  
 +  return true;
 +}
 +
@@ -20157,7 +20343,7 @@ index 9361287ac3411..bd0eea9c913e0 100644
 +  if (!default_path.empty())
 +    dialog_options.default_path = default_path.value().c_str();
 +  browse_info.ulFlags |= BIF_NONEWFOLDERBUTTON;
-+
++ 
 +  if (dialog_options.default_path) {
 +    browse_info.lParam = reinterpret_cast<LPARAM>(&dialog_options);
 +    browse_info.lpfn = &BrowseCallbackProc;
@@ -20188,7 +20374,7 @@ index 9361287ac3411..bd0eea9c913e0 100644
 +      // According to MSDN, Win2000 will not resolve shortcuts, so we do it
 +      // ourselves.
 +      base::win::ResolveShortcut(paths->at(0), &paths->at(0), nullptr);
-+
++	  
 +    }
 +    CoTaskMemFree(list);
 +  }
@@ -20280,14 +20466,14 @@ index 9361287ac3411..bd0eea9c913e0 100644
                                  CLSCTX_INPROC_SERVER,
                                  IID_PPV_ARGS(&file_save_dialog)))) {
 -    return false;
--  }
--
--  if (!ConfigureDialog(file_save_dialog.Get(), title, std::u16string(),
--                       default_path, filter, *filter_index, dialog_options)) {
--    return false;
 +    use_legacy_dialogs = true;
    }
  
+-  if (!ConfigureDialog(file_save_dialog.Get(), title, std::u16string(),
+-                       default_path, filter, *filter_index, dialog_options)) {
+-    return false;
+-  }
+-
 -  file_save_dialog->SetDefaultExtension(def_ext.c_str());
 -
 -  // This handler auto-closes the file dialog if its owner window is closed.
@@ -20329,11 +20515,11 @@ index 9361287ac3411..bd0eea9c913e0 100644
 +		return false;
 +	  }
 +	} else {
-+	  ConfigureDialog_Legacy(&open_file_name, title, default_path, filter, dialog_options);
++ 	  ConfigureDialog_Legacy(&open_file_name, title, default_path, filter, dialog_options);
 +   }
 +  if (!use_legacy_dialogs) {
 +	  file_save_dialog->SetDefaultExtension(def_ext.c_str());
-+
++   
 +	  // This handler auto-closes the file dialog if its owner window is closed.
 +	  auto auto_close_dialog_event_handler =
 +		  std::make_unique<ScopedAutoCloseDialogEventHandler>(
@@ -20408,13 +20594,13 @@ index 9361287ac3411..bd0eea9c913e0 100644
 +      if (!filter.empty() && ((int)filter.size() - 1) < *filter_index) {
 +            *filter_index = filter.size() - 1;
 +          }
-+	 // open_file_name.lpstrFilter =
++	 // open_file_name.lpstrFilter = 
 +	//	  filter.empty() ? nullptr : (LPCWSTR)filter.at(*filter_index).extension_spec.c_str();
 +	  open_file_name.nFilterIndex = *filter_index;
 +	  open_file_name.lpstrDefExt = &def_ext[0];
 +
 +	  BOOL success = ::GetSaveFileNameW((OPENFILENAMEW*)&open_file_name);
-+
++	  
 +	  if(open_file_name.lpstrFilter) {
 +		  ::HeapFree(::GetProcessHeap(), 0, (LPVOID)open_file_name.lpstrFilter);
 +		  open_file_name.lpstrFilter = nullptr;
@@ -20451,7 +20637,7 @@ index 9361287ac3411..bd0eea9c913e0 100644
 +
 +	  *path = base::FilePath(
 +		  AppendExtensionIfNeeded(base::FilePath(open_file_name.lpstrFile).value(), std::wstring(filter_selected.begin(), filter_selected.end()), suggested_ext));
-+	  return true;
++	  return true;	  
    }
 -
 -  *path = base::FilePath(display_name.get());
@@ -20480,6 +20666,56 @@ index 9361287ac3411..bd0eea9c913e0 100644
 -  if (!ConfigureDialog(file_open_dialog.Get(), title, ok_button_label,
 -                       default_path, filter, *filter_index, dialog_options)) {
 -    return false;
+-  }
+-
+-  // This handler auto-closes the file dialog if its owner window is closed.
+-  auto auto_close_dialog_event_handler =
+-      std::make_unique<ScopedAutoCloseDialogEventHandler>(
+-          owner, file_open_dialog.Get());
+-
+-  // Never consider the current scope as hung. The hang watching deadline (if
+-  // any) is not valid since the user can take unbounded time to choose the
+-  // file.
+-  base::HangWatcher::InvalidateActiveExpectations();
+-
+-  HRESULT hr = file_open_dialog->Show(owner);
+-  BaseShellDialogImpl::DisableOwner(owner);
+-
+-  // Remove the event handler regardless of the return value of Show().
+-  auto_close_dialog_event_handler = nullptr;
+-
+-  if (FAILED(hr))
+-    return false;
+-
+-  UINT file_type_index;
+-  if (FAILED(file_open_dialog->GetFileTypeIndex(&file_type_index)))
+-    return false;
+-
+-  *filter_index = static_cast<int>(file_type_index);
+-
+-  Microsoft::WRL::ComPtr<IShellItemArray> selected_items;
+-  if (FAILED(file_open_dialog->GetResults(&selected_items)))
+-    return false;
+-
+-  DWORD result_count;
+-  if (FAILED(selected_items->GetCount(&result_count)))
+-    return false;
+-
+-  DCHECK(result_count == 1 || (dialog_options & FOS_ALLOWMULTISELECT));
+-
+-  std::vector<base::FilePath> result(result_count);
+-  for (DWORD i = 0; i < result_count; ++i) {
+-    Microsoft::WRL::ComPtr<IShellItem> shell_item;
+-    if (FAILED(selected_items->GetItemAt(i, &shell_item)))
+-      return false;
+-
+-    base::win::ScopedCoMem<wchar_t> display_name;
+-    if (FAILED(shell_item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING,
+-                                          &display_name))) {
+-      return false;
+-    }
+-
+-    result[i] = base::FilePath(display_name.get());
 +  if(!use_legacy_dialogs) {
 +	  if (!ConfigureDialog(file_open_dialog.Get(), title, ok_button_label,
 +						   default_path, filter, *filter_index, dialog_options)) {
@@ -20491,98 +20727,61 @@ index 9361287ac3411..bd0eea9c913e0 100644
 +	  ConfigureDialog_Legacy(&open_file_name, title, default_path, filter, dialog_options);
    }
  
--  // This handler auto-closes the file dialog if its owner window is closed.
--  auto auto_close_dialog_event_handler =
--      std::make_unique<ScopedAutoCloseDialogEventHandler>(
--          owner, file_open_dialog.Get());
+-  // Only modify the out parameter if the enumeration didn't fail.
+-  *paths = std::move(result);
+-  return !paths->empty();
 +  if (!use_legacy_dialogs) {
 +          // This handler auto-closes the file dialog if its owner window is
 +          // closed.
 +      auto auto_close_dialog_event_handler =
 +              std::make_unique<ScopedAutoCloseDialogEventHandler>(
 +                  owner, file_open_dialog.Get());
- 
--  // Never consider the current scope as hung. The hang watching deadline (if
--  // any) is not valid since the user can take unbounded time to choose the
--  // file.
--  base::HangWatcher::InvalidateActiveExpectations();
++  
 +	  // Never consider the current scope as hung. The hang watching deadline (if
 +	  // any) is not valid since the user can take unbounded time to choose the
 +	  // file.
 +	  base::HangWatcher::InvalidateActiveExpectations();
- 
--  HRESULT hr = file_open_dialog->Show(owner);
--  BaseShellDialogImpl::DisableOwner(owner);
++
 +	  HRESULT hr = file_open_dialog->Show(owner);
 +	  BaseShellDialogImpl::DisableOwner(owner);
- 
--  // Remove the event handler regardless of the return value of Show().
--  auto_close_dialog_event_handler = nullptr;
++
 +	  // Remove the event handler regardless of the return value of Show().
 +	  auto_close_dialog_event_handler = nullptr;
- 
--  if (FAILED(hr))
--    return false;
++
 +	  if (FAILED(hr))
 +		return false;
- 
--  UINT file_type_index;
--  if (FAILED(file_open_dialog->GetFileTypeIndex(&file_type_index)))
--    return false;
++
 +	  UINT file_type_index;
 +	  if (FAILED(file_open_dialog->GetFileTypeIndex(&file_type_index)))
 +		return false;
- 
--  *filter_index = static_cast<int>(file_type_index);
++
 +	  *filter_index = static_cast<int>(file_type_index);
- 
--  Microsoft::WRL::ComPtr<IShellItemArray> selected_items;
--  if (FAILED(file_open_dialog->GetResults(&selected_items)))
--    return false;
++
 +	  Microsoft::WRL::ComPtr<IShellItemArray> selected_items;
 +	  if (FAILED(file_open_dialog->GetResults(&selected_items)))
 +		return false;
- 
--  DWORD result_count;
--  if (FAILED(selected_items->GetCount(&result_count)))
--    return false;
++
 +	  DWORD result_count;
 +	  if (FAILED(selected_items->GetCount(&result_count)))
 +		return false;
- 
--  DCHECK(result_count == 1 || (dialog_options & FOS_ALLOWMULTISELECT));
++
 +	  DCHECK(result_count == 1 || (dialog_options & FOS_ALLOWMULTISELECT));
- 
--  std::vector<base::FilePath> result(result_count);
--  for (DWORD i = 0; i < result_count; ++i) {
--    Microsoft::WRL::ComPtr<IShellItem> shell_item;
--    if (FAILED(selected_items->GetItemAt(i, &shell_item)))
--      return false;
++
 +	  std::vector<base::FilePath> result(result_count);
 +	  for (DWORD i = 0; i < result_count; ++i) {
 +		Microsoft::WRL::ComPtr<IShellItem> shell_item;
 +		if (FAILED(selected_items->GetItemAt(i, &shell_item)))
 +		  return false;
- 
--    base::win::ScopedCoMem<wchar_t> display_name;
--    if (FAILED(shell_item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING,
--                                          &display_name))) {
--      return false;
--    }
++
 +		base::win::ScopedCoMem<wchar_t> display_name;
 +		if (FAILED(shell_item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING,
 +											  &display_name))) {
 +		  return false;
 +		}
- 
--    result[i] = base::FilePath(display_name.get());
--  }
++
 +		result[i] = base::FilePath(display_name.get());
 +	  }
- 
--  // Only modify the out parameter if the enumeration didn't fail.
--  *paths = std::move(result);
--  return !paths->empty();
++
 +	  // Only modify the out parameter if the enumeration didn't fail.
 +	  *paths = std::move(result);
 +	  return !paths->empty();
@@ -20596,12 +20795,12 @@ index 9361287ac3411..bd0eea9c913e0 100644
 +	  open_file_name.Flags |= OFN_EXPLORER | OFN_HIDEREADONLY;
 +	  bool success = ::GetOpenFileNameW((OPENFILENAMEW*)&open_file_name);
 +	  BaseShellDialogImpl::DisableOwner(owner);
-+
++	  
 +	  if(open_file_name.lpstrFilter) {
 +		  ::HeapFree(::GetProcessHeap(), 0, (LPVOID)open_file_name.lpstrFilter);
 +		  open_file_name.lpstrFilter = nullptr;
 +	  }
-+
++	  
 +	  if(success) {
 +		  base::FilePath directory;
 +          std::vector<base::FilePath> filenames;
@@ -20642,7 +20841,7 @@ index 9361287ac3411..bd0eea9c913e0 100644
  
  // Runs a Folder selection dialog box, passes back the selected folder in |path|
 diff --git a/ui/snapshot/snapshot_win.cc b/ui/snapshot/snapshot_win.cc
-index 37b31f022ef3c..bdf1269919100 100644
+index 37b31f022ef3c..232ec7bf2fe3c 100644
 --- a/ui/snapshot/snapshot_win.cc
 +++ b/ui/snapshot/snapshot_win.cc
 @@ -27,6 +27,7 @@ void GrabHwndSnapshot(HWND window_handle,
@@ -20653,11 +20852,13 @@ index 37b31f022ef3c..bdf1269919100 100644
    gfx::Rect snapshot_bounds_in_window =
        snapshot_bounds_in_pixels + clip_rect_in_pixels.OffsetFromOrigin();
    gfx::Size bitmap_size(snapshot_bounds_in_window.right(),
-@@ -42,7 +43,31 @@ void GrabHwndSnapshot(HWND window_handle,
+@@ -41,8 +42,32 @@ void GrabHwndSnapshot(HWND window_handle,
+   // but works starting in Windows 8.1. It allows for capturing the contents of
    // the window that are drawn using DirectComposition.
    UINT flags = PW_CLIENTONLY | PW_RENDERFULLCONTENT;
- 
+-
 -  BOOL result = PrintWindow(window_handle, mem_hdc, flags);
++  
 +  if (base::win::GetVersion() >= base::win::Version::WIN8_1){
 +	result = PrintWindow(window_handle, mem_hdc, flags);
 +  }
@@ -20666,21 +20867,21 @@ index 37b31f022ef3c..bdf1269919100 100644
 +	// Copying from the window's actual HDC doesn't work so let's just use the full screen HDC.
 +	// When a snapshot is captured the focus should be on the browser window anyway.
 +	HDC window_hdc = GetDC(NULL);
-+
++	
 +	RECT window_rect;
-+
++	
 +	memset(&window_rect, 0, sizeof(RECT));
-+
++	
 +	result = GetWindowRect(window_handle, &window_rect);
-+
++	
 +	 if (!result) {
 +    PLOG(ERROR) << "Failed to get valid rect for snapshot area.";
 +    return;
 +    }
 +	// The left of the snapshot "window" rect is offset by 8 pixels to remove a bit of the dark grey showing through.
-+	result = BitBlt(mem_hdc, 0, 0, bitmap_size.width(), bitmap_size.height(),
++	result = BitBlt(mem_hdc, 0, 0, bitmap_size.width(), bitmap_size.height(), 
 +					window_hdc, window_rect.left + 8, window_rect.top, SRCCOPY);
-+
++	
 +	DeleteDC(window_hdc);
 +  }
    if (!result) {
@@ -20713,7 +20914,7 @@ index 3600dd711ffdd..6d705c31a7027 100644
        sources += [
          "accessibility/views_ax_tree_manager.cc",
 diff --git a/ui/views/controls/combobox/combobox.cc b/ui/views/controls/combobox/combobox.cc
-index 43dbb0cbb9c04..323fedf58344d 100644
+index 43dbb0cbb9c04..d2064b10bacf8 100644
 --- a/ui/views/controls/combobox/combobox.cc
 +++ b/ui/views/controls/combobox/combobox.cc
 @@ -52,6 +52,10 @@
@@ -20731,19 +20932,20 @@ index 43dbb0cbb9c04..323fedf58344d 100644
  
    gfx::Rect text_bounds(x, y, text_width, contents_height);
    AdjustBoundsForRTLUI(&text_bounds);
+-  canvas->DrawStringRect(text, font_list, text_color, text_bounds);
 +  #if BUILDFLAG(IS_WIN)
 +  if (!gfx::win::IsDirectWriteEnabled())
 +	canvas->DrawStringRectWithFlags(text, font_list, text_color, text_bounds, gfx::Canvas::GDI_OFFSET_RENDERING);
 +  else
 +	canvas->DrawStringRect(text, font_list, text_color, text_bounds);
 +  #else
-   canvas->DrawStringRect(text, font_list, text_color, text_bounds);
++  canvas->DrawStringRect(text, font_list, text_color, text_bounds);  
 +  #endif
  
    // Draw the arrow.
    // TODO(crbug.com/1392549): Replace placeholder spacing and color values for
 diff --git a/ui/views/controls/label.cc b/ui/views/controls/label.cc
-index bee3e8a14eb85..16ef9ce056c3b 100644
+index bee3e8a14eb85..6b89de1b08600 100644
 --- a/ui/views/controls/label.cc
 +++ b/ui/views/controls/label.cc
 @@ -11,6 +11,7 @@
@@ -20773,10 +20975,10 @@ index bee3e8a14eb85..16ef9ce056c3b 100644
 +  #if BUILDFLAG(IS_WIN)
 +  if (!gfx::win::IsDirectWriteEnabled()) {
 +    if (text_context_ == style::CONTEXT_BUTTON || text_context_ == style::CONTEXT_LABEL ||
-+			text_context_ == style::CONTEXT_BUTTON_MD)
-+	  display_text_->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
++			text_context_ == style::CONTEXT_BUTTON_MD) 
++	  display_text_->SetVerticalAlignment(gfx::ALIGN_SPECIAL);  
 +    // The bookmark bar labels and some of the side text in the menus are CONTEXT_BUTTON.
-+	// The "new tab" labels are CONTEXT_LABEL.
++	// The "new tab" labels are CONTEXT_LABEL.  
 +	// Of note, some UI elements such as the placeholder text in the address bar were not being
 +	// having the proper offset applied so the few elements that do not require offsets are
 +	// singled out and the rest are given the 4px offset.
@@ -20786,7 +20988,7 @@ index bee3e8a14eb85..16ef9ce056c3b 100644
      display_text_->Draw(canvas);
  
 diff --git a/ui/views/controls/scrollbar/scroll_bar.cc b/ui/views/controls/scrollbar/scroll_bar.cc
-index 9ecb251570e68..f4fe1907fdcef 100644
+index 9ecb251570e68..fe190c3f1c8a9 100644
 --- a/ui/views/controls/scrollbar/scroll_bar.cc
 +++ b/ui/views/controls/scrollbar/scroll_bar.cc
 @@ -438,6 +438,11 @@ void ScrollBar::TrackClicked() {
@@ -20797,7 +20999,7 @@ index 9ecb251570e68..f4fe1907fdcef 100644
 +  // multiple tabs into separate windows.
 +  contents_size_ = std::max(1, contents_size_);
 +  viewport_size_ = std::max(1, viewport_size_);
-+
++  
    thumb_->SetPosition(CalculateThumbPosition(contents_scroll_offset_));
  }
  
@@ -20810,7 +21012,7 @@ index 9ecb251570e68..f4fe1907fdcef 100644
           (contents_size_ - viewport_size_);
  }
 diff --git a/ui/views/controls/textfield/textfield.cc b/ui/views/controls/textfield/textfield.cc
-index 81d64b019fce3..82b3cde1d081e 100644
+index 81d64b019fce3..c409b8cca8b55 100644
 --- a/ui/views/controls/textfield/textfield.cc
 +++ b/ui/views/controls/textfield/textfield.cc
 @@ -82,6 +82,7 @@
@@ -20828,7 +21030,7 @@ index 81d64b019fce3..82b3cde1d081e 100644
 -
 +  #if BUILDFLAG(IS_WIN)
 +  if (!gfx::win::IsDirectWriteEnabled()) {
-+	   GetRenderText()->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
++	   GetRenderText()->SetVerticalAlignment(gfx::ALIGN_SPECIAL);  
 +  }
 +  #endif
    bounds.set_x(GetMirroredXForRect(bounds));
@@ -20842,20 +21044,29 @@ index 81d64b019fce3..82b3cde1d081e 100644
    SchedulePaint();
    return true;
  }
-@@ -2703,6 +2709,13 @@ void Textfield::PaintTextAndCursor(gfx::Canvas* canvas) {
+@@ -2702,6 +2708,13 @@ void Textfield::PaintTextAndCursor(gfx::Canvas* canvas) {
+     int placeholder_text_draw_flags = placeholder_text_draw_flags_;
      if (SkColorGetA(GetBackgroundColor()) != SK_AlphaOPAQUE)
        placeholder_text_draw_flags |= gfx::Canvas::NO_SUBPIXEL_RENDERING;
- 
++ 
 +    #if BUILDFLAG(IS_WIN)
 +    if (!gfx::win::IsDirectWriteEnabled()) {
-+	   render_text->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
++	   render_text->SetVerticalAlignment(gfx::ALIGN_SPECIAL);  
 +	   placeholder_text_draw_flags |= gfx::Canvas::GDI_OFFSET_RENDERING;
 +    }
 +    #endif
-+
+ 
      canvas->DrawStringRectWithFlags(
          GetPlaceholderText(), placeholder_font_list_.value_or(GetFontList()),
-         placeholder_text_color_.value_or(
+@@ -2711,7 +2724,7 @@ void Textfield::PaintTextAndCursor(gfx::Canvas* canvas) {
+                 GetInvalid() ? style::STYLE_INVALID : style::STYLE_PRIMARY))),
+         render_text->display_rect(), placeholder_text_draw_flags);
+   }
+-
++  
+   // If drop cursor is active, draw |render_text| with its text selected.
+   const bool select_all = drop_cursor_visible_ && !IsDropCursorForInsertion();
+   render_text->Draw(canvas, select_all);
 diff --git a/ui/views/corewm/cursor_height_provider_win.cc b/ui/views/corewm/cursor_height_provider_win.cc
 new file mode 100644
 index 0000000000000..aed9fdce181db
@@ -21358,18 +21569,19 @@ index 0000000000000..8f131b8d1bf86
 +
 +#endif  // UI_VIEWS_COREWM_TOOLTIP_WIN_H_
 diff --git a/ui/views/views_features.cc b/ui/views/views_features.cc
-index e4314c4d46b43..ea5fd1688e907 100644
+index e4314c4d46b43..12520e2896afb 100644
 --- a/ui/views/views_features.cc
 +++ b/ui/views/views_features.cc
-@@ -42,4 +42,9 @@ BASE_FEATURE(kWidgetLayering,
+@@ -41,5 +41,10 @@ BASE_FEATURE(kKeyboardAccessibleTooltipInViews,
+ BASE_FEATURE(kWidgetLayering,
               "WidgetLayering",
               base::FEATURE_ENABLED_BY_DEFAULT);
- 
++			 
 +// When enabled, widgets inherit the theme from their parent widget.
 +BASE_FEATURE(kInheritNativeThemeFromParentWidget,
-+			 "InheritNativeThemeFromParentWidget",
++			 "InheritNativeThemeFromParentWidget", 
 +			 base::FEATURE_ENABLED_BY_DEFAULT);
-+
+ 
  }  // namespace views::features
 diff --git a/ui/views/views_features.h b/ui/views/views_features.h
 index 0e01068424722..622765401a806 100644
@@ -21534,7 +21746,7 @@ index 1ba89332791a7..79771ccb861e3 100644
    focusable_view->SetFocusBehavior(View::FocusBehavior::ALWAYS);
    WidgetAutoclosePtr widget(CreateTopLevelNativeWidget());
 diff --git a/ui/views/win/hwnd_message_handler.cc b/ui/views/win/hwnd_message_handler.cc
-index 36a6e980495ea..a499d9e470c26 100644
+index 36a6e980495ea..fbedc966b4929 100644
 --- a/ui/views/win/hwnd_message_handler.cc
 +++ b/ui/views/win/hwnd_message_handler.cc
 @@ -30,6 +30,8 @@
@@ -21571,7 +21783,7 @@ index 36a6e980495ea..a499d9e470c26 100644
  LRESULT HWNDMessageHandler::OnEraseBkgnd(HDC dc) {
    gfx::Insets insets;
 -  if (delegate_->GetDwmFrameInsetsInPixels(&insets) && !insets.IsEmpty() &&
-+  if (!ShouldCustomDrawSystemTitlebar() &&
++  if (!ShouldCustomDrawSystemTitlebar() && 
 +	  delegate_->GetDwmFrameInsetsInPixels(&insets) && !insets.IsEmpty() &&
        needs_dwm_frame_clear_) {
      // This is necessary to avoid white flashing in the titlebar area around the
@@ -21655,18 +21867,18 @@ index 36a6e980495ea..a499d9e470c26 100644
        POINT point;
        point.x = TOUCH_COORD_TO_PIXEL(input[i].x);
        point.y = TOUCH_COORD_TO_PIXEL(input[i].y);
-+
++	  
 +	  if (base::win::GetVersion() == base::win::Version::WIN7) {
 +		  // Windows 7 sends touch events for NC area touches but Win8+ do not.
 +		  // This code will be used to make Windows 7 ignore these touches as well.
-+
++		  
 +		  LPARAM l_param_ht = MAKELPARAM(point.x, point.y);
 +		  LRESULT hittest = SendMessage(hwnd(), WM_NCHITTEST, 0, l_param_ht);
-+
++		  
 +		  if (hittest != HTCLIENT)
 +			  return 0;
 +	  }
-+
++	  
        ScreenToClient(hwnd(), &point);
  
        last_touch_or_pen_message_time_ = ::GetMessageTime();
@@ -21745,7 +21957,7 @@ index fde18715e33ee..94dd1e636eb27 100644
    virtual void HandleMenuLoop(bool in_menu_loop) = 0;
  
 diff --git a/ui/views/win/pen_id_handler.cc b/ui/views/win/pen_id_handler.cc
-index 3327d96ad2970..34fd76937b5da 100644
+index 3327d96ad2970..12e86d8bd270f 100644
 --- a/ui/views/win/pen_id_handler.cc
 +++ b/ui/views/win/pen_id_handler.cc
 @@ -39,7 +39,15 @@ class PenIdStatics {
@@ -21760,7 +21972,7 @@ index 3327d96ad2970..34fd76937b5da 100644
 +	  pointer_point_statics_ = nullptr;
 +	  return;
 +    }
-+
++	
      base::win::AssertComInitialized();
      base::win::RoGetActivationFactory(
          base::win::HStringReference(

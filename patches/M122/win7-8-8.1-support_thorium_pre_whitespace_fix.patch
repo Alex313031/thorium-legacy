@@ -12,7 +12,7 @@ index 590f4c94f2067..4dc37ee4414cf 100644
 +The Supermium web browser also provides the following features:
  
 -The project's web site is https://www.chromium.org.
-+-Aero Glass and Aero Glass-style titlebars instead of Windows 10-style ones (#force-xp-theme in chrome://flags for the latter)
++-Aero Glass and Aero Glass-style titlebars instead of Windows 10-style ones (#disable-aero in chrome://flags for the latter)
  
 -To check out the source code locally, don't use `git clone`! Instead,
 -follow [the instructions on how to get the code](docs/get_the_code.md).
@@ -347,9 +347,9 @@ index 50cb76282689b..aa95b49ea67d0 100644
  
  BASE_FEATURE(kJsonNegativeZero, "JsonNegativeZero", FEATURE_ENABLED_BY_DEFAULT);
 +			 
-+BASE_FEATURE(kForceDarkModeFlag,
-+             "ForceDarkModeFlag",
-+             base::FEATURE_DISABLED_BY_DEFAULT);
++
++
++
 + 
 +BASE_FEATURE(kIncognitoBrandConsistencyForDesktop,
 +			"IncognitoBrandConsistencyForDesktop",
@@ -371,7 +371,7 @@ index a80ac17fb20d1..167b5467076f0 100644
  
  BASE_EXPORT BASE_DECLARE_FEATURE(kJsonNegativeZero);
  
-+BASE_EXPORT BASE_DECLARE_FEATURE(kForceDarkModeFlag);
++
 +
 +BASE_EXPORT BASE_DECLARE_FEATURE(kIncognitoBrandConsistencyForDesktop);
 +
@@ -1962,15 +1962,15 @@ index de3be2eec25cc..c5e828982d862 100644
          {"experimental V2", kCompressionDictionaryTransportBackendVersionV2,
           std::size(kCompressionDictionaryTransportBackendVersionV2), nullptr}};
 +		
-+const FeatureEntry::Choice kTabHoverCards[] = {
-+    {flags_ui::kGenericExperimentChoiceDefault, "", ""},
-+    {"None",
-+     "tab-hover-cards",
-+     "none"},
-+    {"Tooltip",
-+     "tab-hover-cards",
-+     "tooltip"},
-+};
++
++
++
++
++
++
++
++
++
 +
 +const FeatureEntry::Choice kBookmarkBarNewTab[] = {
 +    {flags_ui::kGenericExperimentChoiceDefault, "", ""},
@@ -2055,9 +2055,9 @@ index de3be2eec25cc..c5e828982d862 100644
       flag_descriptions::kEnableBuiltinHlsDescription, kOsAll,
       FEATURE_VALUE_TYPE(media::kBuiltInHlsPlayer)},
  #endif
-+	{"ungoogled-supermium",
-+	 flag_descriptions::kUngoogledSupermiumName, flag_descriptions::kUngoogledSupermiumDescription, 
-+	 kOsAll, SINGLE_VALUE_TYPE("ungoogled-supermium")},
++	{"ungoogled-thorium",
++	 flag_descriptions::kUngoogledThoriumName, flag_descriptions::kUngoogledThoriumDescription, 
++	 kOsAll, SINGLE_VALUE_TYPE("ungoogled-thorium")},
 +	{"disable-download-upload",
 +	 "Disable Safe Browsing for Downloads and Download Sample Uploads", "Disables prompts about unsafe or uncommon downloads, and "
 +												  "prevents samples of downloads from being sent to Google.", 
@@ -2069,30 +2069,29 @@ index de3be2eec25cc..c5e828982d862 100644
       FEATURE_VALUE_TYPE(syncer::kSyncShowIdentityErrorsForSignedInUsers)},
  #endif  // BUILDFLAG(IS_ANDROID)
  
-+    {"force-dark-mode",
-+	 flag_descriptions::kForceDarkModeFlagName, flag_descriptions::kForceDarkModeFlagDescription, kOsAll,
-+	 FEATURE_VALUE_TYPE(base::features::kForceDarkModeFlag)},
++
++
++
 +#if BUILDFLAG(IS_WIN)
 +	{"disable-windows-10-custom-titlebar",
 +	 flag_descriptions::kDisableWindows10CustomTitlebarName, flag_descriptions::kDisableWindows10CustomTitlebarDescription, kOsWin,
 +	 SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
-+	{"force-xp-theme",
-+	 flag_descriptions::kForceXpThemeName, flag_descriptions::kForceXpThemeDescription, kOsWin,
-+	 FEATURE_VALUE_TYPE(kForceXpTheme)},	 
++	{"disable-aero",
++	 flag_descriptions::kDisableAeroThemeName, flag_descriptions::kDisableAeroThemeDescription, kOsWin,
++	 FEATURE_VALUE_TYPE(kDisableAeroTheme)},	 
 +	{"force-gdi",
 +	 flag_descriptions::kForceGdiName, flag_descriptions::kForceGdiDescription, kOsWin,
 +	 SINGLE_VALUE_TYPE("disable-direct-write")},
 +#endif
 +    {"custom-tab-shapes",
-+     "Supermium Custom Tab UI",
-+     "Changes the look of browser tabs to appear with a trapezoidal shape.",
++     "Thorium Trapezoidal Tabs UI",
++     "Changes the look of browser tabs to appear with a trapezoidal shape, restoring the pre M72 tabstrip appearance.",
 +     kOsAll,
-+     FEATURE_VALUE_TYPE(features::kSupermiumCustomTabs)},
++     FEATURE_VALUE_TYPE(features::kThoriumCustomTabs)},
 +
-+    {"tab-hover-cards",
-+     "Tab Hover Cards",
-+     "Allows removing the tab hover cards or using a tooltip as a replacement. ungoogled-chromium flag.",
-+     kOsDesktop, MULTI_VALUE_TYPE(kTabHoverCards)},
++
++
++
 +    {"custom-ntp",
 +     "Custom New Tab Page",
 +     "Allows setting a custom URL for the new tab page. Value can be internal (e.g. `about:blank` or `chrome://new-tab-page`), external (e.g. `example.com`), or local (e.g. `file:///tmp/startpage.html`). This applies for incognito windows as well when not set to a `chrome://` internal page. ungoogled-chromium flag",
@@ -2225,6 +2224,7 @@ index de3be2eec25cc..c5e828982d862 100644
 +     "Show avatar/people/profile button in the browser toolbar. ungoogled-chromium flag.",
 +     kOsDesktop, MULTI_VALUE_TYPE(kShowAvatarButtonChoices)}
 +	// TODO: move all Supermium-specific flags to new source file.
++
 +
      // NOTE: Adding a new flag requires adding a corresponding entry to enum
      // "LoginCustomFlags" in tools/metrics/histograms/enums.xml. See "Flag
@@ -2586,7 +2586,7 @@ index 201cd68c5175c..59907c1658642 100644
      download::DownloadItem* item,
      download::DownloadDangerType danger_type) const {
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload) ||
-+		base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kUngoogledSupermium))	{
++		base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kUngoogledThorium))	{
 +	  return false;
 +  }
    // Chrome-initiated background downloads should not be blocked.
@@ -3051,7 +3051,7 @@ index d70932e1ad965..d1cb63292d160 100644
    },
 +  {
 +    "name": "disable-windows-10-custom-titlebar",
-+    "owners": [ "win32", "supermium" ],
++    "owners": [ "win32ss", "alex313031" ],
 +    "expiry_milestone": -1
 +  },
    {
@@ -3062,8 +3062,8 @@ index d70932e1ad965..d1cb63292d160 100644
      "expiry_milestone": -1
    },
 +  {
-+    "name": "force-xp-theme",
-+    "owners": [ "win32", "supermium" ],
++    "name": "disable-aero",
++    "owners": [ "win32ss", "alex313031" ],
 +    "expiry_milestone": -1
 +  },
    {
@@ -3110,7 +3110,7 @@ index a0af02d2a73eb..31e92aa0fc8b7 100644
    "force-text-direction",
    "force-ui-direction",
    "force-update-menu-type",
-+  "force-xp-theme",
++  "disable-aero",
    "fullscreen-promos-manager-skip-internal-limits",
    "fullscreen-viewport-adjustment-experiment",
    "gesture-properties-dbus-service",
@@ -3118,7 +3118,7 @@ index a0af02d2a73eb..31e92aa0fc8b7 100644
    "ui-debug-tools",
    "ui-disable-partial-swap",
    "ui-slow-animations",
-+  "ungoogled-supermium",
++  "ungoogled-thorium",
    "unsafely-treat-insecure-origin-as-secure",
    "update-menu-item-custom-summary",
    "use-android-staging-smds",
@@ -3153,9 +3153,9 @@ index 8385c597f050e..91863d7248b7a 100644
 +const char kForceGdiDescription[] =
 +    "Use GDI font rendering in place of DirectWrite font rendering on Windows.";
 +
-+const char kDisableWindows10CustomTitlebarName[] = "Force disabling of Windows 10 custom titlebar";
++const char kDisableWindows10CustomTitlebarName[] = "Force disable Windows 10 custom titlebar";
 +const char kDisableWindows10CustomTitlebarDescription[] =
-+    "Disable the \"Windows 10\" custom titlebar to take advantage of Aero Glass fixes for the operating system.";
++    "Disable the \"Windows 10\" custom titlebar to take advantage of Aero Glass fixes for Windows 7.";
 +
  const char kForceUiDirectionName[] = "Force UI direction";
  const char kForceUiDirectionDescription[] =
@@ -3165,9 +3165,9 @@ index 8385c597f050e..91863d7248b7a 100644
      "When enabled, media metadata will be hidden from your OS' media player "
      "if you are in an Incognito session.";
 +	
-+const char kUngoogledSupermiumName[] = "\"Ungoogled\" Supermium Mode";
-+const char kUngoogledSupermiumDescription[] = "A work in progress - this rolls all new privacy-protecting "
-+											"features in Supermium into one option";
++const char kUngoogledThoriumName[] = "\"Ungoogled\" Thorium Mode";
++const char kUngoogledThoriumDescription[] = "A work in progress - this rolls all new privacy-protecting "
++											"features in Thorium into one option";
  
  const char kTabAudioMutingName[] = "Tab audio muting UI control";
  const char kTabAudioMutingDescription[] =
@@ -3175,15 +3175,15 @@ index 8385c597f050e..91863d7248b7a 100644
  const char kAutoWebContentsDarkModeName[] = "Auto Dark Mode for Web Contents";
  const char kAutoWebContentsDarkModeDescription[] =
      "Automatically render all web contents using a dark theme.";
-+	
-+const char kForceDarkModeFlagName[] = "Forced Dark Mode for UI";
-+const char kForceDarkModeFlagDescription[] = 
-+	"Enables dark mode for all UI elements (but not web contents - " 
-+	"enable #enable-force-dark for darkening web contents).";
-+	
-+const char kForceXpThemeName[] = "Use Classic Theme";
-+const char kForceXpThemeDescription[] =
-+	"Use the classic Chrome theme designed to mimick \"Aero\" window controls. "
++
++
++
++
++
++
++const char kDisableAeroThemeName[] = "Use Classic Theme: Disable Aero Window Frame Compositing";
++const char kDisableAeroThemeDescription[] =
++	"Use the classic Chromium theme designed to mimick \"Aero\" window controls. "
 +	"Typically used when desktop composition is disabled or unavailable.";
  
  const char kForcedColorsName[] = "Forced Colors";
@@ -3199,8 +3199,8 @@ index a023e473a3c31..c84be067714a6 100644
 +extern const char kDisableDownloadUploadName[];
 +extern const char kDisableDownloadUploadDescription[];
 +
-+extern const char kUngoogledSupermiumName[];
-+extern const char kUngoogledSupermiumDescription[];
++extern const char kUngoogledThoriumName[];
++extern const char kUngoogledThoriumDescription[];
 +
 +extern const char kForceGdiName[];
 +extern const char kForceGdiDescription[];
@@ -3215,11 +3215,11 @@ index a023e473a3c31..c84be067714a6 100644
  extern const char kAutoWebContentsDarkModeName[];
  extern const char kAutoWebContentsDarkModeDescription[];
  
-+extern const char kForceDarkModeFlagName[];
-+extern const char kForceDarkModeFlagDescription[];
 +
-+extern const char kForceXpThemeName[];
-+extern const char kForceXpThemeDescription[];
++
++
++extern const char kDisableAeroThemeName[];
++extern const char kDisableAeroThemeDescription[];
 +
  extern const char kForcedColorsName[];
  extern const char kForcedColorsDescription[];
@@ -3255,7 +3255,7 @@ diff --git a/chrome/browser/notifications/notification_platform_bridge_win.cc b/
 index 7e03b25b999fc..f1a2d52f28f50 100644
 --- a/chrome/browser/notifications/notification_platform_bridge_win.cc
 +++ b/chrome/browser/notifications/notification_platform_bridge_win.cc
-@@ -775,7 +775,7 @@ class NotificationPlatformBridgeWinImpl
+@@ -714,7 +714,7 @@ class NotificationPlatformBridgeWinImpl
          InstallUtil::IsStartMenuShortcutWithActivatorGuidInstalled();
  
      int status = static_cast<int>(SetReadyCallbackStatus::kSuccess);
@@ -3264,7 +3264,7 @@ index 7e03b25b999fc..f1a2d52f28f50 100644
  
      if (!enabled) {
        if (!shortcut_installed) {
-@@ -786,6 +786,8 @@ class NotificationPlatformBridgeWinImpl
+@@ -725,6 +725,8 @@ class NotificationPlatformBridgeWinImpl
          status |= static_cast<int>(
              SetReadyCallbackStatus::kComServerMisconfiguration);
        }
@@ -3277,7 +3277,7 @@ diff --git a/chrome/browser/notifications/win/notification_metrics.h b/chrome/br
 index 7332d8bf3fa45..8d8fc295ba4ac 100644
 --- a/chrome/browser/notifications/win/notification_metrics.h
 +++ b/chrome/browser/notifications/win/notification_metrics.h
-@@ -139,8 +139,8 @@ enum class SetReadyCallbackStatus {
+@@ -137,8 +137,8 @@ enum class SetReadyCallbackStatus {
    kSuccess = 0,
    kShortcutMisconfiguration = 1 << 0,
    kComServerMisconfiguration = 1 << 1,
@@ -4832,49 +4832,6 @@ index 095e3d1c69a43..056ca4f356875 100644
    // Returns a cross platform image for an id.
    gfx::Image GetImageNamed(int id,
                             bool incognito,
-diff --git a/chrome/browser/themes/theme_helper_win.cc b/chrome/browser/themes/theme_helper_win.cc
-index 259668e16470f..aef2186c2dee7 100644
---- a/chrome/browser/themes/theme_helper_win.cc
-+++ b/chrome/browser/themes/theme_helper_win.cc
-@@ -8,6 +8,11 @@
- #include "chrome/browser/themes/theme_properties.h"
- #include "chrome/browser/win/titlebar_config.h"
- #include "chrome/grit/theme_resources.h"
-+#include "base/win/windows_version.h"
-+
-+BASE_FEATURE(kForceXpTheme,
-+             "ForceXpTheme",
-+             base::FEATURE_DISABLED_BY_DEFAULT);
- 
- int ThemeHelperWin::GetDefaultDisplayProperty(int id) const {
-   if (id == ThemeProperties::SHOULD_FILL_BACKGROUND_TAB_COLOR) {
-@@ -19,5 +24,10 @@ int ThemeHelperWin::GetDefaultDisplayProperty(int id) const {
- 
- bool ThemeHelperWin::ShouldUseNativeFrame(
-     const CustomThemeSupplier* theme_supplier) const {
--  return true;
-+		// If it returns false, the XP fallback theme is used.
-+		// And yes, Chromium has muddied the waters of what is considered "native".
-+		// Aero Glass is "native", Mica is "native", and so is the Windows 10-style theme that is drawn
-+		// by Chromium itself.
-+		// Only the "original" Chromium theme that mimicks Aero is not considered native.
-+  return (!HasCustomImage(IDR_THEME_FRAME, theme_supplier) && (base::win::GetVersion() >= base::win::Version::VISTA)) && !base::FeatureList::IsEnabled(kForceXpTheme);
- }
-diff --git a/chrome/browser/themes/theme_properties.cc b/chrome/browser/themes/theme_properties.cc
-index afeeddccbb9e4..d20c44473831d 100644
---- a/chrome/browser/themes/theme_properties.cc
-+++ b/chrome/browser/themes/theme_properties.cc
-@@ -259,8 +259,8 @@ color_utils::HSL ThemeProperties::GetDefaultTint(int id,
-       return {-1, 0.54, 0.567};  // Roughly kGoogleGrey900 -> kGoogleGrey800
- 
-     if (incognito)
--      return {0.57, 0.65, 0.1405};  // #DEE1E6 -> kGoogleGrey800
--    return {-1, -1, 0.642};         // #DEE1E6 -> #E7EAED
-+      return {0.57, 0.65, 0.87};  // #DEE1E6 -> kGoogleGrey800
-+    return {-1, -1, 0.75};         // #DEE1E6 -> #E7EAED
-   }
- 
-   return {-1, -1, -1};
 diff --git a/chrome/browser/themes/theme_service.cc b/chrome/browser/themes/theme_service.cc
 index ae7735b2bee81..fc84a77bd4a99 100644
 --- a/chrome/browser/themes/theme_service.cc
@@ -5374,7 +5331,7 @@ index aa9cd30374311..2c3e0a11b0284 100644
  
  gfx::Size GM2TabStyle::GetSeparatorSize() const {
 -  return gfx::Size(kGM2SeparatorThickness,
-+  if (!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs)) {
++  if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
 +	  if(base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
 +		  return gfx::Size(kGM2SeparatorThickness,
 +                   GetLayoutConstant(TAB_SEPARATOR_HEIGHT) * 0.6);
@@ -5446,29 +5403,6 @@ index aa9cd30374311..2c3e0a11b0284 100644
  }
  
  gfx::Size ChromeRefresh2023TabStyle::GetSeparatorSize() const {
-diff --git a/chrome/browser/ui/test/test_browser_ui.cc b/chrome/browser/ui/test/test_browser_ui.cc
-index 2f61aef15bbf8..2b49f57680e6f 100644
---- a/chrome/browser/ui/test/test_browser_ui.cc
-+++ b/chrome/browser/ui/test/test_browser_ui.cc
-@@ -5,6 +5,7 @@
- #include "chrome/browser/ui/test/test_browser_ui.h"
- 
- #include "base/command_line.h"
-+#include "base/features.h"
- #include "base/test/gtest_util.h"
- #include "base/test/test_switches.h"
- #include "build/build_config.h"
-@@ -159,8 +160,8 @@ void TestBrowserUi::ShowAndVerifyUi() {
-   // Gold files for pixel tests are for light mode, so if dark mode is not
-   // forced, and host is in dark mode, skip test.
-   if (!IsInteractiveUi() &&
--      !base::CommandLine::ForCurrentProcess()->HasSwitch(
--          switches::kForceDarkMode) &&
-+      (!base::CommandLine::ForCurrentProcess()->HasSwitch(
-+          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag) &&
-       ui::NativeTheme::GetInstanceForNativeUi()->ShouldUseDarkColors()) {
-     GTEST_SKIP() << "Host is in dark mode; skipping test";
-   }
 diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
 index a5621a1406701..a89093804ccfc 100644
 --- a/chrome/browser/ui/ui_features.cc
@@ -6805,9 +6739,9 @@ index 9e77662e57e76..887244ca27f71 100644
  void NewTabButton::AddLayerToRegion(ui::Layer* new_layer,
                                      views::LayerRegion region) {
 -  ink_drop_container_->AddLayerToRegion(new_layer, region);
-+	if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++	if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +			!base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default")) ||
-+			(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++			(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +			base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) {    
 +	}
 +	else
@@ -6816,9 +6750,9 @@ index 9e77662e57e76..887244ca27f71 100644
  
  void NewTabButton::RemoveLayerFromRegions(ui::Layer* old_layer) {
 -  ink_drop_container_->RemoveLayerFromRegions(old_layer);
-+	if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++	if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +		!base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default")) ||
-+		(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++		(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +		base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) { 
 +	}
 +	else
@@ -6841,9 +6775,9 @@ index 9e77662e57e76..887244ca27f71 100644
 -  } else {
 -    path.addCircle(origin.x() + radius, origin.y() + radius, radius);
 -  }
-+  if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++  if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +	    base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default")) ||
-+		(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++		(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +	    !base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) {  
 +	  if (extend_to_top) {
 +		path.moveTo(origin.x(), 0);
@@ -6879,9 +6813,9 @@ index 9e77662e57e76..887244ca27f71 100644
  void NewTabButton::PaintButtonContents(gfx::Canvas* canvas) {
    PaintFill(canvas);
 -  PaintIcon(canvas);
-+  if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++  if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +	    base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default")) ||
-+		(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++		(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +	    !base::CommandLine::ForCurrentProcess()->HasSwitch("override-new-tab-button-shape-default"))) {
 +	PaintIcon(canvas);
 +  }
@@ -6896,9 +6830,9 @@ index 9e77662e57e76..887244ca27f71 100644
 -        GetWidget()->ShouldPaintAsActive()
 -            ? background_frame_active_color_id_
 -            : background_frame_inactive_color_id_));
-+	if(((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++	if(((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +			!base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default")) ||
-+			(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++			(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +			base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default"))) && 
 +			GetState() == STATE_HOVERED) {
 +		flags.setColor(SkColorSetRGB(90, 90, 90));
@@ -6911,9 +6845,9 @@ index 9e77662e57e76..887244ca27f71 100644
 +    if (base::CommandLine::ForCurrentProcess()->HasSwitch("transparent-tabs"))
 +		flags.setAlphaf(0.7f);
      canvas->DrawPath(GetBorderPath(gfx::Point(), false), flags);
-+	if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++	if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +			!base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default")) ||
-+			(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++			(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +			base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default"))) {
 +	flags.setAlphaf(1.0f);
 +	flags.setColor(SkColorSetRGB(0, 0, 0));
@@ -6968,27 +6902,6 @@ index 7b2f9ecb903b2..1e2a746faf3a4 100644
      if (showing_close_button_) {
        available_width -= close_button_width;
      }
-diff --git a/chrome/browser/ui/views/tabs/tab_strip.cc b/chrome/browser/ui/views/tabs/tab_strip.cc
-index 87f6543bb0da0..a03097a466fc4 100644
---- a/chrome/browser/ui/views/tabs/tab_strip.cc
-+++ b/chrome/browser/ui/views/tabs/tab_strip.cc
-@@ -15,6 +15,7 @@
- #include <vector>
- 
- #include "base/compiler_specific.h"
-+#include "base/command_line.h"
- #include "base/containers/adapters.h"
- #include "base/containers/contains.h"
- #include "base/containers/flat_map.h"
-@@ -1762,6 +1763,8 @@ void TabStrip::OnMouseEventInTab(views::View* source,
- }
- 
- void TabStrip::UpdateHoverCard(Tab* tab, HoverCardUpdateType update_type) {
-+  if (base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("tab-hover-cards") == "tooltip" ||
-+      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("tab-hover-cards") == "none") return;
-   tab_container_->UpdateHoverCard(tab, update_type);
- }
- 
 diff --git a/chrome/browser/ui/views/tabs/tab_style_views.cc b/chrome/browser/ui/views/tabs/tab_style_views.cc
 index 33c62c24cc521..8a8aa36abadd9 100644
 --- a/chrome/browser/ui/views/tabs/tab_style_views.cc
@@ -7044,7 +6957,7 @@ index 33c62c24cc521..8a8aa36abadd9 100644
 -                 SkPath::kSmall_ArcSize, SkPathDirection::kCW,
 -                 tab_left + content_corner_radius, tab_top);
 +    
-+    if (!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs)) {
++    if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
 +		path.moveTo(left, extended_bottom);
 +		if (tab_left != left) {
 +		  // Draw the left edge of the extension.
@@ -7214,9 +7127,9 @@ index 33c62c24cc521..8a8aa36abadd9 100644
 +		flags.setAlphaf(0.7f);
      canvas->DrawRect(gfx::ScaleToEnclosingRect(tab_->GetLocalBounds(), scale),
                       flags);
-+	if ((base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++	if ((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +	    !base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default")) ||
-+		(!base::FeatureList::IsEnabled(features::kSupermiumCustomTabs) && 
++		(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) && 
 +	    base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default"))) {
 +	flags.setAlphaf(1.0f);
 +	flags.setColor(SkColorSetRGB(0, 0, 0));
@@ -7498,7 +7411,7 @@ index 48f413792d5aa..596d9ad041c21 100644
  class BrowserView;
  
  BASE_DECLARE_FEATURE(kWindows11MicaTitlebar);
-+BASE_DECLARE_FEATURE(kForceXpTheme);
++BASE_DECLARE_FEATURE(kDisableAeroTheme);
  
  // Returns whether we should custom draw the titlebar for a browser window.
  bool ShouldBrowserCustomDrawTitlebar(BrowserView* browser_view);
@@ -7736,19 +7649,6 @@ index 9070b9d93a6f0..687042ec330c7 100644
  //------------------------------------------------------------------------------
  // Import Address Table hooking support
  //------------------------------------------------------------------------------
-diff --git a/chrome/common/chrome_constants.cc b/chrome/common/chrome_constants.cc
-index 064cb8fef1f1b..290f0d3a86d82 100644
---- a/chrome/common/chrome_constants.cc
-+++ b/chrome/common/chrome_constants.cc
-@@ -16,7 +16,7 @@
- #elif BUILDFLAG(GOOGLE_CHROME_FOR_TESTING_BRANDING)
- #define PRODUCT_STRING "Google Chrome for Testing"
- #elif BUILDFLAG(CHROMIUM_BRANDING)
--#define PRODUCT_STRING "Chromium"
-+#define PRODUCT_STRING "Supermium"
- #else
- #error Unknown branding
- #endif
 diff --git a/chrome/common/chrome_switches.cc b/chrome/common/chrome_switches.cc
 index 356739e4e088a..30895836c3b8a 100644
 --- a/chrome/common/chrome_switches.cc
@@ -7759,7 +7659,7 @@ index 356739e4e088a..30895836c3b8a 100644
  
 +const char kDisableDownloadUpload[] = "disable-download-upload";
 +
-+const char kUngoogledSupermium[] = "ungoogled-supermium";
++const char kUngoogledThorium[] = "ungoogled-thorium";
 +
  #if BUILDFLAG(IS_WIN)
 +// Disables custom-drawing the window titlebar on Windows 10.
@@ -7778,47 +7678,13 @@ index 96ce2223297a2..02e9da6efd1ea 100644
  #endif  // BUILDFLAG(IS_MAC)
  
 +extern const char kDisableDownloadUpload[];
-+extern const char kUngoogledSupermium[];
++extern const char kUngoogledThorium[];
 +
  #if BUILDFLAG(IS_WIN)
 +extern const char kDisableWindows10CustomTitlebar[];
  extern const char kEnableProfileShortcutManager[];
  extern const char kFromInstaller[];
  extern const char kHideIcons[];
-diff --git a/chrome/install_static/chromium_install_modes.cc b/chrome/install_static/chromium_install_modes.cc
-index 3b547d0236cdb..ec98f2a3e4577 100644
---- a/chrome/install_static/chromium_install_modes.cc
-+++ b/chrome/install_static/chromium_install_modes.cc
-@@ -16,7 +16,7 @@ namespace install_static {
- 
- const wchar_t kCompanyPathName[] = L"";
- 
--const wchar_t kProductPathName[] = L"Chromium";
-+const wchar_t kProductPathName[] = L"Supermium";
- 
- const size_t kProductPathNameLength = _countof(kProductPathName) - 1;
- 
-@@ -34,14 +34,14 @@ const InstallConstants kInstallModes[] = {
-         .logo_suffix = L"",  // No logo suffix for the primary install mode.
-         .app_guid =
-             L"",  // Empty app_guid since no integration with Google Update.
--        .base_app_name = L"Chromium",              // A distinct base_app_name.
--        .base_app_id = L"Chromium",                // A distinct base_app_id.
--        .browser_prog_id_prefix = L"ChromiumHTM",  // Browser ProgID prefix.
-+        .base_app_name = L"Supemium",              // A distinct base_app_name.
-+        .base_app_id = L"Supemium",                // A distinct base_app_id.
-+        .browser_prog_id_prefix = L"SupemiumHTM",  // Browser ProgID prefix.
-         .browser_prog_id_description =
--            L"Chromium HTML Document",         // Browser ProgID description.
--        .pdf_prog_id_prefix = L"ChromiumPDF",  // PDF ProgID prefix.
-+            L"Supermium HTML Document",         // Browser ProgID description.
-+        .pdf_prog_id_prefix = L"SupermiumPDF",  // PDF ProgID prefix.
-         .pdf_prog_id_description =
--            L"Chromium PDF Document",  // PDF ProgID description.
-+            L"Supermium PDF Document",  // PDF ProgID description.
-         .active_setup_guid =
-             L"{7D2B3E1D-D096-4594-9D8F-A6667F12E0AC}",  // Active Setup GUID.
-         .legacy_command_execute_clsid =
 diff --git a/chrome/installer/setup/install.cc b/chrome/installer/setup/install.cc
 index 26d3bab930e68..c14608e55811c 100644
 --- a/chrome/installer/setup/install.cc
@@ -11860,7 +11726,7 @@ diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content
 index b656054d342f5..1fe6db41ba459 100644
 --- a/content/browser/renderer_host/render_process_host_impl.cc
 +++ b/content/browser/renderer_host/render_process_host_impl.cc
-@@ -3569,7 +3569,9 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+@@ -3578,7 +3578,9 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
      switches::kRendererWaitForJavaDebugger,
  #endif
  #if BUILDFLAG(IS_WIN)
@@ -12609,15 +12475,6 @@ index 3e0b86f6834c5..3762ae6ac5267 100644
  std::unique_ptr<WebContentsViewDelegate>
  ShellContentBrowserClient::GetWebContentsViewDelegate(
      WebContents* web_contents) {
-@@ -542,7 +547,7 @@ void ShellContentBrowserClient::OverrideWebkitPrefs(
-     WebContents* web_contents,
-     blink::web_pref::WebPreferences* prefs) {
-   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
--          switches::kForceDarkMode)) {
-+          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag)) {
-     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kDark;
-   } else {
-     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kLight;
 diff --git a/content/shell/browser/shell_content_browser_client.h b/content/shell/browser/shell_content_browser_client.h
 index 83253e9feb3eb..fc91dcc11ae5f 100644
 --- a/content/shell/browser/shell_content_browser_client.h
@@ -12663,27 +12520,6 @@ index e5c7230ffcaad..3906ff44e64a6 100644
  
   private:
    std::vector<FakeFont> fonts_;
-diff --git a/content/web_test/browser/web_test_control_host.cc b/content/web_test/browser/web_test_control_host.cc
-index 5b66607001fd5..e0e6e87d9affa 100644
---- a/content/web_test/browser/web_test_control_host.cc
-+++ b/content/web_test/browser/web_test_control_host.cc
-@@ -19,6 +19,7 @@
- #include "base/barrier_closure.h"
- #include "base/base64.h"
- #include "base/command_line.h"
-+#include "base/features.h"
- #include "base/containers/contains.h"
- #include "base/functional/bind.h"
- #include "base/functional/callback.h"
-@@ -788,7 +789,7 @@ void WebTestControlHost::OverrideWebkitPrefs(
-     ApplyWebTestDefaultPreferences(prefs);
-   }
-   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
--          switches::kForceDarkMode)) {
-+          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag)) {
-     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kDark;
-   } else {
-     prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kLight;
 diff --git a/crypto/unexportable_key_win.cc b/crypto/unexportable_key_win.cc
 index 7e39e10de7be3..069c6928476a6 100644
 --- a/crypto/unexportable_key_win.cc
@@ -12810,7 +12646,7 @@ index 6eadc1f036521..8b3a5b64761c0 100644
 +++ b/docs/README.md
 @@ -1,20 +1,33 @@
 -# Chromium docs
-+# Supermium - an up-to-date, open-source browser for legacy Windows users
++# Supermium + Thorium - an up-to-date, open-source browser for legacy Windows users
  
 -This directory contains [chromium project](https://www.chromium.org/Home/)
 -documentation in [Gitiles-flavored Markdown]. It is automatically
@@ -19542,8 +19378,8 @@ index 152122c117cdd..8832e0fccbf2d 100644
               "BubbleMetricsApi",
               base::FEATURE_DISABLED_BY_DEFAULT);
 +			 
-+BASE_FEATURE(kSupermiumCustomTabs,
-+             "SupermiumCustomTabs",
++BASE_FEATURE(kThoriumCustomTabs,
++             "ThoriumCustomTabs",
 +             base::FEATURE_DISABLED_BY_DEFAULT);
  
  #if BUILDFLAG(IS_MAC)
@@ -19573,7 +19409,7 @@ index 67f99842c04e5..f4e851550102d 100644
  BASE_DECLARE_FEATURE(kBubbleMetricsApi);
  
 +// Enables customization of the shape of the browser tabs.
-+COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kSupermiumCustomTabs);
++COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kThoriumCustomTabs);
 +
  #if BUILDFLAG(IS_MAC)
  COMPONENT_EXPORT(UI_BASE_FEATURES)
@@ -20099,27 +19935,6 @@ index 2c27d56f29eaa..9c314a5185c7f 100644
 +  // Return default CaptionStyle for pre Win10 versions since system settings
 +  // don't allow caption styling.
    return absl::nullopt;
- }
- 
-diff --git a/ui/native_theme/native_theme.cc b/ui/native_theme/native_theme.cc
-index 17c3b9f659a3b..5beb81eafe785 100644
---- a/ui/native_theme/native_theme.cc
-+++ b/ui/native_theme/native_theme.cc
-@@ -7,6 +7,7 @@
- #include <cstring>
- 
- #include "base/command_line.h"
-+#include "base/features.h"
- #include "base/containers/fixed_flat_map.h"
- #include "base/functional/bind.h"
- #include "base/logging.h"
-@@ -249,7 +250,7 @@ void NativeTheme::SetPreferredContrast(
- bool NativeTheme::IsForcedDarkMode() {
-   static bool kIsForcedDarkMode =
-       base::CommandLine::ForCurrentProcess()->HasSwitch(
--          switches::kForceDarkMode);
-+          switches::kForceDarkMode) || base::FeatureList::IsEnabled(base::features::kForceDarkModeFlag);
-   return kIsForcedDarkMode;
  }
  
 diff --git a/ui/native_theme/native_theme_win.cc b/ui/native_theme/native_theme_win.cc
