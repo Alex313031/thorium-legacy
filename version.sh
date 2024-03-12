@@ -36,7 +36,7 @@ else
     export CR_SRC_DIR
 fi
 
-THOR_VER="122.0.6261.127"
+THOR_VER="122.0.6261.132"
 
 export THOR_VER &&
 
@@ -84,7 +84,7 @@ python3 tools/update_pgo_profiles.py --target=win32 update --gs-url-base=chromiu
 
 printf "\n" &&
 
-printf "${YEL}Downloading PGO Profile for V8 (when v8_enable_builtins_optimization = true)\n" &&
+printf "${YEL}Downloading PGO Profile for V8 (for when v8_enable_builtins_optimization = true)\n" &&
 printf "\n" &&
 tput sgr0 &&
 
