@@ -18,7 +18,7 @@ try() { "$@" || die "${RED}Failed $*"; }
 # --help
 displayHelp () {
 	printf "\n" &&
-	printf "${bold}${YEL}Script to check out Chromium tag of current Thorium version.${c0}\n" &&
+	printf "${bold}${YEL}Script to check out Chromium tag of current Thorium-Win7 version.${c0}\n" &&
 	printf "\n"
 	printf "${RED}NOTE: You may need to run ${c0}${bold}./trunk.sh ${RED}before using this script!${c0}\n" &&
 	printf "\n"
@@ -61,10 +61,9 @@ cp -v thorium-libjxl/src/DEPS ${CR_SRC_DIR}/ &&
 cd ${CR_SRC_DIR} &&
 
 git clean -ffd &&
+git clean -ffd &&
 
 gclient sync --with_branch_heads --with_tags -f -R -D &&
-
-git clean -ffd &&
 
 gclient runhooks &&
 
