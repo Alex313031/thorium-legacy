@@ -1831,7 +1831,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 index de3be2eec25cc..dd0e76f790ca5 100644
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -3776,6 +3777,63 @@ const FeatureEntry::FeatureVariation
+@@ -3777,6 +3777,63 @@ const FeatureEntry::FeatureVariation
          {"experimental V2", kCompressionDictionaryTransportBackendVersionV2,
           std::size(kCompressionDictionaryTransportBackendVersionV2), nullptr}};
  
@@ -1895,7 +1895,7 @@ index de3be2eec25cc..dd0e76f790ca5 100644
  // RECORDING USER METRICS FOR FLAGS:
  // -----------------------------------------------------------------------------
  // The first line of the entry is the internal name.
-@@ -6153,6 +6211,18 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -6153,6 +6213,18 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kMemlogStackModeDescription, kOsAll,
       MULTI_VALUE_TYPE(kMemlogStackModeChoices)},
  
@@ -1914,7 +1914,7 @@ index de3be2eec25cc..dd0e76f790ca5 100644
      {"omnibox-max-zero-suggest-matches",
       flag_descriptions::kOmniboxMaxZeroSuggestMatchesName,
       flag_descriptions::kOmniboxMaxZeroSuggestMatchesDescription,
-@@ -6975,10 +7045,6 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -6975,10 +7047,6 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kEnableWindowsGamingInputDataFetcherName,
       flag_descriptions::kEnableWindowsGamingInputDataFetcherDescription, kOsWin,
       FEATURE_VALUE_TYPE(features::kEnableWindowsGamingInputDataFetcher)},
@@ -1925,7 +1925,7 @@ index de3be2eec25cc..dd0e76f790ca5 100644
  #endif
  
  #if BUILDFLAG(IS_ANDROID)
-@@ -10715,6 +10781,13 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -10715,6 +10789,13 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kEnableBuiltinHlsDescription, kOsAll,
       FEATURE_VALUE_TYPE(media::kBuiltInHlsPlayer)},
  #endif
@@ -1939,7 +1939,7 @@ index de3be2eec25cc..dd0e76f790ca5 100644
  
  #if !BUILDFLAG(IS_CHROMEOS_ASH)
      {"profiles-reordering", flag_descriptions::kProfilesReorderingName,
-@@ -11158,6 +11231,163 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -11158,6 +11239,163 @@ const FeatureEntry kFeatureEntries[] = {
       FEATURE_VALUE_TYPE(syncer::kSyncShowIdentityErrorsForSignedInUsers)},
  #endif  // BUILDFLAG(IS_ANDROID)
  
@@ -2279,127 +2279,6 @@ index 1d9342a94ad70..c12ef488478df 100644
    ComPtr<IUserConsentVerifierStatics> factory;
    HRESULT hr = base::win::GetActivationFactory<
        IUserConsentVerifierStatics,
-diff --git a/chrome/browser/download/bubble/download_bubble_prefs.cc b/chrome/browser/download/bubble/download_bubble_prefs.cc
-index 7c5414de30926..0730e36567cca 100644
---- a/chrome/browser/download/bubble/download_bubble_prefs.cc
-+++ b/chrome/browser/download/bubble/download_bubble_prefs.cc
-@@ -15,13 +15,13 @@
- 
- namespace download {
- 
--bool IsDownloadBubbleEnabled() {
-+bool IsDownloadBubbleEnabled(Profile* profile) {
- // Download bubble won't replace the old download notification in
- // Ash. See https://crbug.com/1323505.
- #if BUILDFLAG(IS_CHROMEOS_ASH)
-   return false;
- #else
--  return true;
-+  return base::FeatureList::IsEnabled(safe_browsing::kDownloadBubble);
- #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
- }
- 
-diff --git a/chrome/browser/download/bubble/download_bubble_prefs.h b/chrome/browser/download/bubble/download_bubble_prefs.h
-index 5ac863183a3ab..887ca94e6ab31 100644
---- a/chrome/browser/download/bubble/download_bubble_prefs.h
-+++ b/chrome/browser/download/bubble/download_bubble_prefs.h
-@@ -10,7 +10,8 @@
- namespace download {
- 
- // Called when deciding whether to show the bubble or the old download shelf UI.
--bool IsDownloadBubbleEnabled();
-+// TODO(chlily): Remove unused profile arg.
-+bool IsDownloadBubbleEnabled(Profile* profile);
- 
- // Called when deciding whether to show or hide the bubble.
- bool ShouldShowDownloadBubble(Profile* profile);
-diff --git a/chrome/browser/download/bubble/download_bubble_prefs_unittest.cc b/chrome/browser/download/bubble/download_bubble_prefs_unittest.cc
-index 177edb3f14861..fa0e602998a4e 100644
---- a/chrome/browser/download/bubble/download_bubble_prefs_unittest.cc
-+++ b/chrome/browser/download/bubble/download_bubble_prefs_unittest.cc
-@@ -18,6 +18,7 @@
- #include "chrome/test/base/testing_profile_manager.h"
- #include "components/enterprise/common/proto/connectors.pb.h"
- #include "components/prefs/pref_service.h"
-+#include "components/safe_browsing/core/common/features.h"
- #include "components/safe_browsing/core/common/safe_browsing_prefs.h"
- #include "components/sync_preferences/testing_pref_service_syncable.h"
- #include "content/public/test/browser_task_environment.h"
-@@ -71,18 +72,28 @@ class DownloadBubblePrefsTest : public testing::Test {
-   raw_ptr<TestingProfile, DanglingUntriaged> profile_;
-   base::test::ScopedFeatureList feature_list_;
- 
-+  void ExpectFeatureFlagEnabledStatus(bool expect_enabled) {
-+    bool is_enabled = IsDownloadBubbleEnabled(profile_);
-+#if BUILDFLAG(IS_CHROMEOS_ASH)
-+    EXPECT_FALSE(is_enabled);
-+#else
-+    EXPECT_EQ(is_enabled, expect_enabled);
-+#endif
-+  }
-+
-  private:
-   content::BrowserTaskEnvironment task_environment_;
-   TestingProfileManager testing_profile_manager_;
- };
- 
--TEST_F(DownloadBubblePrefsTest, IsDownloadBubbleEnabled) {
--  bool is_enabled = IsDownloadBubbleEnabled();
--#if BUILDFLAG(IS_CHROMEOS_ASH)
--  EXPECT_FALSE(is_enabled);
--#else
--  EXPECT_TRUE(is_enabled);
--#endif
-+TEST_F(DownloadBubblePrefsTest, FeatureFlagEnabled) {
-+  feature_list_.InitAndEnableFeature(safe_browsing::kDownloadBubble);
-+  ExpectFeatureFlagEnabledStatus(/*expect_enabled=*/true);
-+}
-+
-+TEST_F(DownloadBubblePrefsTest, FeatureFlagDisabled) {
-+  feature_list_.InitAndDisableFeature(safe_browsing::kDownloadBubble);
-+  ExpectFeatureFlagEnabledStatus(/*expect_enabled=*/false);
- }
- 
- TEST_F(DownloadBubblePrefsTest, DoesDownloadConnectorBlock) {
-diff --git a/chrome/browser/download/bubble/download_bubble_update_service_unittest.cc b/chrome/browser/download/bubble/download_bubble_update_service_unittest.cc
-index 929cae16cfdf9..333b3623a4cf3 100644
---- a/chrome/browser/download/bubble/download_bubble_update_service_unittest.cc
-+++ b/chrome/browser/download/bubble/download_bubble_update_service_unittest.cc
-@@ -6,6 +6,7 @@
- 
- #include <memory>
- 
-+#include "base/test/scoped_feature_list.h"
- #include "base/time/time.h"
- #include "build/chromeos_buildflags.h"
- #include "chrome/browser/download/bubble/download_bubble_display_info.h"
-@@ -23,6 +24,7 @@
- #include "components/offline_items_collection/core/offline_item.h"
- #include "components/offline_items_collection/core/offline_item_state.h"
- #include "components/offline_items_collection/core/test_support/mock_offline_content_provider.h"
-+#include "components/safe_browsing/core/common/features.h"
- #include "components/webapps/common/web_app_id.h"
- #include "content/public/browser/download_item_utils.h"
- #include "content/public/test/browser_task_environment.h"
-@@ -69,7 +71,9 @@ void RemoveDownloadItemsObserver(
- class DownloadBubbleUpdateServiceTest : public testing::Test {
-  public:
-   DownloadBubbleUpdateServiceTest()
--      : testing_profile_manager_(TestingBrowserProcess::GetGlobal()) {}
-+      : testing_profile_manager_(TestingBrowserProcess::GetGlobal()) {
-+    feature_list_.InitAndEnableFeature(safe_browsing::kDownloadBubble);
-+  }
-   DownloadBubbleUpdateServiceTest(const DownloadBubbleUpdateServiceTest&) =
-       delete;
-   DownloadBubbleUpdateServiceTest& operator=(
-@@ -295,6 +299,7 @@ class DownloadBubbleUpdateServiceTest : public testing::Test {
-                                                    delta);
-   }
- 
-+  base::test::ScopedFeatureList feature_list_;
-   content::BrowserTaskEnvironment task_environment_{
-       base::test::TaskEnvironment::TimeSource::MOCK_TIME};
-   raw_ptr<NiceMock<content::MockDownloadManager>, DanglingUntriaged>
 diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrome/browser/download/chrome_download_manager_delegate.cc
 index 201cd68c5175c..aed9ef6c63595 100644
 --- a/chrome/browser/download/chrome_download_manager_delegate.cc
@@ -2886,7 +2765,7 @@ index d70932e1ad965..f339f340eacdd 100644
    {
      "name": "disallow-doc-written-script-loads",
      "owners": [ "//chrome/browser/data_saver/OWNERS" ],
-@@ -4507,6 +4517,11 @@
+@@ -4507,6 +4523,11 @@
      // have no access to commandline flags.
      "expiry_milestone": -1
    },
@@ -2898,7 +2777,7 @@ index d70932e1ad965..f339f340eacdd 100644
    {
      "name": "forced-colors",
      "owners": [ "almaher@microsoft.com" ],
-@@ -4888,11 +4903,6 @@
+@@ -4888,11 +4909,6 @@
      "owners": [ "//chrome/android/feed/OWNERS", "jianli@chromium.org" ],
      "expiry_milestone": 130
    },
@@ -3053,7 +2932,7 @@ index a023e473a3c31..65b2961e8b4ff 100644
  extern const char kForcedColorsName[];
  extern const char kForcedColorsDescription[];
  
-@@ -4612,6 +4630,12 @@ extern const char kTheoraVideoCodecDescription[];
+@@ -4612,6 +4635,12 @@ extern const char kTheoraVideoCodecDescription[];
  extern const char kForceSigninFlowInProfilePickerName[];
  extern const char kForceSigninFlowInProfilePickerDescription[];
  
@@ -4807,7 +4686,7 @@ diff --git a/chrome/browser/ui/browser_commands.cc b/chrome/browser/ui/browser_c
 index 2feee0eb96a33..9749a09c6f019 100644
 --- a/chrome/browser/ui/browser_commands.cc
 +++ b/chrome/browser/ui/browser_commands.cc
-@@ -1315,7 +1315,8 @@ void BookmarkCurrentTab(Browser* browser) {
+@@ -1310,7 +1310,8 @@ void BookmarkCurrentTab(Browser* browser) {
    bool was_bookmarked_by_user = bookmarks::IsBookmarkedByUser(model, url);
  #if !BUILDFLAG(IS_ANDROID)
    PrefService* prefs = browser->profile()->GetPrefs();
@@ -5084,31 +4963,6 @@ index bd38b23f61c16..0f266a3b5496a 100644
      return false;
  
    return true;
-diff --git a/chrome/browser/ui/startup/bad_flags_prompt.cc b/chrome/browser/ui/startup/bad_flags_prompt.cc
-index fd2bd40a10288..f984e16e57281 100644
---- a/chrome/browser/ui/startup/bad_flags_prompt.cc
-+++ b/chrome/browser/ui/startup/bad_flags_prompt.cc
-@@ -73,7 +73,6 @@ const char* const kBadFlags[] = {
-     sandbox::policy::switches::kDisableGpuSandbox,
-     sandbox::policy::switches::kDisableSeccompFilterSandbox,
-     sandbox::policy::switches::kDisableSetuidSandbox,
--    sandbox::policy::switches::kNoSandbox,
- #if BUILDFLAG(IS_WIN)
-     sandbox::policy::switches::kAllowThirdPartyModules,
- #endif
-diff --git a/chrome/browser/ui/startup/default_browser_infobar_delegate.cc b/chrome/browser/ui/startup/default_browser_infobar_delegate.cc
-index a2724af3f2cc2..996d9ddb9b917 100644
---- a/chrome/browser/ui/startup/default_browser_infobar_delegate.cc
-+++ b/chrome/browser/ui/startup/default_browser_infobar_delegate.cc
-@@ -60,7 +60,7 @@ DefaultBrowserInfoBarDelegate::GetIdentifier() const {
- }
- 
- const gfx::VectorIcon& DefaultBrowserInfoBarDelegate::GetVectorIcon() const {
--  return vector_icons::kProductIcon;
-+  return vector_icons::kInfoOutlineIcon;
- }
- 
- bool DefaultBrowserInfoBarDelegate::ShouldExpire(
 diff --git a/chrome/browser/ui/startup/infobar_utils.cc b/chrome/browser/ui/startup/infobar_utils.cc
 index 0ee4b04c7bb63..26b70281e679b 100644
 --- a/chrome/browser/ui/startup/infobar_utils.cc
@@ -5236,7 +5090,7 @@ diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
 index a5621a1406701..a89093804ccfc 100644
 --- a/chrome/browser/ui/ui_features.cc
 +++ b/chrome/browser/ui/ui_features.cc
-@@ -98,6 +98,11 @@ BASE_FEATURE(kLightweightExtensionOverrideConfirmations,
+@@ -99,6 +99,11 @@ BASE_FEATURE(kLightweightExtensionOverrideConfirmations,
               base::FEATURE_ENABLED_BY_DEFAULT);
  #endif
  
@@ -6670,50 +6524,6 @@ index 9e77662e57e76..5074cb3dfadd5 100644
    }
  }
  
-diff --git a/chrome/browser/ui/views/tabs/tab.cc b/chrome/browser/ui/views/tabs/tab.cc
-index 7b2f9ecb903b2..1e2a746faf3a4 100644
---- a/chrome/browser/ui/views/tabs/tab.cc
-+++ b/chrome/browser/ui/views/tabs/tab.cc
-@@ -11,6 +11,7 @@
- #include <memory>
- #include <utility>
- 
-+#include "base/command_line.h"
- #include "base/debug/alias.h"
- #include "base/functional/bind.h"
- #include "base/i18n/rtl.h"
-@@ -695,7 +696,9 @@ void Tab::OnGestureEvent(ui::GestureEvent* event) {
- }
- 
- std::u16string Tab::GetTooltipText(const gfx::Point& p) const {
--  // Tab hover cards replace tooltips for tabs.
-+  if (base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("tab-hover-cards") == "tooltip")
-+     return GetTooltipText(data_.title, GetAlertStateToShow(data_.alert_state));
-+  // Tab hover cards don't replace tooltips for tabs in all cases ^.
-   return std::u16string();
- }
- 
-@@ -1063,7 +1066,11 @@ void Tab::UpdateIconVisibility() {
-   if (IsActive()) {
-     // Close button is shown on active tabs regardless of the size.
-     showing_close_button_ = true;
-+	if (base::CommandLine::ForCurrentProcess()->HasSwitch("hide-tab-close-buttons")) {
-+      showing_close_button_ = false;
-+    } else {
-     available_width -= close_button_width;
-+	}
- 
-     showing_alert_indicator_ =
-         has_alert_icon && alert_icon_width <= available_width;
-@@ -1088,6 +1095,8 @@ void Tab::UpdateIconVisibility() {
-     }
- 
-     showing_close_button_ = large_enough_for_close_button;
-+	if (base::CommandLine::ForCurrentProcess()->HasSwitch("hide-tab-close-buttons"))
-+      showing_close_button_ = false;
-     if (showing_close_button_) {
-       available_width -= close_button_width;
-     }
 diff --git a/chrome/browser/ui/views/tabs/tab_style_views.cc b/chrome/browser/ui/views/tabs/tab_style_views.cc
 index 33c62c24cc521..ccd2eebbf1f2c 100644
 --- a/chrome/browser/ui/views/tabs/tab_style_views.cc
@@ -6726,7 +6536,7 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
  #include "base/i18n/rtl.h"
  #include "base/memory/raw_ptr.h"
  #include "base/numerics/safe_conversions.h"
-@@ -322,87 +323,106 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
+@@ -333,87 +333,106 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
      // stroke width.
  
      // Start with the left side of the shape.
@@ -6912,7 +6722,7 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
      if (path_type != TabStyle::PathType::kBorder) {
        path.close();
      }
-@@ -664,6 +684,9 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
+@@ -664,6 +706,9 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
  
    const Tab* adjacent_tab =
        tab_->controller()->GetAdjacentTab(tab_, leading ? -1 : 1);
@@ -6922,7 +6732,7 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
  
    const Tab* left_tab = leading ? adjacent_tab : tab_.get();
    const Tab* right_tab = leading ? tab_.get() : adjacent_tab;
-@@ -671,6 +694,7 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
+@@ -671,6 +716,7 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
        right_tab && right_tab->group().has_value() &&
        (!left_tab || left_tab->group() != right_tab->group());
  
@@ -6930,7 +6740,7 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
    // If the current tab is selected, default to hiding the separator. Only show
    // the separator if it's adjacent to other selected tabs.
    if (tab_->IsSelected()) {
-@@ -936,8 +960,21 @@ void GM2TabStyleViews::PaintTabBackgroundFill(
+@@ -936,8 +982,21 @@ void GM2TabStyleViews::PaintTabBackgroundFill(
      cc::PaintFlags flags;
      flags.setAntiAlias(true);
      flags.setColor(GetCurrentTabBackgroundColor(selection_state, hovered));
@@ -7489,19 +7299,6 @@ index 26d3bab930e68..c14608e55811c 100644
        CanPinShortcutToTaskbar()) {
      SetInstallerPinnedChromeToTaskbar(properties.pin_to_taskbar && pinned);
    }
-diff --git a/chrome/installer/setup/setup_util.cc b/chrome/installer/setup/setup_util.cc
-index a191dea4d7b80..f237f4fedb0cc 100644
---- a/chrome/installer/setup/setup_util.cc
-+++ b/chrome/installer/setup/setup_util.cc
-@@ -374,7 +374,7 @@ bool ContainsUnsupportedSwitch(const base::CommandLine& cmd_line) {
- 
- bool IsProcessorSupported() {
- #if defined(ARCH_CPU_X86_FAMILY)
--  return base::CPU().has_sse3();
-+  return base::CPU().has_sse2();
- #elif defined(ARCH_CPU_ARM64)
-   return true;
- #else
 diff --git a/chrome/installer/util/install_util.cc b/chrome/installer/util/install_util.cc
 index 03a38089b56a8..2a7fdd070d030 100644
 --- a/chrome/installer/util/install_util.cc
@@ -9235,34 +9032,6 @@ index 9ea9021f16006..bc737d6b77bde 100644
    crashpad::Settings* settings = g_database->GetSettings();
    settings->SetUploadsEnabled(enable_uploads &&
                                crash_reporter_client->GetCollectStatsInSample());
-diff --git a/components/download/internal/common/base_file.cc b/components/download/internal/common/base_file.cc
-index 6609908af5fcc..1535067d72f08 100644
---- a/components/download/internal/common/base_file.cc
-+++ b/components/download/internal/common/base_file.cc
-@@ -7,6 +7,7 @@
- #include <memory>
- #include <utility>
- 
-+#include "base/command_line.h"
- #include "base/files/file.h"
- #include "base/files/file_util.h"
- #include "base/format_macros.h"
-@@ -642,10 +643,14 @@ void BaseFile::AnnotateWithSourceInformation(
-         &BaseFile::OnQuarantineServiceError, weak_factory_.GetWeakPtr(),
-         authority_url, referrer_url));
- 
--    quarantine_service_->QuarantineFile(
-+    if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-alternate-ds"))	{
-+		OnFileQuarantined(quarantine::mojom::QuarantineFileResult::OK);
-+	} else {
-+		quarantine_service_->QuarantineFile(
-         full_path_, authority_url, referrer_url, client_guid,
-         base::BindOnce(&BaseFile::OnFileQuarantined,
-                        weak_factory_.GetWeakPtr()));
-+	}
-   }
- }
- 
 diff --git a/components/download/internal/common/base_file_win.cc b/components/download/internal/common/base_file_win.cc
 index 1db03ae8852aa..4de26908df8bc 100644
 --- a/components/download/internal/common/base_file_win.cc
@@ -9934,7 +9703,7 @@ diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
 index a460c6503d695..598067532ae00 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -2849,6 +2849,8 @@ source_set("browser") {
+@@ -2848,6 +2848,8 @@ source_set("browser") {
        "renderer_host/direct_manipulation_helper_win.h",
        "renderer_host/dwrite_font_file_util_win.cc",
        "renderer_host/dwrite_font_file_util_win.h",
@@ -11793,27 +11562,6 @@ index d0a5dbc454670..670c9a80489b8 100644
    // Returns the path to the browser shader disk cache root.
    virtual base::FilePath GetShaderDiskCacheDirectory();
  
-diff --git a/content/public/browser/frame_accept_header.cc b/content/public/browser/frame_accept_header.cc
-index 341a585720048..9d08e62fc9f01 100644
---- a/content/public/browser/frame_accept_header.cc
-+++ b/content/public/browser/frame_accept_header.cc
-@@ -4,6 +4,7 @@
- 
- #include "content/public/browser/frame_accept_header.h"
- 
-+#include "base/command_line.h"
- #include "content/browser/web_package/signed_exchange_consts.h"
- #include "content/browser/web_package/signed_exchange_utils.h"
- #include "content/common/content_constants_internal.h"
-@@ -12,6 +13,8 @@ namespace content {
- 
- std::string FrameAcceptHeaderValue(bool allow_sxg_responses,
-                                    BrowserContext* browser_context) {
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("http-accept-header"))
-+     return base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("http-accept-header");
-   std::string header_value = kFrameAcceptHeaderValue;
- 
-   if (allow_sxg_responses &&
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 index 7890cd4195e8f..53b8c7b09f63f 100644
 --- a/content/public/common/content_features.cc
