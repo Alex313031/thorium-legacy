@@ -2526,7 +2526,7 @@ index 8385c597f050e..0c3074038033a 100644
 +const char kInheritNativeThemeFromParentWidgetName[] =
 +    "Allow widgets to inherit native theme from its parent widget.";
 +const char kInheritNativeThemeFromParentWidgetDescription[] =
-+    "When enabled, secondary UI like menu, dialog etc would be in dark mode "
++    "When enabled, secondary UI like menus, dialog etc would be in dark mode "
 +    "when Incognito mode is open.";
 +
  const char kFillingAcrossGroupedSitesName[] =
@@ -11305,7 +11305,7 @@ index e7b8caa9ab118..45b9f2823affb 100644
    // malicious code if the renderer gets compromised.
 -  bool no_sandbox =
 -      command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
-+  bool no_sandbox =command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
++  bool no_sandbox = command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
 +
 +  bool use_direct_write = gfx::win::ShouldUseDirectWrite();
 +
@@ -11330,14 +11330,6 @@ index 3e0b86f6834c5..bcbfe32cdb23c 100644
  #include "base/containers/cxx20_erase.h"
  #include "base/containers/flat_set.h"
  #include "base/feature_list.h"
-@@ -62,7 +63,6 @@
- #include "content/public/browser/web_contents_view_delegate.h"
- #include "content/public/common/content_features.h"
- #include "content/public/common/content_switch_dependent_feature_overrides.h"
--#include "content/public/common/content_switches.h"
- #include "content/public/common/url_constants.h"
- #include "content/public/common/user_agent.h"
- #include "content/shell/browser/shell.h"
 @@ -467,6 +467,11 @@ std::string ShellContentBrowserClient::GetDefaultDownloadName() {
    return "download";
  }
@@ -11395,58 +11387,6 @@ index e5c7230ffcaad..3906ff44e64a6 100644
  
   private:
    std::vector<FakeFont> fonts_;
-diff --git a/crypto/unexportable_key_win.cc b/crypto/unexportable_key_win.cc
-index 7e39e10de7be3..a3ad47adbfc54 100644
---- a/crypto/unexportable_key_win.cc
-+++ b/crypto/unexportable_key_win.cc
-@@ -367,6 +367,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return absl::nullopt;
-+	  }
-+
-       if (FAILED(NCryptOpenStorageProvider(
-               ScopedNCryptProvider::Receiver(provider).get(),
-               MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
-@@ -386,6 +391,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return nullptr;
-+	  }
-+
-       if (FAILED(NCryptOpenStorageProvider(
-               ScopedNCryptProvider::Receiver(provider).get(),
-               MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
-@@ -612,6 +622,11 @@ class VirtualUnexportableKeyProviderWin
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return absl::nullopt;
-+	  }
-+
-       SECURITY_STATUS status = NCryptOpenStorageProvider(
-           ScopedNCryptProvider::Receiver(provider).get(),
-           MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
-@@ -634,6 +649,11 @@ class VirtualUnexportableKeyProviderWin
-     ScopedNCryptProvider provider;
-     {
-       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
-+
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
-+		  return nullptr;
-+	  }
-+
-       SECURITY_STATUS status = NCryptOpenStorageProvider(
-           ScopedNCryptProvider::Receiver(provider).get(),
-           MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
 diff --git a/device/bluetooth/bluetooth_adapter_winrt.cc b/device/bluetooth/bluetooth_adapter_winrt.cc
 index a2ba812053fa5..195ec4ee6afe8 100644
 --- a/device/bluetooth/bluetooth_adapter_winrt.cc

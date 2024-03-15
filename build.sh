@@ -44,7 +44,18 @@ export NINJA_SUMMARIZE_BUILD=1 &&
 export NINJA_STATUS="[%r processes, %f/%t @ %o/s | %e sec. ] " &&
 
 cd ${CR_SRC_DIR} &&
-autoninja -C out/thorium thorium chromedriver clear_key_cdm thorium_shell setup mini_installer -j$@ &&
+
+fixDbghelp () {
+	# Needed to prevent api-ms-win-core-com-l1-1-0.dll error
+	rm -f -v out/thorium/dbghelp.dll
+}
+case $1 in
+	--fix) fixDbghelp;
+esac
+
+autoninja -C out/thorium thorium chromedriver clear_key_cdm setup mini_installer -j$@ &&
+# Disable content_shell for now
+# thorium_shell
 
 mv -v -f ${CR_SRC_DIR}/out/thorium/mini_installer.exe ${CR_SRC_DIR}/out/thorium/thorium_mini_installer.exe &&
 
