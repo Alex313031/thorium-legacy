@@ -215,7 +215,7 @@
     {"enable-win7-webrtc-hw-h264-decoding",
      "Windows 7 WebRTC H.264 Hardware Decoding",
      "Enables H.264 hardware decode acceleration for WebRTC on Windows 7.",
-     kOsWin, SINGLE_VALUE_TYPE("enable-win7-webrtc-hw-h264-decoding")},
+     kOsWin, SINGLE_VALUE_TYPE(switches::kEnableWin7WebRtcHWH264Decoding)},
     {"force-gdi",
      flag_descriptions::kForceGdiName,
      flag_descriptions::kForceGdiDescription,

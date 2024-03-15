@@ -1239,18 +1239,6 @@ index 3a6e0c9f3774c..c4a802c85d6ed 100644
  // The following stubs are provided for when component build is enabled, in
  // order to avoid the propagation of delay-loading CoreWinRT to other modules.
  
-diff --git a/base/win/dllmain.cc b/base/win/dllmain.cc
-index 0c5546fb1b406..d76f91b9c9a0c 100644
---- a/base/win/dllmain.cc
-+++ b/base/win/dllmain.cc
-@@ -92,6 +92,7 @@ NOINLINE static void CrashOnProcessDetach() {
- // Make DllMain call the listed callbacks.  This way any third parties that are
- // linked in will also be called.
- BOOL WINAPI DllMain(PVOID h, DWORD reason, PVOID reserved) {
-+
-   if (DLL_PROCESS_DETACH == reason && base::win::ShouldCrashOnProcessDetach())
-     CrashOnProcessDetach();
- 
 diff --git a/base/win/hstring_reference.cc b/base/win/hstring_reference.cc
 index b254fc64310a1..6b2b1a6290990 100644
 --- a/base/win/hstring_reference.cc
@@ -2521,7 +2509,7 @@ index 8385c597f050e..0c3074038033a 100644
 +    "Enable Incognito brand consistency in desktop.";
 +const char kIncognitoBrandConsistencyForDesktopDescription[] =
 +    "When enabled, removes any theme or background customization done by the "
-+    "user on the Incognito UI.";
++    "user when in Incognito mode.";
 +
 +const char kInheritNativeThemeFromParentWidgetName[] =
 +    "Allow widgets to inherit native theme from its parent widget.";
@@ -6536,18 +6524,6 @@ index 37e2d2a50aa2c..196858a63c713 100644
  }
  
  # This target contains utility functions which must only depend on
-diff --git a/chrome/chrome_elf/chrome_elf_main.cc b/chrome/chrome_elf/chrome_elf_main.cc
-index 7ccdb12bf2258..e957da3f1c1d2 100644
---- a/chrome/chrome_elf/chrome_elf_main.cc
-+++ b/chrome/chrome_elf/chrome_elf_main.cc
-@@ -59,6 +59,7 @@ bool GetUserDataDirectoryThunk(wchar_t* user_data_dir,
- //         that will blow up with the loader lock held.
- //         https://bugs.chromium.org/p/chromium/issues/detail?id=748949#c18
- BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID reserved) {
-+
-   if (reason == DLL_PROCESS_ATTACH) {
-     install_static::InitializeProductDetailsForPrimaryModule();
-     install_static::InitializeProcessType();
 diff --git a/chrome/chrome_elf/chrome_elf_security.cc b/chrome/chrome_elf/chrome_elf_security.cc
 index e7bda43a9814b..00146f72d7a61 100644
 --- a/chrome/chrome_elf/chrome_elf_security.cc
@@ -11217,7 +11193,7 @@ index 619323f485c6a..7fe31a29e46f6 100644
 +          switches::kEnableWin7WebRtcHWH264Decoding) &&
 +      video_codec_type == webrtc::kVideoCodecH264 &&
 +      base::win::GetVersion() == base::win::Version::WIN7) {
-+    DVLOG(1) << "H.264 HW decoding is not supported on Win7";
++    LOG(WARNING) << "H.264 HW decoding is not supported on Windows 7";
 +    return false;
 +  }
 +#endif  // BUILDFLAG(IS_WIN)
