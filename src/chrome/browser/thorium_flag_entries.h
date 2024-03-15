@@ -205,7 +205,7 @@
 #if BUILDFLAG(IS_WIN)
     {"disable-windows-10-custom-titlebar",
      flag_descriptions::kDisableWindows10CustomTitlebarName,
-	 flag_descriptions::kDisableWindows10CustomTitlebarDescription,
+     flag_descriptions::kDisableWindows10CustomTitlebarDescription,
      kOsWin, SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
     {"enable-exclusive-audio",
      "Enable Exclusive Audio Streams",

@@ -18,7 +18,7 @@ try() { "$@" || die "${RED}Failed $*"; }
 # --help
 displayHelp () {
 	printf "\n" &&
-	printf "${bold}${YEL}Script to check out Chromium tag of current Win7 version.${c0}\n" &&
+	printf "${bold}${YEL}Script to check out Chromium tag of current Thorium-Win7 version.${c0}\n" &&
 	printf "\n"
 	printf "${RED}NOTE: You may need to run ${c0}${bold}./trunk.sh ${RED}before using this script!${c0}\n" &&
 	printf "\n"
