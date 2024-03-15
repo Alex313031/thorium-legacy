@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,10 +8,6 @@
 
 namespace download {
 namespace features {
-
-BASE_FEATURE(kUseDownloadOfflineContentProvider,
-             "UseDownloadOfflineContentProvider",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kParallelDownloading,
              "ParallelDownloading",
@@ -34,12 +30,7 @@ BASE_FEATURE(kRefreshExpirationDate,
 
 BASE_FEATURE(kDownloadsMigrateToJobsAPI,
              "DownloadsMigrateToJobsAPI",
-#if BUILDFLAG(IS_ANDROID)
-             base::FEATURE_DISABLED_BY_DEFAULT
-#else
-             base::FEATURE_DISABLED_BY_DEFAULT
-#endif
-);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kDownloadNotificationServiceUnifiedAPI,
              "DownloadNotificationServiceUnifiedAPI",
@@ -82,8 +73,6 @@ BASE_FEATURE(kDeleteOverwrittenDownloads,
 BASE_FEATURE(kAllowFileBufferSizeControl,
              "AllowFileBufferSizeControl",
              base::FEATURE_ENABLED_BY_DEFAULT);
-
-BASE_FEATURE(kDownloadRange, "DownloadRange", base::FEATURE_ENABLED_BY_DEFAULT);
 
 }  // namespace features
 

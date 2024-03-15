@@ -25,10 +25,14 @@
      "Enable Tab Outlines",
      "Force enables tab outline strokes, improving accessiblity in dark mode, incognito mode, and low contrast themes.",
      kOsDesktop, SINGLE_VALUE_TYPE("force-enable-tab-outlines")},
+    {"disable-thorium-icons",
+     "Disable Thorium Top Bar Icons",
+     "Disables the custom colored top bar icons in Thorium, and restores the default grey Chromium icon colors.",
+     kOsDesktop, SINGLE_VALUE_TYPE("disable-thorium-icons")},
     {"force-high-contrast",
      "Enable High Contrast Mode",
      "Enables high contrast mode for all Thorium instances.",
-     kOsAll, SINGLE_VALUE_TYPE("force-high-contrast")},
+     kOsAll, SINGLE_VALUE_TYPE(switches::kForceHighContrast)},
 
 #if BUILDFLAG(IS_WIN)
     {"disable-aero",
@@ -50,6 +54,14 @@
      "Scroll Switches Active Tab",
      "Switch to the left/right tab if a scroll wheel event happens over the tabstrip, or the empty space beside the tabstrip.",
      kOsDesktop, MULTI_VALUE_TYPE(kScrollEventChangesTab)},
+
+//#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+//    {"middle-click-autoscroll",
+//    "Middle Click Autoscroll",
+//     "Enables autoscrolling when the middle mouse button is pressed.",
+//     kOsDesktop, SINGLE_VALUE_TYPE(blink::features::kMiddleClickAutoscroll)},
+//#endif // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+
     {"autoplay-policy",
      "Disable/Enable AutoPlay",
      "Allows setting the AutoPlay policy. Use `No User Gesture Required` to enable AutoPlay, and use `Document User Activation Required` to disable AutoPlay "
@@ -61,10 +73,10 @@
      kOsAll, SINGLE_VALUE_TYPE("allow-insecure-downloads")},
 
 #if !BUILDFLAG(IS_ANDROID)
-    {"download-bubble",
-     "Enable/Disable Download Bubble",
-     "Enable or disable the download bubble. When disabled, the traditional download shelf is used. Thorium flag",
-     kOsDesktop, FEATURE_VALUE_TYPE(safe_browsing::kDownloadBubble)},
+    {"disable-download-bubble",
+     "Disable Download Bubble",
+     "When enabled, the traditional download shelf is used instead of the download bubble. Thorium flag",
+     kOsDesktop, SINGLE_VALUE_TYPE("disable-download-bubble")},
 #endif // BUILDFLAG(IS_ANDROID)
 
     {"show-avatar-button",
@@ -106,6 +118,15 @@
      "Toggle whether the GL backend is used for VAAPI video decode acceleration. "
      "Enabled by default, but may break some configurations. Thorium flag.",
      kOsLinux, FEATURE_VALUE_TYPE(media::kVaapiVideoDecodeLinuxGL)},
+    {"gtk-version",
+     "Choose the GTK Version",
+     "Choose whether to use the GTK3 or GTK4 backend. It should match the default GTK used by the system.",
+     kOsLinux, MULTI_VALUE_TYPE(kGtkVersionChoices)},
+    {"vaapi-on-nvidia-gpus",
+     "VAAPI on Nvidia GPUs",
+     "Toggle whether VAAPI is enabled when proprietary Nvidia Drivers are installed. "
+     "Requires `vdpau-va-driver` to be installed, and can be buggy. Thorium flag.",
+     kOsLinux, FEATURE_VALUE_TYPE(media::kVaapiOnNvidiaGPUs)},
 #endif // BUILDFLAG(IS_LINUX)
 
     {"gpu-no-context-lost",
@@ -156,7 +177,7 @@
      kOsAll, SINGLE_VALUE_TYPE("enable-local-file-accesses")},
     {"allow-file-access-from-files",
      "Allow File URI Access from Files",
-     "By default, file:// URIs cannot read other file:// URIs. This is an override for web developers who need the old behavior for testing.",
+     "By default, file:// URIs cannot read other file:// URIs. This is an override for web developers who need this behavior for testing.",
      kOsAll, SINGLE_VALUE_TYPE(switches::kAllowFileAccessFromFiles)},
     {"disable-web-security",
      "Disable Web Security",
@@ -182,10 +203,6 @@
 #endif // BUILDFLAG(IS_LINUX)
 
 #if BUILDFLAG(IS_WIN)
-    {"force-gdi",
-     flag_descriptions::kForceGdiName,
-     flag_descriptions::kForceGdiDescription,
-     kOsWin, SINGLE_VALUE_TYPE("disable-direct-write")},
     {"disable-windows-10-custom-titlebar",
      flag_descriptions::kDisableWindows10CustomTitlebarName,
 	 flag_descriptions::kDisableWindows10CustomTitlebarDescription,
@@ -199,12 +216,16 @@
      "Windows 7 WebRTC H.264 Hardware Decoding",
      "Enables H.264 hardware decode acceleration for WebRTC on Windows 7.",
      kOsWin, SINGLE_VALUE_TYPE("enable-win7-webrtc-hw-h264-decoding")},
+    {"force-gdi",
+     flag_descriptions::kForceGdiName,
+     flag_descriptions::kForceGdiDescription,
+     kOsWin, SINGLE_VALUE_TYPE("disable-direct-write")},
 #endif // BUILDFLAG(IS_WIN)
 
     {"custom-tab-shapes",
-     flag_descriptions::kThoriumCustomTabsName,
-     flag_descriptions::kThoriumCustomTabsDescription,
-     kOsDesktop, FEATURE_VALUE_TYPE(features::kThoriumCustomTabs)},
+     "Thorium Trapezoidal Tabs UI",
+     "Changes the look of browser tabs to appear with a trapezoidal shape, restoring the pre M72 tabstrip appearance.",
+     kOsAll, FEATURE_VALUE_TYPE(features::kThoriumCustomTabs)},
     {"incognito-brand-consistency-for-desktop",
      flag_descriptions::kIncognitoBrandConsistencyForDesktopName,
      flag_descriptions::kIncognitoBrandConsistencyForDesktopDescription,
@@ -214,7 +235,8 @@
      flag_descriptions::kInheritNativeThemeFromParentWidgetDescription,
      kOsDesktop, FEATURE_VALUE_TYPE(views::features::kInheritNativeThemeFromParentWidget)},
     {"disable-download-upload",
-     flag_descriptions::kDisableDownloadUploadName,
-     flag_descriptions::kDisableDownloadUploadDescription,
+     "Disable Safe Browsing for Downloads and Download Sample Uploads",
+     "Disables prompts about unsafe or uncommon downloads, and "
+     "prevents samples of downloads from being sent to Google.",
      kOsAll, SINGLE_VALUE_TYPE("disable-download-upload")},
 #endif  // CHROME_BROWSER_THORIUM_FLAG_ENTRIES_H_

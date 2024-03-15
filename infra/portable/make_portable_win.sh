@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2023 Alex313031.
+# Copyright (c) 2024 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 RED='\033[1;31m' # Red
@@ -21,14 +21,13 @@ displayHelp () {
 	printf "${bold}${YEL}Please place the thorium_mini_installer.exe file in this directory before running.${c0}\n" &&
 	printf "\n"
 }
-
 case $1 in
 	--help) displayHelp; exit 0;;
 esac
 
 printf "\n" &&
 printf "${bold}${RED}NOTE: You must place the Thorium .exe file in this directory before running.${c0}\n" &&
-printf "${bold}${RED}   AND you must have p7zip-full and zip installed.${c0}\n" &&
+printf "${bold}${RED}   AND you must have 7-Zip installed and in your PATH.${c0}\n" &&
 printf "\n" &&
 printf "${bold}${RED} - Make sure to rename the .zip properly as per https://github.com/Alex313031/thorium/discussions/28#discussioncomment-3031799 ${c0}\n" &&
 printf "${bold}${RED}   AND make sure to edit the THORIUM_SHELL.BAT to match the version number of this release.${c0}\n" &&

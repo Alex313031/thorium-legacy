@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -17,7 +17,7 @@ struct ui::metadata::TypeConverter<TabStyle::TabColors>
     : ui::metadata::BaseTypeConverter<true> {
   static std::u16string ToString(
       ui::metadata::ArgType<TabStyle::TabColors> source_value);
-  static absl::optional<TabStyle::TabColors> FromString(
+  static std::optional<TabStyle::TabColors> FromString(
       const std::u16string& source_value);
   static ui::metadata::ValidStrings GetValidStrings();
 };

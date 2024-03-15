@@ -1,8 +1,9 @@
-// Copyright 2023 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 #include "chrome/browser/profiles/profile_shortcut_manager_win.h"
+#include "blah.h"
 
 #include <shlobj.h>  // For SHChangeNotify().
 #include <stddef.h>
@@ -10,6 +11,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "base/command_line.h"
@@ -77,6 +79,7 @@ const int kMaxProfileShortcutFileNameLength = 64;
 // Incrementing this number will cause profile icons to be regenerated on
 // profile startup (it should be incremented whenever the product/avatar icons
 // change, etc).
+const char kBlahName[] = "11";
 const int kCurrentProfileIconVersion = 12;
 
 bool disabled_for_unit_tests = false;
@@ -569,7 +572,7 @@ bool ChromeDesktopShortcutsExist(const base::FilePath& chrome_exe) {
 void DeleteDesktopShortcuts(
     const std::set<base::FilePath>& shortcuts,
     bool ensure_shortcuts_remain,
-    const absl::optional<base::FilePath>& default_profile_path,
+    const std::optional<base::FilePath>& default_profile_path,
     const base::FilePath& chrome_exe) {
   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                 base::BlockingType::MAY_BLOCK);
@@ -612,7 +615,7 @@ void DeleteDesktopShortcuts(
 // shortcut was deleted.
 void UnpinAndDeleteDesktopShortcuts(
     const base::FilePath& profile_path,
-    const absl::optional<base::FilePath>& default_profile_path,
+    const std::optional<base::FilePath>& default_profile_path,
     bool ensure_shortcuts_remain) {
   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                 base::BlockingType::MAY_BLOCK);
@@ -746,7 +749,7 @@ bool ShortcutFilenameMatcher::IsCanonical(const std::wstring& filename) const {
   if (filename == profile_shortcut_filename_)
     return true;
 
-  base::WStringPiece shortcut_suffix = filename;
+  std::wstring_view shortcut_suffix = filename;
   if (!base::StartsWith(shortcut_suffix, profile_shortcut_name_))
     return false;
   shortcut_suffix.remove_prefix(profile_shortcut_name_.size());
@@ -917,7 +920,7 @@ void ProfileShortcutManagerWin::RemoveProfileShortcuts(
     const base::FilePath& profile_path) {
   base::ThreadPool::CreateCOMSTATaskRunner({base::MayBlock()})
       ->PostTask(FROM_HERE, base::BindOnce(&UnpinAndDeleteDesktopShortcuts,
-                                           profile_path, absl::nullopt, false));
+                                           profile_path, std::nullopt, false));
 }
 
 void ProfileShortcutManagerWin::HasProfileShortcuts(

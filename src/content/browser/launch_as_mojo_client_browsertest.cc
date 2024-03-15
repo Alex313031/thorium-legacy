@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -171,7 +171,7 @@ IN_PROC_BROWSER_TEST_F(LaunchAsMojoClientBrowserTest, LaunchAndBindInterface) {
   base::RunLoop loop;
   shell_controller->GetSwitchValue(
       kExtraSwitchName,
-      base::BindLambdaForTesting([&](const absl::optional<std::string>& value) {
+      base::BindLambdaForTesting([&](const std::optional<std::string>& value) {
         ASSERT_TRUE(value);
         EXPECT_EQ(kExtraSwitchValue, *value);
         loop.Quit();

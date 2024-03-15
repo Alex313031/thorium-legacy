@@ -1,23 +1,22 @@
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/alex313031/thorium-win7?label=Version%3A) &nbsp;![GitHub](https://img.shields.io/github/license/alex313031/thorium-win7?color=green&label=License%3A) &nbsp;![GitHub commit activity](https://img.shields.io/github/commit-activity/w/alex313031/thorium-win7?color=blueviolet&label=Commit%20Activity%3A) &nbsp;![Subreddit subscribers](https://img.shields.io/reddit/subreddit-subscribers/ChromiumBrowser?style=social)
 # Thorium for Windows 7 / 8 / 8.1 &nbsp;<img src="https://raw.githubusercontent.com/alex313031/thorium-win7/main/logos/STAGING/win7/compatible-with-windows-7.png" width="48">
 
-<img src="https://github.com/alex313031/thorium-win7/blob/main/logos/NEW/thorium_ver_2048_grey_old.png">
+<img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/NEW/thorium_ver_2048_grey_old.png">
 
 ## Chromium fork named after [radioactive element No. 90](https://en.wikipedia.org/wiki/Thorium), Windows NT 6.x.x builds!
 
 - Always built with the latest stable version of [Chromium](https://www.chromium.org/).
 - Intended to behave like and have the featureset of Google Chrome, with differences/patches/enhancements listed below.
-- Includes [Widevine](https://www.widevine.com/), [All Codecs](https://tools.woolyss.com/html5-audio-video-tester/), Chrome Plugins, as well as thinLTO, CFlag, LDFlag, LLVM Loop, and PGO compiler optimizations. It is built with [SSE4](https://en.wikipedia.org/wiki/SSE4), [AVX](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions), and [AES](https://en.wikipedia.org/wiki/AES_instruction_set), so it won't launch on CPU's below 2nd gen Core or AMD FX, but benefits from Advanced Vector EXtensions. If your CPU lacks AVX, you can use the SSE3 builds.
+- Includes [Widevine](https://www.widevine.com/), [All Codecs](https://tools.woolyss.com/html5-audio-video-tester/), Chrome Plugins, as well as thinLTO, CFlag, LDFlag, LLVM Loop, and PGO compiler optimizations. It is built with [SSE4](https://en.wikipedia.org/wiki/SSE4), [AVX](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions), and [AES](https://en.wikipedia.org/wiki/AES_instruction_set).
 
-### FEATURES & DIFFERENCES BETWEEN CHROMIUM AND THORIUM <img src="https://github.com/alex313031/thorium-win7/blob/main/logos/NEW/bulb_light.svg#gh-dark-mode-only"> <img src="https://github.com/alex313031/thorium-win7/blob/main/logos/NEW/bulb_dark.svg#gh-light-mode-only">
-> - Various compiler flags that improve performance and target [AVX](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) CPU's (read [PATCHES.md](https://github.com/alex313031/thorium-win7/blob/main/infra/PATCHES.md))
+### FEATURES & DIFFERENCES BETWEEN CHROMIUM AND THORIUM <img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/NEW/bulb_light.svg#gh-dark-mode-only"> <img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/NEW/bulb_dark.svg#gh-light-mode-only">
+> - Various compiler flags that improve performance and target [AVX](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) CPU's (read [PATCHES.md](https://github.com/Alex313031/thorium-win7/blob/main/infra/PATCHES.md))
 > - Experimental [MPEG-DASH](https://en.wikipedia.org/wiki/Dynamic_Adaptive_Streaming_over_HTTP) support.
 > - HEVC/H.265 support on Linux and Windows.
 > - [JPEG XL](https://jpeg.org/jpegxl/) Image File Format turned on by default.
 > - Enable [Live Caption](https://support.google.com/chrome/answer/10538231?hl) (SODA) on all builds.
 > - Experimental PDF annotation support (called "Ink" on ChromiumOS). # DISABLED FOR NOW BECAUSE OF CRASHES.
 > - Patches from Debian including font rendering patch, VAAPI Patch, Intel HD support patch, native notifications patch, title bar patch, and... the VDPAU Patch!! (Rejoice Nvidia users)
-> - VAAPI on Wayland Patch (Thanks AUR and @pierro78)
 > - Audio Sandbox patch.
 > - [DoH](https://en.wikipedia.org/wiki/DNS_over_HTTPS) (DNS over HTTPS) patches from Bromite.
 > - Enable [Do Not Track](https://allaboutdnt.com/) by default patch from Vanadium.
@@ -35,22 +34,22 @@
 > - Remove the addition of the Chrome APT sources.list during installation.
 > - Widevine CDM Patch for Linux.
 > - GTK auto dark mode patch
-> - Various new flags either developed from scratch, or added from Ungoogled Chromium. See [PATCHES.md](https://github.com/alex313031/thorium-win7/blob/main/infra/PATCHES.md)
+> - Various new flags either developed from scratch, or added from Ungoogled Chromium. See [PATCHES.md](https://github.com/Alex313031/thorium-win7/blob/main/infra/PATCHES.md)
 > - Enable Parallel Downloading by Default.
-> - Inclusion of <img src="https://github.com/alex313031/thorium-win7/blob/main/logos/STAGING/pak.png" width="16"> [pak](https://github.com/alex313031/thorium-win7/tree/main/pak_src#readme) a utility for packing and unpacking the [&#42;.pak](https://textslashplain.com/2022/05/03/chromium-internals-pak-files/) files in Thorium or any other Chromium based browser.
+> - Inclusion of <img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/STAGING/pak.png" width="16"> [pak](https://github.com/Alex313031/thorium-win7/tree/main/pak_src#readme) a utility for packing and unpacking the [&#42;.pak](https://textslashplain.com/2022/05/03/chromium-internals-pak-files/) files in Thorium or any other Chromium based browser.
 > - Logo and Branding/Naming changed to the Thorium logo, Thorium name, and "Alex313031" being appended to "The Chromium Authors" in credits, etc.
-> - .desktop file includes useful cmdline flags that enable experimental or useful features. (See [PATCHES.md](https://github.com/alex313031/thorium-win7/blob/main/infra/PATCHES.md))
+> - .desktop file includes useful cmdline flags that enable experimental or useful features. (See [PATCHES.md](https://github.com/Alex313031/thorium-win7/blob/main/infra/PATCHES.md))
 > - Includes installer patches and files to include [ChromeDriver](https://chromedriver.chromium.org/home) and *thorium_shell* [(content_shell)](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/testing/web_tests_in_content_shell.md), with a .desktop file being provided for thorium_shell (named thorium-shell.desktop and shows in desktop environments as Thorium Content Shell). These are also included in the Windows releases, but it doesn't make a shorcut, although a .png and .ico is in the install directory for you to make your own shortcut with an icon. You can also run content_shell with the command thorium-shell (custom wrapper for it, located in /usr/bin/). You can run ChromeDriver at /usr/bin/chromedriver or chromedriver.exe on Windows. Also, patches for abseil library and mini_installer when building with AVX on Windows.
 > - Right clicking the launcher after install gives three additional desktop actions, one to open thorium-shell, another to open in Safe Mode which disables any flags one has set in chrome://flags until the next launch, and lastly to open in Dark Mode which appends the --force-dark-mode flag.
-- For more info, read the [PATCHES.md](https://github.com/alex313031/thorium-win7/blob/main/infra/PATCHES.md) file.
-- Known bugs are in the [BUGS.md](https://github.com/alex313031/thorium-win7/blob/main/infra/BUGS.md) file.
+- For more info, read the [PATCHES.md](https://github.com/Alex313031/thorium-win7/blob/main/infra/PATCHES.md) file.
+- Known bugs are in the [BUGS.md](https://github.com/Alex313031/thorium-win7/blob/main/infra/BUGS.md) file.
 - A list of Chromium command line flags can be found at > https://peter.sh/experiments/chromium-command-line-switches
 
-## Building <img src="https://github.com/alex313031/thorium-win7/blob/main/logos/NEW/build_light.svg#gh-dark-mode-only"> <img src="https://github.com/alex313031/thorium-win7/blob/main/logos/NEW/build_dark.svg#gh-light-mode-only">
-See > https://github.com/alex313031/thorium-win7/blob/main/docs/BUILDING.md
+## Building <img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/NEW/build_light.svg#gh-dark-mode-only"> <img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/NEW/build_dark.svg#gh-light-mode-only">
+See > https://github.com/Alex313031/thorium-win7/blob/main/docs/BUILDING.md
 
-## Debugging <img src="https://github.com/alex313031/thorium-win7/blob/main/logos/STAGING/bug.svg" width="28">
-See > https://github.com/alex313031/thorium-win7/tree/main/infra/DEBUG#readme
+## Debugging <img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/STAGING/bug.svg" width="28">
+See > https://github.com/Alex313031/thorium-win7/tree/main/infra/DEBUG#readme
 
 -------
 &nbsp;&minus; https://www.reddit.com/r/ChromiumBrowser/ is a subreddit I made for Thorium and general Thorium/Chromium discussion, https://thorium.rocks/ is the website I made for it, and https://alex313031.blogspot.com/ is a blog I made relating to Thorium/ThoriumOS. \
@@ -65,6 +64,6 @@ See > https://github.com/alex313031/thorium-win7/tree/main/infra/DEBUG#readme
 
 *Thanks for using Thorium!*
 
-<img src="https://github.com/alex313031/thorium-win7/blob/main/logos/STAGING/Thorium90_504.jpg" width="200">
+<img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/STAGING/Thorium90_504.jpg" width="200">
 
-<img src="https://github.com/alex313031/thorium-win7/blob/main/logos/STAGING/GitHub/GitHub-Mark-Light-32px.png#gh-dark-mode-only"> <img src="https://github.com/alex313031/thorium-win7/blob/main/logos/STAGING/GitHub/GitHub-Mark-32px.png#gh-light-mode-only">
+<img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/STAGING/GitHub/GitHub-Mark-Light-32px.png#gh-dark-mode-only"> <img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/STAGING/GitHub/GitHub-Mark-32px.png#gh-light-mode-only">

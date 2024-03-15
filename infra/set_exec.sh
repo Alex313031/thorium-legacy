@@ -25,17 +25,19 @@ cd .. &&
 
 sudo chmod -v +x depot_tools/autoninja &&
 
+sudo chmod -v +x depot_tools/win_toolchain/package_from_installed.py &&
+
 sudo chmod -v +x build.sh &&
 
 sudo chmod -v +x g &&
 
-# sudo chmod -v +x build_android.sh &&
+sudo chmod -v +x build_android.sh &&
 
-# sudo chmod -v +x build_dmg.sh &&
+sudo chmod -v +x build_dmg.sh &&
 
-# sudo chmod -v +x build_mac.sh &&
+sudo chmod -v +x build_mac.sh &&
 
-sudo chmod -v +x build_linux.sh &&
+sudo chmod -v +x build_win.sh &&
 
 sudo chmod -v +x check_simd.sh &&
 
@@ -53,6 +55,8 @@ sudo chmod -v +x reset_depot_tools.sh &&
 
 sudo chmod -v +x version.sh &&
 
+sudo chmod -v +x version_clean.sh &&
+
 sudo chmod -v +x infra/arch-prerequisites.sh &&
 
 sudo chmod -v +x infra/fetch_api_keys.sh &&
@@ -62,6 +66,8 @@ sudo chmod -v +x infra/fix_libaom.sh &&
 sudo chmod -v +x infra/install_deps.sh &&
 
 sudo chmod -v +x infra/build_dmg_cr.sh &&
+
+sudo chmod -v +x infra/build_ffmpeg.sh &&
 
 sudo chmod -v +x infra/build_polly.sh &&
 
@@ -95,9 +101,17 @@ sudo chmod -v +x infra/APPIMAGE/pkg2appimage &&
 
 sudo chmod -v +x infra/APPIMAGE/build_appimage.sh &&
 
+sudo chmod -v +x infra/APPIMAGE/extract_appimage.sh &&
+
 sudo chmod -v +x pak_src/build.sh &&
 
 sudo chmod -v +x src/build/vs_toolchain.py &&
+
+sudo chmod -v +x src/build/install-build-deps.py &&
+
+sudo chmod -v +x src/build/win/reorder-imports.py &&
+
+sudo chmod -v +x arm/setup_arm.sh &&
 
 # sudo chmod -v +x src/tools/gn/bootstrap/bootstrap.py &&
 

@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -30,6 +30,11 @@ BASE_FEATURE(kAllowEyeDropperWGCScreenCapture,
 #endif  // BUILDFLAG(IS_WIN)
 );
 
+// Enables icon in titlebar for web apps.
+BASE_FEATURE(kWebAppIconInTitlebar,
+             "WebAppIconInTitlebar",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
 // Enables Chrome Labs menu in the toolbar. See https://crbug.com/1145666
 BASE_FEATURE(kChromeLabs, "ChromeLabs", base::FEATURE_ENABLED_BY_DEFAULT);
 const char kChromeLabsActivationParameterName[] =
@@ -37,17 +42,11 @@ const char kChromeLabsActivationParameterName[] =
 const base::FeatureParam<int> kChromeLabsActivationPercentage{
     &kChromeLabs, kChromeLabsActivationParameterName, 99};
 
-// Enables "Chrome What's New" UI.
-// TODO: Alex313031 Test Mock UI
-BASE_FEATURE(kChromeWhatsNewUI,
-             "ChromeWhatsNewUI",
-#if BUILDFLAG(GOOGLE_CHROME_BRANDING) && !defined(ANDROID) && \
-    !BUILDFLAG(IS_CHROMEOS_LACROS) && !BUILDFLAG(IS_CHROMEOS_ASH)
-             base::FEATURE_ENABLED_BY_DEFAULT
-#else
-             base::FEATURE_ENABLED_BY_DEFAULT
-#endif
-);
+// When enabled, clicks outside the omnibox and its popup will close an open
+// omnibox popup.
+BASE_FEATURE(kCloseOmniboxPopupOnInactiveAreaClick,
+             "CloseOmniboxPopupOnInactiveAreaClick",
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Create new Extensions app menu option (removing "More Tools -> Extensions")
 // with submenu to manage extensions and visit chrome web store.
@@ -67,18 +66,12 @@ BASE_FEATURE(kAccessCodeCastUI,
              base::FEATURE_ENABLED_BY_DEFAULT);
 #endif
 
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS)
+#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_FUCHSIA)
 // Enables camera preview in permission bubble and site settings.
 BASE_FEATURE(kCameraMicPreview,
              "CameraMicPreview",
              base::FEATURE_DISABLED_BY_DEFAULT);
 #endif
-
-// Enables displaying the submenu to open a link with a different profile if
-// there is at least one other active profile. Fully rolled out on Desktop.
-BASE_FEATURE(kDisplayOpenLinkAsProfile,
-             "DisplayOpenLinkAsProfile",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables showing the EV certificate details in the Page Info bubble.
 BASE_FEATURE(kEvDetailsInPageInfo,
@@ -106,11 +99,6 @@ BASE_FEATURE(kLightweightExtensionOverrideConfirmations,
              base::FEATURE_ENABLED_BY_DEFAULT);
 #endif
 
-// Enables Bookmarks++ Side Panel UI.
-BASE_FEATURE(kPowerBookmarksSidePanel,
-             "PowerBookmarksSidePanel",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Enables the QuickCommands UI surface. See https://crbug.com/1014639
 BASE_FEATURE(kQuickCommands,
              "QuickCommands",
@@ -120,15 +108,15 @@ BASE_FEATURE(kQuickCommands,
 // the browser width is resized smaller than normal.
 BASE_FEATURE(kResponsiveToolbar,
              "ResponsiveToolbar",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables the side search feature for Google Search. Presents recent Google
 // search results in a browser side panel.
-BASE_FEATURE(kSideSearch, "SideSearch", base::FEATURE_ENABLED_BY_DEFAULT);
+BASE_FEATURE(kSideSearch, "SideSearch", base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kSideSearchFeedback,
              "SideSearchFeedback",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Displays right-click search results of a highlighted text in side panel,
 // So users are not forced to switch to a new tab to view the search results
@@ -140,7 +128,7 @@ BASE_FEATURE(kSearchWebInSidePanel,
 // used to control automatic triggering for side search.
 BASE_FEATURE(kSideSearchAutoTriggering,
              "SideSearchAutoTriggering",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Feature param that determines how many times a user has to return to a given
 // SRP before we automatically trigger the side search side panel for that SRP
@@ -164,6 +152,26 @@ BASE_FEATURE(kSidePanelCompanionDefaultPinned,
 BASE_FEATURE(kSidePanelPinning,
              "SidePanelPinning",
              base::FEATURE_DISABLED_BY_DEFAULT);
+
+bool IsSidePanelPinningEnabled() {
+  return (IsChromeRefresh2023() &&
+          base::FeatureList::IsEnabled(kSidePanelPinning));
+}
+
+BASE_FEATURE(kSidePanelMinimumWidth,
+             "SidePanelMinimumWidth",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+const base::FeatureParam<int> kSidePanelMinimumWidthParameter{
+    &kSidePanelMinimumWidth, "minPanelWidth", 360};
+int GetSidePanelMinimumWidth() {
+  if (base::FeatureList::IsEnabled(kSidePanelMinimumWidth)) {
+    return kSidePanelMinimumWidthParameter.Get();
+  }
+
+  // This is the default value used without this feature.
+  return 320;
+}
+
 #endif
 
 // Enables tabs to scroll in the tabstrip. https://crbug.com/951078
@@ -194,7 +202,7 @@ const char kScrollableTabStripOverflowModeName[] = "tabScrollOverflow";
 
 // Splits pinned and unpinned tabs into separate TabStrips.
 // https://crbug.com/1346019
-// TODO: Alex313031 Re-Enable after feedback
+// TODO: Alex313031 Possibly Re-Enable after feedback
 BASE_FEATURE(kSplitTabStrip,
              "SplitTabStrip",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -207,14 +215,17 @@ BASE_FEATURE(kTabGroupsCollapseFreezing,
 
 // Enables users to explicitly save and recall tab groups.
 // https://crbug.com/1223929
-BASE_FEATURE(kTabGroupsSave,
-             "TabGroupsSave",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+BASE_FEATURE(kTabGroupsSave, "TabGroupsSave", base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables configuring tab hover card image previews in the settings.
 BASE_FEATURE(kTabHoverCardImageSettings,
              "TabHoverCardImageSettings",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+#if BUILDFLAG(IS_MAC)
+             base::FEATURE_DISABLED_BY_DEFAULT
+#else
+             base::FEATURE_ENABLED_BY_DEFAULT
+#endif
+);
 
 // Enables preview images in tab-hover cards.
 // https://crbug.com/928954
@@ -245,6 +256,25 @@ bool IsTabOrganization() {
   return IsChromeRefresh2023() &&
          base::FeatureList::IsEnabled(features::kTabOrganization);
 }
+
+const base::FeatureParam<base::TimeDelta> kTabOrganizationTriggerPeriod{
+    &kTabOrganization, "trigger_period", base::Hours(6)};
+
+const base::FeatureParam<double> kTabOrganizationTriggerBackoffBase{
+    &kTabOrganization, "backoff_base", 2.0};
+
+const base::FeatureParam<double> kTabOrganizationTriggerThreshold{
+    &kTabOrganization, "trigger_threshold", 7.0};
+
+const base::FeatureParam<double> kTabOrganizationTriggerSensitivityThreshold{
+    &kTabOrganization, "trigger_sensitivity_threshold", 0.5};
+
+const base::FeatureParam<bool> KTabOrganizationTriggerDemoMode{
+    &kTabOrganization, "trigger_demo_mode", false};
+
+BASE_FEATURE(kTabOrganizationRefreshButton,
+             "TabOrganizationRefreshButton",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kTabSearchChevronIcon,
              "TabSearchChevronIcon",
@@ -304,6 +334,12 @@ BASE_FEATURE(kTabSearchUseMetricsReporter,
              "TabSearchUseMetricsReporter",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// Enables creating a web app window when tearing off a tab with a url
+// controlled by a web app.
+BASE_FEATURE(kTearOffWebAppTabOpensWebAppWindow,
+             "TearOffWebAppTabOpensWebAppWindow",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 BASE_FEATURE(kToolbarUseHardwareBitmapDraw,
              "ToolbarUseHardwareBitmapDraw",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -319,11 +355,11 @@ BASE_FEATURE(kTopChromeWebUIUsesSpareRenderer,
 // button, menu item and confirmation dialog.
 BASE_FEATURE(kUpdateTextOptions,
              "UpdateTextOptions",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 // Used to present different flavors of update strings in browser app menu
 // button.
 const base::FeatureParam<int> kUpdateTextOptionNumber{
-    &kUpdateTextOptions, "UpdateTextOptionNumber", 1};
+    &kUpdateTextOptions, "UpdateTextOptionNumber", 2};
 #endif
 
 // This enables enables persistence of a WebContents in a 1-to-1 association

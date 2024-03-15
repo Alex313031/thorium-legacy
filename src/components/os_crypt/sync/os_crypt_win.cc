@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031.
+// Copyright 2024 The Chromium Authors and Alex313031.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -289,7 +289,7 @@ OSCrypt::InitResult OSCryptImpl::InitWithExistingKey(PrefService* local_state) {
 
   if (!base::StartsWith(encrypted_key_with_header, kDPAPIKeyPrefix,
                         base::CompareCase::SENSITIVE)) {
-    NOTREACHED() << "Invalid key format.";
+    DUMP_WILL_BE_NOTREACHED_NORETURN() << "Invalid key format.";
     return OSCrypt::kInvalidKeyFormat;
   }
 

@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -98,16 +98,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterStringPref(prefs::kWebRTCUDPPortRange, std::string());
   registry->RegisterBooleanPref(prefs::kWebRtcEventLogCollectionAllowed, false);
   registry->RegisterListPref(prefs::kWebRtcLocalIpsAllowedUrls);
-  registry->RegisterBooleanPref(prefs::kWebRTCAllowLegacyTLSProtocols, false);
   registry->RegisterBooleanPref(prefs::kWebRtcTextLogCollectionAllowed, true);
-
-  // Dictionaries to keep track of default tasks in the file browser.
-  registry->RegisterDictionaryPref(
-      prefs::kDefaultTasksByMimeType,
-      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
-  registry->RegisterDictionaryPref(
-      prefs::kDefaultTasksBySuffix,
-      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
 
   // We need to register the type of these preferences in order to query
   // them even though they're only typically controlled via policy.
@@ -166,9 +157,13 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterBooleanPref(
       prefs::kHttpsOnlyModeEnabled, false,
       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+  registry->RegisterBooleanPref(
+      prefs::kHttpsFirstModeIncognito, true,
+      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
   registry->RegisterListPref(prefs::kHttpAllowlist);
   registry->RegisterBooleanPref(prefs::kHttpsUpgradesEnabled, true);
 
   registry->RegisterDictionaryPref(prefs::kHttpsUpgradeFallbacks);
+  registry->RegisterDictionaryPref(prefs::kHttpsUpgradeNavigations);
   registry->RegisterBooleanPref(prefs::kHttpsOnlyModeAutoEnabled, false);
 }

@@ -43,6 +43,9 @@ declare_args() {
   #  and with this switch, clang emits it like this:
   #    foo/bar.cc:12:34: error: something went wrong
   use_clang_diagnostics_format = false
+
+  # Indicates whether to use /pdbpagesize:8192 to allow PDBs larger than 4 GiB.
+  use_large_pdbs = false
 }
 
 # This is included by reference in the //build/config/compiler config that
@@ -137,7 +140,6 @@ config("compiler") {
         "/clang:-mssse3",
         "/clang:-msse4.1",
         "-Xclang", "-O3",
-        # "-Wno-unused-command-line-argument",
       ]
     }
 
@@ -181,6 +183,9 @@ config("compiler") {
     ldflags += [ "/opt:lldlto=3", ]
   }
 
+  if (use_large_pdbs) {
+    # This allows PDBs up to 8 GiB in size. This requires lld-link.exe or
+    # link.exe from VS 2022 or later.
   # Some binaries create PDBs larger than 4 GiB. Increasing the PDB page size
   # to 8 KiB allows 8 GiB PDBs. The larger page size also allows larger block maps
   # which is a PDB limit that was hit in https://crbug.com/1406510. The page size
@@ -193,7 +198,11 @@ config("compiler") {
   if (is_debug && !is_component_build) {
     ldflags += [ "/pdbpagesize:16384" ]
   } else {
-    ldflags += [ "/pdbpagesize:8192" ]
+    if (!defined(configs)) {
+      configs = []
+    }
+    configs += [ ":pdb_larger_than_4gb" ]
+  }
   }
 
   if (!is_debug && !is_component_build) {
@@ -448,6 +457,7 @@ config("delayloads") {
     "/DELAYLOAD:ncrypt.dll",
     "/DELAYLOAD:ole32.dll",
     "/DELAYLOAD:oleacc.dll",
+    "/DELAYLOAD:pdh.dll",
     "/DELAYLOAD:propsys.dll",
     "/DELAYLOAD:psapi.dll",
     "/DELAYLOAD:rpcrt4.dll",
@@ -628,17 +638,9 @@ config("static_crt") {
 # Subsystem --------------------------------------------------------------------
 
 # This is appended to the subsystem to specify a minimum version.
-if (current_cpu == "x64") {
-  # The number after the comma is the minimum required OS version.
-  # 5.02 = Windows Server 2003.
-  subsystem_version_suffix = ",6.0"
-} else if (current_cpu == "arm64") {
-  # Windows ARM64 requires Windows 10.
-  subsystem_version_suffix = ",8.0"
-} else {
-  # 5.01 = Windows XP.
-  subsystem_version_suffix = ",6.0"
-}
+# The number after the comma is the minimum required OS version.
+# Set to 10.0 since we only support >= Win10 since M110.
+subsystem_version_suffix = ",6.0"
 
 config("console") {
   ldflags = [ "/SUBSYSTEM:CONSOLE$subsystem_version_suffix" ]
@@ -701,4 +703,16 @@ config("lean_and_mean") {
 
 config("nominmax") {
   defines = [ "NOMINMAX" ]
+}
+
+# Some binaries create PDBs larger than 4 GiB. Increasing the PDB page size
+# to 8 KiB allows 8 GiB PDBs. The larger page size also allows larger block maps
+# which is a PDB limit that was hit in https://crbug.com/1406510. The page size
+# can easily be increased in the future to allow even larger PDBs or larger
+# block maps.
+config("pdb_larger_than_4gb") {
+  if (!defined(ldflags)) {
+    ldflags = []
+  }
+  ldflags += [ "/pdbpagesize:8192" ]
 }

@@ -19,11 +19,14 @@ try() { "$@" || die "${RED}Failed $*"; }
 displayHelp () {
 	printf "\n" &&
 	printf "${bold}${GRE}Script to copy Thorium source files over the Chromium source tree.${c0}\n" &&
-	printf "${bold}${YEL}Use the --patch flag to patch Chromium for Windows 7!.${c0}\n" &&
+	printf "${bold}${YEL}Use the --mac flag for MacOS builds.${c0}\n" &&
+	printf "${bold}${YEL}Use the --raspi flag for Raspberry Pi builds.${c0}\n" &&
+	printf "${bold}${YEL}Use the --woa flag for Windows on ARM builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --avx2 flag for AVX2 Builds.${c0}\n" &&
-	printf "${bold}${YEL}Use the --sse4 flag for SSE4.1 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse3 flag for SSE3 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse2 flag for 32 bit SSE2 Builds.${c0}\n" &&
+	printf "${bold}${YEL}Use the --android flag for Android Builds.${c0}\n" &&
+	printf "${bold}${YEL}Use the --cros flag for ChromiumOS Builds.${c0}\n" &&
 	printf "${bold}${YEL}IMPORTANT: For Polly builds, first run build_polly.sh in Thorium/infra, then use the setup_polly.sh${c0}\n" &&
 	printf "${bold}${YEL}script in Thorium/other/Polly. Both of these actions should be taken AFTER running this script!${c0}\n" &&
 	printf "\n"
@@ -74,6 +77,52 @@ echo " # Workaround for DevTools" &&
 mkdir -v -p ${CR_SRC_DIR}/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
 cp -r -v src/third_party/devtools-frontend/src/front_end/Images/src/chromeSelectDark.svg ${CR_SRC_DIR}/out/thorium/gen/third_party/devtools-frontend/src/front_end/Images/ &&
 
+# MacOS ARMv8.3-A optimizations
+copyMacOS () {
+	printf "\n" &&
+	printf "${YEL}Copying files for MacOS...${c0}\n" &&
+	cp -r -v arm/mac_arm.gni ${CR_SRC_DIR}/build/config/arm.gni &&
+	cp -r -v other/AVX2/build/config/compiler/BUILD.gn ${CR_SRC_DIR}/build/config/compiler/ &&
+	cp -r -v arm/third_party/* ${CR_SRC_DIR}/third_party/ &&
+	printf "\n"
+}
+case $1 in
+	--mac) copyMacOS;
+esac
+
+# Raspberry Pi Source Files
+copyRaspi () {
+	printf "\n" &&
+	printf "${YEL}Copying Raspberry Pi build files...${c0}\n" &&
+	cp -r -v arm/media/* ${CR_SRC_DIR}/media/ &&
+	cp -r -v arm/third_party/* ${CR_SRC_DIR}/third_party/ &&
+	cp -r -v arm/raspi/* ${CR_SRC_DIR}/ &&
+	cp -v pak_src/binaries/pak_arm64 ${CR_SRC_DIR}/out/thorium/pak &&
+	#./infra/fix_libaom.sh &&
+	cp -r -v arm/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	printf "\n" &&
+	cp -r -v arm/raspi/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	printf "\n" &&
+	# Display raspi ascii art
+	cat logos/raspi_ascii_art.txt
+}
+case $1 in
+	--raspi) copyRaspi;
+esac
+
+# Windows on ARM64 files
+copyWOA () {
+	printf "\n" &&
+	printf "${YEL}Copying Windows on ARM build files...${c0}\n" &&
+	cp -r -v arm/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v arm/third_party/* ${CR_SRC_DIR}/third_party/ &&
+	cp -r -v arm/woa_arm.gni ${CR_SRC_DIR}/build/config/arm.gni &&
+	printf "\n"
+}
+case $1 in
+	--woa) copyWOA;
+esac
+
 # Copy AVX2 files
 copyAVX2 () {
 	printf "\n" &&
@@ -86,19 +135,6 @@ copyAVX2 () {
 }
 case $1 in
 	--avx2) copyAVX2;
-esac
-
-# Copy SSE4.1 files
-copySSE4 () {
-	printf "\n" &&
-	printf "${YEL}Copying SSE4.1 build files...${c0}\n" &&
-	cp -r -v other/SSE4.1/build/config/* ${CR_SRC_DIR}/build/config/ &&
-	cp -r -v other/SSE4.1/v8/* ${CR_SRC_DIR}/v8/ &&
-	cp -r -v other/SSE4.1/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
-	printf "\n"
-}
-case $1 in
-	--sse4) copySSE4;
 esac
 
 # Copy SSE3 files
@@ -126,20 +162,51 @@ case $1 in
 	--sse2) copySSE2;
 esac
 
-printf "${GRE}Done!\n" &&
-
-# Patch Chromium for NT 6.x
-patchNT6 () {
+# Copy Android files
+copyAndroid () {
 	printf "\n" &&
-	printf "${YEL}Patching Chromium for Windows 7/8/8.1...${c0}\n" &&
+	printf "${YEL}Copying Android (ARM64 and ARM32) build files...${c0}\n" &&
+	cp -r -v arm/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v arm/media/* ${CR_SRC_DIR}/media/ &&
+	cp -r -v arm/third_party/* ${CR_SRC_DIR}/third_party/ &&
 	printf "\n" &&
-	. patch.sh
+	cp -r -v arm/android/* ${CR_SRC_DIR}/ &&
+	printf "\n" &&
+	#cp -r -v arm/android/third_party/* ${CR_SRC_DIR}/third_party/ &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_base/drawable-v26/ic_launcher.xml &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_base/drawable-v26/ic_launcher_round.xml &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-mdpi/layered_app_icon_background.png &&
+	#rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-mdpi/layered_app_icon.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xhdpi/layered_app_icon_background.png &&
+	#rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xhdpi/layered_app_icon.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxxhdpi/layered_app_icon_background.png &&
+	#rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxxhdpi/layered_app_icon.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-nodpi/layered_app_icon_foreground.xml &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-hdpi/layered_app_icon_background.png &&
+	#rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-hdpi/layered_app_icon.png &&
+	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxhdpi/layered_app_icon_background.png &&
+	#rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxhdpi/layered_app_icon.png &&
+	#./infra/fix_libaom.sh &&
+	printf "\n"
 }
 case $1 in
-	--patch) patchNT6;
+	--android) copyAndroid;
 esac
 
+# Copy CrOS files
+copyCros () {
+	printf "\n" &&
+	printf "${YEL}Copying ChromiumOS build files...${c0}\n" &&
+	cp -r -v other/CrOS/* ${CR_SRC_DIR}/ &&
+	printf "\n"
+}
+case $1 in
+	--cros) copyCros;
+esac
+
+printf "${GRE}Done!\n" &&
 printf "\n" &&
+
 printf "${YEL}Exporting variables and setting handy aliases...${c0}\n" &&
 
 . ~/thorium-win7/aliases &&

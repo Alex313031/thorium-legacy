@@ -1786,111 +1786,6 @@ index 5c54819e4b85a..8f3f64f29011a 100644
    const std::vector<uint8_t> data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
    Microsoft::WRL::ComPtr<ABI::Windows::Storage::Streams::IBuffer> buffer;
    ASSERT_HRESULT_SUCCEEDED(
-diff --git a/build/config/win/BUILD.gn b/build/config/win/BUILD.gn
-index 6e1417aa40076..a34916dae742b 100644
---- a/build/config/win/BUILD.gn
-+++ b/build/config/win/BUILD.gn
-@@ -43,6 +43,10 @@ declare_args() {
-   #  and with this switch, clang emits it like this:
-   #    foo/bar.cc:12:34: error: something went wrong
-   use_clang_diagnostics_format = false
-+
-+
-+  # Indicates whether to use /pdbpagesize:8192 to allow PDBs larger than 4 GiB.
-+  use_large_pdbs = false
- }
- 
- # This is included by reference in the //build/config/compiler config that
-@@ -127,7 +131,11 @@ config("compiler") {
-     # microarchitecture. MSVC only supports a subset of architectures, and the
-     # next step after SSE2 will be AVX.
-     if (current_cpu == "x86" || current_cpu == "x64") {
--      cflags += [ "-msse3" ]
-+        if (target_cpu == "x64") {
-+          cflags += [ "-msse3" ]
-+        } else {
-+          cflags += [ "-mmmx", "-mfxsr", "-msse", "-msse2" ]
-+        }
-     }
- 
-     # Enable ANSI escape codes if something emulating them is around (cmd.exe
-@@ -168,7 +176,9 @@ config("compiler") {
-     # Don't look for libpaths in %LIB%, similar to /X in cflags above.
-     ldflags += [ "/lldignoreenv" ]
-   }
--
-+  if (use_large_pdbs) {
-+    # This allows PDBs up to 8 GiB in size. This requires lld-link.exe or
-+    # link.exe from VS 2022 or later.
-   # Some binaries create PDBs larger than 4 GiB. Increasing the PDB page size
-   # to 8 KiB allows 8 GiB PDBs. The larger page size also allows larger block maps
-   # which is a PDB limit that was hit in https://crbug.com/1406510. The page size
-@@ -182,6 +192,12 @@ config("compiler") {
-     ldflags += [ "/pdbpagesize:16384" ]
-   } else {
-     ldflags += [ "/pdbpagesize:8192" ]
-+
-+    if (!defined(configs)) {
-+      configs = []
-+    }
-+    configs += [ ":pdb_larger_than_4gb" ]
-+  }
-   }
- 
-   if (!is_debug && !is_component_build) {
-@@ -615,17 +631,9 @@ config("static_crt") {
- # Subsystem --------------------------------------------------------------------
- 
- # This is appended to the subsystem to specify a minimum version.
--if (current_cpu == "x64") {
--  # The number after the comma is the minimum required OS version.
--  # 5.02 = Windows Server 2003.
--  subsystem_version_suffix = ",5.02"
--} else if (current_cpu == "arm64") {
--  # Windows ARM64 requires Windows 10.
--  subsystem_version_suffix = ",10.0"
--} else {
--  # 5.01 = Windows XP.
--  subsystem_version_suffix = ",5.01"
--}
-+# The number after the comma is the minimum required OS version.
-+
-+subsystem_version_suffix = ",6.0"
- 
- config("console") {
-   ldflags = [ "/SUBSYSTEM:CONSOLE$subsystem_version_suffix" ]
-@@ -689,3 +697,15 @@ config("lean_and_mean") {
- config("nominmax") {
-   defines = [ "NOMINMAX" ]
- }
-+
-+# Some binaries create PDBs larger than 4 GiB. Increasing the PDB page size
-+# to 8 KiB allows 8 GiB PDBs. The larger page size also allows larger block maps
-+# which is a PDB limit that was hit in https://crbug.com/1406510. The page size
-+# can easily be increased in the future to allow even larger PDBs or larger
-+# block maps.
-+config("pdb_larger_than_4gb") {
-+  if (!defined(ldflags)) {
-+    ldflags = []
-+  }
-+  ldflags += [ "/pdbpagesize:8192" ]
-+}
-diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index ef32e9c1315f9..ae355834ff7d0 100644
---- a/chrome/BUILD.gn
-+++ b/chrome/BUILD.gn
-@@ -455,6 +455,11 @@ if (is_win) {
-     if (use_aura) {
-       deps += [ "//ui/compositor" ]
-     }
-+     if (current_cpu == "x86") {
-+     # Don"t set an x64 base address (to avoid breaking HE-ASLR).
-+     ldflags = [ "/BASE:0x12000000" ]
-+   }
-+
-   }
- 
-   copy("copy_first_run") {
 diff --git a/chrome/app/chrome_exe_main_win.cc b/chrome/app/chrome_exe_main_win.cc
 index 0aced300d8dce..d2c530353eca4 100644
 --- a/chrome/app/chrome_exe_main_win.cc
@@ -1936,14 +1831,6 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 index de3be2eec25cc..dd0e76f790ca5 100644
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -15,6 +15,7 @@
- 
- #include "base/base_switches.h"
- #include "base/command_line.h"
-+#include "base/features.h"
- #include "base/feature_list.h"
- #include "base/functional/bind.h"
- #include "base/functional/callback.h"
 @@ -3776,6 +3777,63 @@ const FeatureEntry::FeatureVariation
          {"experimental V2", kCompressionDictionaryTransportBackendVersionV2,
           std::size(kCompressionDictionaryTransportBackendVersionV2), nullptr}};
@@ -1992,18 +1879,18 @@ index de3be2eec25cc..dd0e76f790ca5 100644
 +    {"6", "", ""},
 +    {"15", "max-connections-per-host", "15"},
 +};
-+const FeatureEntry::Choice kShowAvatarButtonChoices[] = {
-+    {flags_ui::kGenericExperimentChoiceDefault, "", ""},
-+    {"Always",
-+     "show-avatar-button",
-+     "always"},
-+    {"Incognito and Guest",
-+     "show-avatar-button",
-+     "incognito-and-guest"},
-+    {"Never",
-+     "show-avatar-button",
-+     "never"}
-+};
++
++
++
++
++
++
++
++
++
++
++
++
 +
  // RECORDING USER METRICS FOR FLAGS:
  // -----------------------------------------------------------------------------
@@ -2012,17 +1899,17 @@ index de3be2eec25cc..dd0e76f790ca5 100644
       flag_descriptions::kMemlogStackModeDescription, kOsAll,
       MULTI_VALUE_TYPE(kMemlogStackModeChoices)},
  
-+    {"incognito-brand-consistency-for-desktop",
-+     flag_descriptions::kIncognitoBrandConsistencyForDesktopName,
-+     flag_descriptions::kIncognitoBrandConsistencyForDesktopDescription,
-+     kOsDesktop,
-+     FEATURE_VALUE_TYPE(base::features::kIncognitoBrandConsistencyForDesktop)},
 +
-+    {"inherit-native-theme-from-parent-widget",
-+     flag_descriptions::kInheritNativeThemeFromParentWidgetName,
-+     flag_descriptions::kInheritNativeThemeFromParentWidgetDescription,
-+     kOsDesktop,
-+     FEATURE_VALUE_TYPE(views::features::kInheritNativeThemeFromParentWidget)},
++
++
++
++
++
++
++
++
++
++
 +
      {"omnibox-max-zero-suggest-matches",
       flag_descriptions::kOmniboxMaxZeroSuggestMatchesName,
@@ -2045,10 +1932,10 @@ index de3be2eec25cc..dd0e76f790ca5 100644
 +	{"ungoogled-thorium",
 +	 flag_descriptions::kUngoogledThoriumName, flag_descriptions::kUngoogledThoriumDescription,
 +	 kOsAll, SINGLE_VALUE_TYPE("ungoogled-thorium")},
-+	{"disable-download-upload",
-+	 "Disable Safe Browsing for Downloads and Download Sample Uploads", "Disables prompts about unsafe or uncommon downloads, and "
-+												  "prevents samples of downloads from being sent to Google.",
-+	 kOsAll, SINGLE_VALUE_TYPE("disable-download-upload")},
++
++
++
++
  
  #if !BUILDFLAG(IS_CHROMEOS_ASH)
      {"profiles-reordering", flag_descriptions::kProfilesReorderingName,
@@ -2059,30 +1946,30 @@ index de3be2eec25cc..dd0e76f790ca5 100644
 +
 +
 +
-+#if BUILDFLAG(IS_WIN)
-+	{"disable-windows-10-custom-titlebar",
-+	 flag_descriptions::kDisableWindows10CustomTitlebarName, flag_descriptions::kDisableWindows10CustomTitlebarDescription, kOsWin,
-+	 SINGLE_VALUE_TYPE("disable-windows10-custom-titlebar")},
-+	{"disable-aero",
-+	 flag_descriptions::kDisableAeroThemeName, flag_descriptions::kDisableAeroThemeDescription, kOsWin,
-+	 FEATURE_VALUE_TYPE(kDisableAeroTheme)},
-+	{"force-gdi",
-+	 flag_descriptions::kForceGdiName, flag_descriptions::kForceGdiDescription, kOsWin,
-+	 SINGLE_VALUE_TYPE("disable-direct-write")},
-+#endif
-+    {"custom-tab-shapes",
-+     "Thorium Trapezoidal Tabs UI",
-+     "Changes the look of browser tabs to appear with a trapezoidal shape, restoring the pre M72 tabstrip appearance.",
-+     kOsAll,
-+     FEATURE_VALUE_TYPE(features::kThoriumCustomTabs)},
 +
 +
 +
 +
-+    {"custom-ntp",
-+     "Custom New Tab Page",
-+     "Allows setting a custom URL for the new tab page. Value can be internal (e.g. `about:blank` or `chrome://new-tab-page`), external (e.g. `example.com`), or local (e.g. `file:///tmp/startpage.html`). This applies for incognito windows as well when not set to a `chrome://` internal page. ungoogled-chromium flag",
-+     kOsDesktop, ORIGIN_LIST_VALUE_TYPE("custom-ntp", "")},
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
 +    {"bookmark-bar-ntp",
 +     "Bookmark Bar on New-Tab-Page",
 +     "Disable the Bookmark Bar on the New-Tab-Page. ungoogled-chromium flag.",
@@ -2119,10 +2006,10 @@ index de3be2eec25cc..dd0e76f790ca5 100644
 +     "Hide Fullscreen Exit UI",
 +     "Hides the \"X\" that appears when the mouse cursor is moved towards the top of the window in fullscreen mode. Additionally, this hides the \"Press F11 to exit full screen\" popup. ungoogled-chromium flag.",
 +     kOsDesktop, SINGLE_VALUE_TYPE("hide-fullscreen-exit-ui")},
-+	{"hide-sidepanel-button",
-+     "Hide SidePanel Button",
-+     "Hides the SidePanel Button. ungoogled-chromium flag.",
-+     kOsDesktop, SINGLE_VALUE_TYPE("hide-sidepanel-button")},
++
++
++
++
 +	{"hide-tab-close-buttons",
 +     "Hide tab close buttons",
 +     "Hides the close buttons on tabs. ungoogled-chromium flag.",
@@ -2143,22 +2030,22 @@ index de3be2eec25cc..dd0e76f790ca5 100644
 +     "Handling of extension MIME type requests",
 +     "Used when deciding how to handle a request for a CRX or User Script MIME type. ungoogled-chromium flag.",
 +     kOsAll, MULTI_VALUE_TYPE(kExtensionHandlingChoices)},
-+	{"keep-old-history",
-+     "Keep old history",
-+     "Keep history older than 3 months. ungoogled-chromium flag",
-+     kOsAll, SINGLE_VALUE_TYPE("keep-old-history")},
++
++
++
++
 +	{"disable-qr-generator",
 +     "Disable QR Generator",
 +     "Disables the QR generator for sharing page links. ungoogled-chromium flag",
 +     kOsDesktop, FEATURE_VALUE_TYPE(kDisableQRGenerator)},
-+	{"disable-encryption",
-+     "Disable encryption",
-+     "Disable encryption of cookies, passwords, and settings which uses a generated machine-specific encryption key.  This is used to enable portable user data directories.  ungoogled-chromium flag.",
-+     kOsWin, SINGLE_VALUE_TYPE("disable-encryption")},
-+	{"disable-machine-id",
-+     "Disable machine ID",
-+     "Disables use of a generated machine-specific ID to lock the user data directory to that machine.  This is used to enable portable user data directories.  ungoogled-chromium flag.",
-+     kOsWin, SINGLE_VALUE_TYPE("disable-machine-id")},
++
++
++
++
++
++
++
++
 +	{"compact-ui",
 +     "Compact UI",
 +     "Reduces the amount of padding in all UI elements.",
@@ -2175,10 +2062,10 @@ index de3be2eec25cc..dd0e76f790ca5 100644
 +     "Override New Tab Button Shape Default",
 +     "Trapezoidal tabs used a trapzeoidal new tab button while rounded tabs used a round NTB. This option allows the user to override the default setting for the tab shape.",
 +     kOsDesktop, SINGLE_VALUE_TYPE("override-new-tab-button-shape-default")},
-+    {"download-bubble", "Enable download bubble",
-+     "Enables the download bubble instead of the download shelf.",
-+     kOsLinux | kOsLacros | kOsMac | kOsWin,
-+     FEATURE_VALUE_TYPE(safe_browsing::kDownloadBubble)},
++
++
++
++
 +    {"power-bookmarks-side-panel", "Power bookmarks side panel",
 +     "Enables the power bookmarks version of the bookmarks side panel content.", kOsDesktop,
 +     FEATURE_VALUE_TYPE(features::kPowerBookmarksSidePanel)},
@@ -2192,24 +2079,24 @@ index de3be2eec25cc..dd0e76f790ca5 100644
 +     kOsWin, SINGLE_VALUE_TYPE("legacy-tooltips-win")},
 +	{"disable-pwa-install-prompt",
 +     "Disable PWA Install Prompt in Address Bar",
-+     "Disables the PWA (portable web app) install prompt in the address bar.",
++     "Disables the PWA (Progressive Web App) installation prompt in the address bar.",
 +     kOsDesktop, SINGLE_VALUE_TYPE("disable-pwa-install-prompt")},
 +	{"max-connections-per-host",
-+     "Maximum connections per host",
++     "Maximum connections per Host",
 +     "Customize maximum allowed connections per host. ungoogled-chromium flag, Bromite feature.",
 +     kOsAll, MULTI_VALUE_TYPE(kMaxConnectionsPerHostChoices)},
 +	{"disable-search-engine-collection",
-+     "Disable search engine collection",
++     "Disable Search Engine Collection",
 +     "Prevents search engines from being added automatically. ungoogled-chromium flag.",
 +     kOsAll, SINGLE_VALUE_TYPE("disable-search-engine-collection")},
 +	{"popups-to-tabs",
-+     "Popups to tabs",
++     "Popups to Tabs",
 +     "Makes popups open in new tabs. ungoogled-chromium flag",
 +     kOsAll, SINGLE_VALUE_TYPE("popups-to-tabs")},
-+	 {"show-avatar-button",
-+     "Show avatar/people/profile button",
-+     "Show avatar/people/profile button in the browser toolbar. ungoogled-chromium flag.",
-+     kOsDesktop, MULTI_VALUE_TYPE(kShowAvatarButtonChoices)}
++
++
++
++
 +	// TODO: move all Supermium-specific flags to new source file.
 +
 +
@@ -2352,49 +2239,6 @@ index 9851839728f08..fa2ea794f3038 100644
  
    RegisterWebUIControllerInterfaceBinder<
        browser_command::mojom::CommandHandlerFactory, NewTabPageUI, WhatsNewUI>(
-diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
-index 8e21b0a1e691a..f760166426d86 100644
---- a/chrome/browser/chrome_content_browser_client.cc
-+++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -882,10 +882,15 @@ bool HandleNewTabPageLocationOverride(
- 
-   // Don't change the URL when incognito mode.
-   if (profile->IsOffTheRecord())
-+   if (!base::CommandLine::ForCurrentProcess()->HasSwitch("custom-ntp"))
-     return false;
- 
-   std::string ntp_location =
-       profile->GetPrefs()->GetString(prefs::kNewTabPageLocationOverride);
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("custom-ntp"))
-+    ntp_location = base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("custom-ntp");
-+  if (profile->IsOffTheRecord() && ntp_location.find("chrome://") != std::string::npos)
-+	return false;
-   if (ntp_location.empty())
-     return false;
-   url::Component scheme;
-@@ -4312,6 +4317,13 @@ std::string ChromeContentBrowserClient::GetDefaultDownloadName() {
-   return l10n_util::GetStringUTF8(IDS_DEFAULT_DOWNLOAD_FILENAME);
- }
- 
-+base::FilePath ChromeContentBrowserClient::GetFontLookupTableCacheDir() {
-+  base::FilePath user_data_dir;
-+  base::PathService::Get(chrome::DIR_USER_DATA, &user_data_dir);
-+  DCHECK(!user_data_dir.empty());
-+  return user_data_dir.Append(FILE_PATH_LITERAL("FontLookupTableCache"));
-+}
-+
- base::FilePath ChromeContentBrowserClient::GetShaderDiskCacheDirectory() {
-   base::FilePath user_data_dir;
-   base::PathService::Get(chrome::DIR_USER_DATA, &user_data_dir);
-@@ -4726,7 +4738,7 @@ bool ChromeContentBrowserClient::PreSpawnChild(
-     return true;
- 
-   sandbox::MitigationFlags mitigations = config->GetProcessMitigations();
--  mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-+  //mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
-   sandbox::ResultCode result = config->SetProcessMitigations(mitigations);
-   if (result != sandbox::SBOX_ALL_OK)
-     return false;
 diff --git a/chrome/browser/chrome_content_browser_client.h b/chrome/browser/chrome_content_browser_client.h
 index 8ac74856217e4..c11ba71dc1e48 100644
 --- a/chrome/browser/chrome_content_browser_client.h
@@ -2572,7 +2416,7 @@ index 201cd68c5175c..aed9ef6c63595 100644
  bool ChromeDownloadManagerDelegate::ShouldBlockFile(
      download::DownloadItem* item,
      download::DownloadDangerType danger_type) const {
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload) ||
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload) || base::CommandLine::ForCurrentProcess()->HasSwitch("allow-insecure-downloads") ||
 +		base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kUngoogledThorium))	{
 +	  return false;
 +  }
@@ -3181,8 +3025,8 @@ index a023e473a3c31..65b2961e8b4ff 100644
  extern const char kPasswordGenerationExperimentName[];
  extern const char kPasswordGenerationExperimentDescription[];
  
-+extern const char kDisableDownloadUploadName[];
-+extern const char kDisableDownloadUploadDescription[];
++
++
 +
 +extern const char kUngoogledThoriumName[];
 +extern const char kUngoogledThoriumDescription[];
@@ -7121,34 +6965,6 @@ index e6aca6cbb09e8..c4db1429b9911 100644
      download_button =
          std::make_unique<DownloadToolbarButtonView>(browser_view_);
    }
-@@ -452,7 +452,8 @@ void ToolbarView::Init() {
-     send_tab_to_self_button_ =
-         container_view_->AddChildView(std::move(send_tab_to_self_button));
- 
--  if (!features::IsSidePanelPinningEnabled()) {
-+  if (!features::IsSidePanelPinningEnabled()&&
-+      !base::CommandLine::ForCurrentProcess()->HasSwitch("hide-sidepanel-button")) {
-     if (companion::IsCompanionFeatureEnabled()) {
-       side_panel_container_ = container_view_->AddChildView(
-           std::make_unique<SidePanelToolbarContainer>(browser_view_));
-@@ -476,6 +477,17 @@ void ToolbarView::Init() {
- #elif BUILDFLAG(IS_CHROMEOS_LACROS)
-   show_avatar_toolbar_button = !chromeos::IsManagedGuestSession();
- #endif
-+
-+  const std::string sab_value = base::CommandLine::ForCurrentProcess()->
-+                                GetSwitchValueASCII("show-avatar-button");
-+  if (sab_value == "always")
-+    show_avatar_toolbar_button = true;
-+  else if (sab_value == "incognito-and-guest")
-+    show_avatar_toolbar_button = browser_->profile()->IsIncognitoProfile() ||
-+                                 browser_->profile()->IsGuestSession();
-+  else if (sab_value == "never")
-+    show_avatar_toolbar_button = false;
-+
-   avatar_->SetVisible(show_avatar_toolbar_button);
- 
- #if BUILDFLAG(ENABLE_WEBUI_TAB_STRIP)
 diff --git a/chrome/browser/ui/views/web_apps/frame_toolbar/web_app_frame_toolbar_browsertest.cc b/chrome/browser/ui/views/web_apps/frame_toolbar/web_app_frame_toolbar_browsertest.cc
 index 3efd08881b205..d19679d0f5713 100644
 --- a/chrome/browser/ui/views/web_apps/frame_toolbar/web_app_frame_toolbar_browsertest.cc
@@ -9769,84 +9585,6 @@ index 44cf15e1b4703..5dfe3eaee5ba0 100644
          } else {
            base::win::RegKey version_key(
                HKEY_LOCAL_MACHINE, kWindowsRuntimeWellKnownContractsRegKeyName,
-diff --git a/components/flags_ui/flags_state.cc b/components/flags_ui/flags_state.cc
-index 35dea65d76a69..2ab8de1b9780e 100644
---- a/components/flags_ui/flags_state.cc
-+++ b/components/flags_ui/flags_state.cc
-@@ -221,6 +221,10 @@ std::string GetCombinedOriginListValue(const FlagsStorage& flags_storage,
-       command_line.GetSwitchValueASCII(command_line_switch);
-   const std::string new_value =
-       flags_storage.GetOriginListFlag(internal_entry_name);
-+  if (command_line_switch == "custom-ntp")
-+	  return existing_value.empty() ? new_value : existing_value;
-+  if (command_line_switch == "http-accept-header")
-+	  return existing_value.empty() ? new_value : existing_value;
-   return CombineAndSanitizeOriginLists(existing_value, new_value);
- }
- 
-@@ -459,6 +463,8 @@ void FlagsState::SetOriginListFlag(const std::string& internal_name,
-                                    const std::string& value,
-                                    FlagsStorage* flags_storage) {
-   const std::string new_value =
-+      internal_name == "custom-ntp" ? value :
-+	  internal_name == "http-accept-header" ? value :
-       CombineAndSanitizeOriginLists(std::string(), value);
-   flags_storage->SetOriginListFlag(internal_name, new_value);
- 
-diff --git a/components/history/core/browser/history_backend.cc b/components/history/core/browser/history_backend.cc
-index b1a10264877c8..47d24487252c4 100644
---- a/components/history/core/browser/history_backend.cc
-+++ b/components/history/core/browser/history_backend.cc
-@@ -14,6 +14,7 @@
- #include <utility>
- #include <vector>
- 
-+#include "base/command_line.h"
- #include "base/compiler_specific.h"
- #include "base/containers/flat_set.h"
- #include "base/feature_list.h"
-@@ -1316,7 +1317,8 @@ void HistoryBackend::InitImpl(
-   db_->GetStartDate(&first_recorded_time_);
- 
-   // Start expiring old stuff.
--  expirer_.StartExpiringOldStuff(base::Days(kExpireDaysThreshold));
-+  if (!base::CommandLine::ForCurrentProcess()->HasSwitch("keep-old-history"))
-+    expirer_.StartExpiringOldStuff(base::Days(kExpireDaysThreshold));
- }
- 
- void HistoryBackend::OnMemoryPressure(
-diff --git a/components/metrics/machine_id_provider_win.cc b/components/metrics/machine_id_provider_win.cc
-index c92ad1f2eabd0..c9defd3459b56 100644
---- a/components/metrics/machine_id_provider_win.cc
-+++ b/components/metrics/machine_id_provider_win.cc
-@@ -9,6 +9,7 @@
- #include <winioctl.h>
- 
- #include "base/base_paths.h"
-+#include "base/command_line.h"
- #include "base/files/file_path.h"
- #include "base/notreached.h"
- #include "base/path_service.h"
-@@ -19,6 +20,9 @@ namespace metrics {
- 
- // static
- bool MachineIdProvider::HasId() {
-+if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-machine-id")) {
-+    return false;
-+  }
-   return true;
- }
- 
-@@ -26,6 +30,9 @@ bool MachineIdProvider::HasId() {
- // is running from.
- // static
- std::string MachineIdProvider::GetMachineId() {
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-machine-id")) {
-+    return std::string();
-+  }
-   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
-                                                 base::BlockingType::MAY_BLOCK);
- 
 diff --git a/components/metrics/motherboard.cc b/components/metrics/motherboard.cc
 index 4b2270d10a86d..e97bde5ddf5d1 100644
 --- a/components/metrics/motherboard.cc
@@ -9981,40 +9719,6 @@ index 98e208939a55a..c5717354dcd1e 100644
    DATA_BLOB input = {};
    input.pbData = const_cast<BYTE*>(ciphertext.data());
    input.cbData = static_cast<DWORD>(ciphertext.size());
-diff --git a/components/os_crypt/sync/os_crypt_win.cc b/components/os_crypt/sync/os_crypt_win.cc
-index 235bc61a371df..62ddd4d14d313 100644
---- a/components/os_crypt/sync/os_crypt_win.cc
-+++ b/components/os_crypt/sync/os_crypt_win.cc
-@@ -5,6 +5,7 @@
- #include <windows.h>
- 
- #include "base/base64.h"
-+#include "base/command_line.h"
- #include "base/feature_list.h"
- #include "base/logging.h"
- #include "base/memory/singleton.h"
-@@ -45,6 +46,10 @@ constexpr char kDPAPIKeyPrefix[] = "DPAPI";
- 
- bool EncryptStringWithDPAPI(const std::string& plaintext,
-                             std::string* ciphertext) {
-+   if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-encryption")) {
-+    *ciphertext = plaintext;
-+    return true;
-+  }
-   DATA_BLOB input;
-   input.pbData =
-       const_cast<BYTE*>(reinterpret_cast<const BYTE*>(plaintext.data()));
-@@ -79,6 +84,10 @@ bool EncryptStringWithDPAPI(const std::string& plaintext,
- 
- bool DecryptStringWithDPAPI(const std::string& ciphertext,
-                             std::string* plaintext) {
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-encryption")) {
-+    *plaintext = ciphertext;
-+    return true;
-+  }
-   DATA_BLOB input;
-   input.pbData =
-       const_cast<BYTE*>(reinterpret_cast<const BYTE*>(ciphertext.data()));
 diff --git a/components/safe_browsing/core/common/features.cc b/components/safe_browsing/core/common/features.cc
 index 71e42b821fbd9..6e3a3f7e8ae9e 100644
 --- a/components/safe_browsing/core/common/features.cc
@@ -16100,27 +15804,6 @@ index 9406c2b456dd4..c5c1eb0b183a5 100644
        !IsSystemLocationSettingEnabled()) {
      return nullptr;
    }
-diff --git a/services/preferences/tracked/device_id_win.cc b/services/preferences/tracked/device_id_win.cc
-index 48ce95f869c95..2cd6bfb10cc8e 100644
---- a/services/preferences/tracked/device_id_win.cc
-+++ b/services/preferences/tracked/device_id_win.cc
-@@ -10,11 +10,16 @@
- 
- #include <memory>
- 
-+#include "base/command_line.h"
- #include "base/check.h"
- 
- MachineIdStatus GetDeterministicMachineSpecificId(std::string* machine_id) {
-   DCHECK(machine_id);
- 
-+if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-machine-id")) {
-+    return MachineIdStatus::NOT_IMPLEMENTED;
-+  }
-+
-   wchar_t computer_name[MAX_COMPUTERNAME_LENGTH + 1] = {};
-   DWORD computer_name_size = std::size(computer_name);
- 
 diff --git a/services/proxy_resolver_win/BUILD.gn b/services/proxy_resolver_win/BUILD.gn
 index ed4b004f06350..c3fa7ec452180 100644
 --- a/services/proxy_resolver_win/BUILD.gn

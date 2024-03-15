@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -79,7 +80,6 @@
 #include "net/url_request/url_request.h"
 #include "net/url_request/url_request_context.h"
 #include "net/url_request/url_request_context_builder.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "url/url_constants.h"
 
 namespace net {
@@ -114,6 +114,10 @@ constexpr net::NetworkTrafficAnnotationTag kTrafficAnnotation =
         })");
 
 const char kDnsOverHttpResponseContentType[] = "application/dns-message";
+
+// The maximum size of the DNS message for DoH, per
+// https://datatracker.ietf.org/doc/html/rfc8484#section-6
+const int64_t kDnsOverHttpResponseMaximumSize = 65535;
 
 // Count labels in the fully-qualified name in DNS format.
 int CountLabels(base::span<const uint8_t> name) {
@@ -422,7 +426,7 @@ class DnsHTTPAttempt : public DnsAttempt, public URLRequest::Delegate {
       if (is_probe) {
         return NetLogStartParams("(probe)", query_->qtype());
       }
-      absl::optional<std::string> hostname =
+      std::optional<std::string> hostname =
           dns_names_util::NetworkToDottedName(query_->qname());
       DCHECK(hostname.has_value());
       return NetLogStartParams(*hostname, query_->qtype());
@@ -539,10 +543,16 @@ class DnsHTTPAttempt : public DnsAttempt, public URLRequest::Delegate {
 
     if (request->response_headers()->HasHeader(
             HttpRequestHeaders::kContentLength)) {
+      if (request_->response_headers()->GetContentLength() >
+          kDnsOverHttpResponseMaximumSize) {
+        ResponseCompleted(ERR_DNS_MALFORMED_RESPONSE);
+        return;
+      }
+
       buffer_->SetCapacity(request_->response_headers()->GetContentLength() +
                            1);
     } else {
-      buffer_->SetCapacity(66560);  // 64kb.
+      buffer_->SetCapacity(kDnsOverHttpResponseMaximumSize + 1);
     }
 
     DCHECK(buffer_->data());
@@ -577,6 +587,11 @@ class DnsHTTPAttempt : public DnsAttempt, public URLRequest::Delegate {
     DCHECK_GE(bytes_read, 0);
 
     if (bytes_read > 0) {
+      if (buffer_->offset() + bytes_read > kDnsOverHttpResponseMaximumSize) {
+        ResponseCompleted(ERR_DNS_MALFORMED_RESPONSE);
+        return;
+      }
+
       buffer_->set_offset(buffer_->offset() + bytes_read);
 
       if (buffer_->RemainingCapacity() == 0) {
@@ -971,7 +986,7 @@ class DnsOverHttpsProbeRunner : public DnsProbeRunner {
     DCHECK(!session_->config().doh_config.servers().empty());
     DCHECK(context_);
 
-    absl::optional<std::vector<uint8_t>> qname =
+    std::optional<std::vector<uint8_t>> qname =
         dns_names_util::DottedNameToNetwork(kDohProbeHostname);
     DCHECK(qname.has_value());
     formatted_probe_qname_ = std::move(qname).value();
@@ -1155,7 +1170,7 @@ class DnsTransactionImpl : public DnsTransaction,
   DnsTransactionImpl(DnsSession* session,
                      std::string hostname,
                      uint16_t qtype,
-                     const NetLogWithSource& net_log,
+                     const NetLogWithSource& parent_net_log,
                      const OptRecordRdata* opt_rdata,
                      bool secure,
                      SecureDnsMode secure_dns_mode,
@@ -1168,11 +1183,14 @@ class DnsTransactionImpl : public DnsTransaction,
         secure_(secure),
         secure_dns_mode_(secure_dns_mode),
         fast_timeout_(fast_timeout),
-        net_log_(net_log),
+        net_log_(NetLogWithSource::Make(NetLog::Get(),
+                                        NetLogSourceType::DNS_TRANSACTION)),
         resolve_context_(resolve_context->AsSafeRef()) {
     DCHECK(session_.get());
     DCHECK(!hostname_.empty());
     DCHECK(!IsIPLiteral(hostname_));
+    parent_net_log.AddEventReferencingSource(NetLogEventType::DNS_TRANSACTION,
+                                             net_log_.source());
   }
 
   DnsTransactionImpl(const DnsTransactionImpl&) = delete;
@@ -1251,7 +1269,7 @@ class DnsTransactionImpl : public DnsTransaction,
   int PrepareSearch() {
     const DnsConfig& config = session_->config();
 
-    absl::optional<std::vector<uint8_t>> labeled_qname =
+    std::optional<std::vector<uint8_t>> labeled_qname =
         dns_names_util::DottedNameToNetwork(
             hostname_,
             /*require_valid_internet_hostname=*/true);
@@ -1280,7 +1298,7 @@ class DnsTransactionImpl : public DnsTransaction,
     }
 
     for (const auto& suffix : config.search) {
-      absl::optional<std::vector<uint8_t>> qname =
+      std::optional<std::vector<uint8_t>> qname =
           dns_names_util::DottedNameToNetwork(
               hostname_ + "." + suffix,
               /*require_valid_internet_hostname=*/true);
@@ -1504,7 +1522,7 @@ class DnsTransactionImpl : public DnsTransaction,
 
   // Begins query for the current name. Makes the first attempt.
   AttemptResult StartQuery() {
-    absl::optional<std::string> dotted_qname =
+    std::optional<std::string> dotted_qname =
         dns_names_util::NetworkToDottedName(qnames_.front());
     net_log_.BeginEventWithStringParams(
         NetLogEventType::DNS_TRANSACTION_QUERY, "qname",

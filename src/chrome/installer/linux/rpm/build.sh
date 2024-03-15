@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2023 The Chromium Authors and Alex313031
+# Copyright 2024 The Chromium Authors and Alex313031
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -216,7 +216,6 @@ fi
 eval $(sed -e "s/^\([^=]\+\)=\(.*\)$/export \1='\2'/" \
   "${OUTPUTDIR}/installer/theme/BRANDING")
 
-# REPOCONFIG="https://dl.google.com/linux/${PACKAGE#google-}/rpm/stable"
 export USR_BIN_SYMLINK_NAME="${PACKAGE}"
 
 stage_install_rpm

@@ -1,5 +1,5 @@
 ;!@Install@!UTF-8!
-Title="Thorium-Win7 Installer"
+Title="Thorium Installer"
 BeginPrompt="Do you want to install Thorium?"
 RunProgram="mini_installer.exe"
 ;!@InstallEnd@!

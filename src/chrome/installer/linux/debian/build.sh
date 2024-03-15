@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2023 The Chromium Authors and Alex313031
+# Copyright 2024 The Chromium Authors and Alex313031
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -272,10 +272,8 @@ COMMON_RECOMMENDS=$(grep -v ^$ "${MANUAL_RECOMMENDS}" | grep -v ^# |
 
 # Make everything happen in the OUTPUTDIR.
 cd "${OUTPUTDIR}"
-# BASEREPOCONFIG="dl.google.com/linux/chrome/deb/ stable main"
 # Only use the default REPOCONFIG if it's unset (e.g. verify_channel might have
 # set it to an empty string)
-# REPOCONFIG="${REPOCONFIG-deb [arch=${ARCHITECTURE}] https://${BASEREPOCONFIG}}"
 # Allowed configs include optional HTTPS support and explicit multiarch
 # platforms.
 REPOCONFIGREGEX="deb (\\\\[arch=[^]]*\\\\b${ARCHITECTURE}\\\\b[^]]*\\\\]"

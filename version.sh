@@ -68,19 +68,18 @@ gclient sync --with_branch_heads --with_tags -f -R -D &&
 gclient runhooks &&
 
 # Install all sysroots (i.e. for ARM64)
-# build/linux/sysroot_scripts/install-sysroot.py --all &&
+#build/linux/sysroot_scripts/install-sysroot.py --all &&
 
 printf "\n"
 printf "${GRE}Chromium tree is checked out at tag: ${c0}$THOR_VER\n"
 printf "\n"
 	
-printf "${YEL}Downloading PGO Profiles for win32 and win64...\n" &&
+printf "${YEL}Downloading PGO Profiles for win64 and win32...\n" &&
 printf "\n" &&
 tput sgr0 &&
 
 python3 tools/update_pgo_profiles.py --target=win64 update --gs-url-base=chromium-optimization-profiles/pgo_profiles &&
 python3 tools/update_pgo_profiles.py --target=win32 update --gs-url-base=chromium-optimization-profiles/pgo_profiles &&
-
 printf "\n" &&
 
 printf "${YEL}Downloading PGO Profile for V8 (for when v8_enable_builtins_optimization = true)\n" &&

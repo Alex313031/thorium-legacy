@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -54,7 +54,7 @@ const AcceleratorMapping kAcceleratorMap[] = {
     {ui::VKEY_D, ui::EF_PLATFORM_ACCELERATOR, IDC_BOOKMARK_THIS_TAB},
     {ui::VKEY_D, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
      IDC_DUPLICATE_TAB},
-    {ui::VKEY_P, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_MOVE_TAB_TO_NEW_WINDOW},
+    {ui::VKEY_P, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_MOVE_TAB_TO_NEW_WINDOW},
     {ui::VKEY_W, ui::EF_PLATFORM_ACCELERATOR, IDC_CLOSE_TAB},
     {ui::VKEY_W, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
      IDC_CLOSE_WINDOW},
@@ -81,9 +81,11 @@ const AcceleratorMapping kAcceleratorMap[] = {
     {ui::VKEY_NEXT, ui::EF_CONTROL_DOWN | ui::EF_SHIFT_DOWN, IDC_MOVE_TAB_NEXT},
     {ui::VKEY_PRIOR, ui::EF_CONTROL_DOWN | ui::EF_SHIFT_DOWN,
      IDC_MOVE_TAB_PREVIOUS},
+#endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_CHROMEOS_ASH)
     {ui::VKEY_Q, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_EXIT},
     {ui::VKEY_K, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_NEW_TAB_TO_RIGHT},
-#endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
+#endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_CHROMEOS_ASH)
     // Control modifier is rarely used on Mac, so we allow it only in several
     // specific cases.
     {ui::VKEY_TAB, ui::EF_CONTROL_DOWN, IDC_SELECT_NEXT_TAB},
@@ -175,6 +177,11 @@ const AcceleratorMapping kAcceleratorMap[] = {
     // See crbug.com/683097
     {ui::VKEY_PRINT, ui::EF_NONE, IDC_PRINT},
 #endif  // BUILDFLAG(IS_CHROMEOS)
+
+#if BUILDFLAG(IS_CHROMEOS) && BUILDFLAG(GOOGLE_CHROME_BRANDING)
+    // Chrome OS supports search-based shortcut to open feedback app.
+    {ui::VKEY_I, ui::EF_CONTROL_DOWN | ui::EF_COMMAND_DOWN, IDC_FEEDBACK},
+#endif  // BUILDFLAG(IS_CHROMEOS) && BUILDFLAG(GOOGLE_CHROME_BRANDING)
 
 #if BUILDFLAG(IS_CHROMEOS)
     // Chrome OS keyboard does not have delete key, so assign it to backspace.

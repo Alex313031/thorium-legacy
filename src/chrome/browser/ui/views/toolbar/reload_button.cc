@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -7,12 +7,14 @@
 #include <stddef.h>
 
 #include "base/strings/utf_string_conversions.h"
+#include "base/command_line.h"
 #include "build/build_config.h"
 #include "chrome/app/chrome_command_ids.h"
 #include "chrome/app/vector_icons/vector_icons.h"
 #include "chrome/browser/command_updater.h"
 #include "chrome/browser/external_protocol/external_protocol_handler.h"
 #include "chrome/browser/themes/theme_properties.h"
+#include "chrome/browser/ui/browser_element_identifiers.h"
 #include "chrome/browser/ui/view_ids.h"
 #include "chrome/grit/generated_resources.h"
 #include "components/vector_icons/vector_icons.h"
@@ -27,6 +29,7 @@
 #include "ui/gfx/color_palette.h"
 #include "ui/gfx/paint_vector_icon.h"
 #include "ui/views/metrics.h"
+#include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
 
 // ReloadButton ---------------------------------------------------------------
@@ -39,7 +42,8 @@ ReloadButton::ReloadButton(CommandUpdater* command_updater)
       command_updater_(command_updater),
       reload_icon_(features::IsChromeRefresh2023()
                        ? vector_icons::kReloadChromeRefreshIcon
-                       : vector_icons::kReloadIcon),
+                       : base::CommandLine::ForCurrentProcess()->HasSwitch("disable-thorium-icons") ? vector_icons::kReloadIcon
+                       : vector_icons::kReloadThoriumIcon),
       reload_touch_icon_(kReloadTouchIcon),
       stop_icon_(features::IsChromeRefresh2023()
                      ? kNavigateStopChromeRefreshIcon
@@ -52,6 +56,7 @@ ReloadButton::ReloadButton(CommandUpdater* command_updater)
   SetTriggerableEventFlags(ui::EF_LEFT_MOUSE_BUTTON |
                            ui::EF_MIDDLE_MOUSE_BUTTON);
   SetAccessibleName(l10n_util::GetStringUTF16(IDS_ACCNAME_RELOAD));
+  SetProperty(views::kElementIdentifierKey, kReloadButtonElementId);
   SetID(VIEW_ID_RELOAD_BUTTON);
 }
 
@@ -254,6 +259,6 @@ void ReloadButton::OnStopToReloadTimer() {
   ChangeMode(intended_mode_, true);
 }
 
-BEGIN_METADATA(ReloadButton, ToolbarButton)
+BEGIN_METADATA(ReloadButton)
 ADD_PROPERTY_METADATA(bool, MenuEnabled)
 END_METADATA

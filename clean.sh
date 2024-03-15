@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2023 Alex313031.
+# Copyright (c) 2024 Alex313031.
 
 # Copy and run from within out/thorium or wherever you put your build, or cd there first!
 # i.e. cd /home/alex/bin/thorium/
@@ -60,5 +60,3 @@ find ${CR_SRC_DIR}/out/thorium -name "*TOC*" -delete &&
 
 printf "${GRE}Done cleaning artifacts.\n" &&
 tput sgr0
-
-exit 0

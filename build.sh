@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2023 Alex313031.
+# Copyright (c) 2024 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 CYA='\033[1;96m' # Cyan
@@ -18,8 +18,8 @@ try() { "$@" || die "${RED}Failed $*"; }
 # --help
 displayHelp () {
 	printf "\n" &&
-	printf "${bold}${GRE}Script to build Thorium for Windows on Linux.${c0}\n" &&
-	printf "${underline}${YEL}Usage:${c0} build.sh # (where # is number of jobs)${c0}\n" &&
+	printf "${bold}${GRE}Script to build Thorium for Windows.${c0}\n" &&
+	printf "${underline}${YEL}Usage:${c0} build_win.sh # (where # is number of jobs)${c0}\n" &&
 	printf "\n"
 }
 case $1 in
@@ -44,24 +44,11 @@ export NINJA_SUMMARIZE_BUILD=1 &&
 export NINJA_STATUS="[%r processes, %f/%t @ %o/s | %e sec. ] " &&
 
 cd ${CR_SRC_DIR} &&
-
-fixDbghelp () {
-	# Needed to prevent api-ms-win-core-com-l1-1-0.dll error
-	rm -f -v out/thorium/dbghelp.dll
-}
-case $1 in
-	--fix) fixDbghelp;
-esac
-
-autoninja -C out/thorium thorium chromedriver clear_key_cdm setup mini_installer -j$@ &&
-# Disable content_shell for now
-# thorium_shell
+autoninja -C out/thorium thorium chromedriver clear_key_cdm thorium_shell setup mini_installer -j$@ &&
 
 mv -v -f ${CR_SRC_DIR}/out/thorium/mini_installer.exe ${CR_SRC_DIR}/out/thorium/thorium_mini_installer.exe &&
 
 cat ~/thorium-win7/logos/thorium_logo_ascii_art.txt &&
 
 printf "${GRE}${bold}Build Completed. ${YEL}${bold}Installer at \'//out/thorium/thorium_mini_installer.exe\'\n" &&
-tput sgr0 &&
-
-exit 0
+tput sgr0

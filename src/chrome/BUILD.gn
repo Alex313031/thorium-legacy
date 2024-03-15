@@ -1,4 +1,4 @@
-# Copyright 2023 The Chromium Authors and Alex313031
+# Copyright 2024 The Chromium Authors and Alex313031
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -50,15 +50,11 @@ if (is_android) {
   import("//chrome/version.gni")
   import("//content/public/app/mac_helpers.gni")
   import("//media/cdm/library_cdm/cdm_paths.gni")
+  import("//services/on_device_model/on_device_model.gni")
   import("//third_party/icu/config.gni")
 }
 
 declare_args() {
-  # Indicates whether keystone registration framework should be enabled (see
-  # action("keystone_registration_framework") below).  There are some tests
-  # where we'd like for it to be disabled. (https://crbug.com/909080)
-  enable_keystone_registration_framework = true
-
   # On macOS, `is_chrome_branded` builds that have been signed locally will not
   # launch because certain entitlements are tied to the official Google code
   # signing identity. If `include_branded_entitlements` is set to false, these
@@ -105,7 +101,7 @@ group("assert_no_deps") {
 
   if (is_android) {
     deps += [ "//chrome/android:chrome_public_apk" ]
-  } else {
+  } else if (!is_fuchsia) {
     deps += [ ":chrome" ]
   }
 
@@ -128,7 +124,7 @@ group("assert_no_deps") {
   }
 }
 
-if (!is_android && !is_mac) {
+if (!is_android && !is_mac && !is_fuchsia) {
   group("chrome") {
     public_deps = [ ":chrome_initial" ]
     data_deps = [ ":chrome_initial" ]
@@ -203,7 +199,7 @@ if (!is_android && !is_mac) {
           ":chrome_dll",
           ":chrome_exe_version",
           ":copy_first_run",
-          ":packed_resources_integrity",
+          ":packed_resources_integrity_header",
           ":visual_elements_resources",
           "//base",
           "//build:branding_buildflags",
@@ -325,6 +321,7 @@ if (!is_android && !is_mac) {
         # On Chrome OS builds (for both ash-chrome and lacros-chrome), put
         # a metadata.json file in root directory containing Chrome version.
         if (is_chromeos) {
+          deps += [ "//ui/gfx/linux:gbm" ]
           data_deps += [ "//build:version_metadata" ]
         }
 
@@ -359,10 +356,6 @@ if (!is_android && !is_mac) {
 
       if (is_chromeos_ash || is_win) {
         data_deps += [ "//mojo/core:shared_library" ]
-      }
-
-      if (is_chromeos_ash) {
-        data_deps += [ "//mojo/core:shared_libraries_for_arc" ]
       }
 
       # These files are used by the installer so we need a public dep.
@@ -462,6 +455,10 @@ if (is_win) {
     if (use_aura) {
       deps += [ "//ui/compositor" ]
     }
+    if (current_cpu == "x86") {
+      # Don"t set an x64 base address (to avoid breaking HE-ASLR).
+      ldflags = [ "/BASE:0x12000000" ]
+    }
   }
 
   copy("copy_first_run") {
@@ -473,7 +470,8 @@ if (is_win) {
   chrome_framework_name = chrome_product_full_name + " Framework"
   chrome_framework_version = chrome_version_full
 
-  verify_dynamic_libraries = !is_component_build && !is_asan
+  verify_dynamic_libraries = !is_component_build && !is_asan && !is_ubsan &&
+                             !is_ubsan_vptr && !is_ubsan_security
   if (host_os == "mac") {
     objdump_path = mac_bin_path
   } else {
@@ -953,8 +951,8 @@ if (is_win) {
       # resource bundle because that's the interface that
       # Authorization Services uses.  Also, Authorization Services
       # can't deal with .icns files.
+      "$root_gen_dir/chrome/browser/mac/install.sh",
       "app/theme/default_100_percent/$branding_path_component/product_logo_32.png",
-      "browser/mac/install.sh",
     ]
 
     outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
@@ -962,14 +960,8 @@ if (is_win) {
     public_deps = [
       ":packed_resources",
       "//chrome/app_shim:app_mode_loader_plist_bundle_data",
+      "//chrome/browser/mac:install",
     ]
-
-    if (is_chrome_branded) {
-      sources += [
-        "browser/mac/keystone_promote_postflight.sh",
-        "browser/mac/keystone_promote_preflight.sh",
-      ]
-    }
 
     if (icu_use_data_file) {
       sources += [ "$root_out_dir/icudtl.dat" ]
@@ -1094,17 +1086,6 @@ if (is_win) {
     }
   }
 
-  if (is_chrome_branded && enable_keystone_registration_framework) {
-    bundle_data("keystone_registration_framework") {
-      sources = [ "//third_party/googlemac/Releases/Keystone/KeystoneRegistration.framework" ]
-
-      outputs = [ "{{bundle_contents_dir}}/Frameworks/{{source_file_part}}" ]
-    }
-  } else {
-    group("keystone_registration_framework") {
-    }
-  }
-
   if (build_with_internal_optimization_guide) {
     # Add the optimization guide .dylib in the MODULE_DIR of Chromium.app
     bundle_data("optimization_guide_library") {
@@ -1219,10 +1200,6 @@ if (is_win) {
 
     if (is_chrome_branded) {
       framework_contents += [ "Default Apps" ]
-      if (enable_keystone_registration_framework) {
-        # For KeystoneRegistration.framework.
-        framework_contents += [ "Frameworks" ]
-      }
     }
 
     if (enable_nacl) {
@@ -1246,7 +1223,6 @@ if (is_win) {
       ":chrome_framework_helpers",
       ":chrome_framework_plugins",
       ":chrome_framework_resources",
-      ":keystone_registration_framework",
       ":optimization_guide_library",
       ":swiftshader_library",
       ":widevine_cdm_library",
@@ -1531,11 +1507,6 @@ if (is_win) {
     ]
   }
 
-  process_version_rc_template("nacl64_exe_version") {
-    sources = [ "app/nacl64_exe.ver" ]
-    output = "$target_gen_dir/nacl64_exe_version.rc"
-  }
-
   process_version_rc_template("other_version") {
     sources = [ "app/other.ver" ]
     output = "$target_gen_dir/other_version.rc"
@@ -1627,6 +1598,7 @@ if (!is_android) {
       public_deps = [ ":preinstalled_apps" ]
     }
 
+    # This needs to be in-sync with //chrome/app/packed_resources_integrity.h.
     files_to_hash = [
       "resources.pak",
       "chrome_100_percent.pak",
@@ -1634,6 +1606,15 @@ if (!is_android) {
     if (enable_hidpi) {
       files_to_hash += [ "chrome_200_percent.pak" ]
     }
+  }
+
+  # This is extracted to deserialize build dependency around
+  # :packed_resources_integrity_hash and improve build parallelism.
+  source_set("packed_resources_integrity_header") {
+    sources = [ "app/packed_resources_integrity.h" ]
+
+    # chrome/app/packed_resources_integrity.cc file is generated in dependency.
+    deps = [ ":packed_resources_integrity" ]
   }
 }
 
@@ -1731,10 +1712,6 @@ if (is_android) {
 
     if (is_chromeos_ash) {
       public_deps += [ "//ui/lottie" ]
-    }
-
-    if (enable_vr) {
-      deps += [ "//third_party/gvr-android-sdk:gvr_shim" ]
     }
   }
 }

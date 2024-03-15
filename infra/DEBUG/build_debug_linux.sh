@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2022 Alex313031.
+# Copyright (c) 2024 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 CYA='\033[1;96m' # Cyan
@@ -22,7 +22,6 @@ displayHelp () {
 	printf "${underline}Usage: ${c0}build_debug_linux.sh # (where # is number of jobs)\n" &&
 	printf "\n"
 }
-
 case $1 in
 	--help) displayHelp; exit 0;;
 esac
@@ -31,10 +30,21 @@ printf "\n" &&
 printf "${YEL}Building Thorium DEBUG for Linux...\n" &&
 printf "${CYA}\n" &&
 
+# chromium/src dir env variable
+if [ -z "${CR_DIR}" ]; then 
+    CR_SRC_DIR="$HOME/chromium/src"
+    export CR_SRC_DIR
+else 
+    CR_SRC_DIR="${CR_DIR}"
+    export CR_SRC_DIR
+fi
+
 # Build Thorium and Thorium UI Debug Shell
 export NINJA_SUMMARIZE_BUILD=1 &&
 
-autoninja -C ~/chromium/src/out/thorium chrome chrome_sandbox chromedriver thorium_shell thorium_ui_debug_shell clear_key_cdm -j$@ &&
+cd ${CR_SRC_DIR} &&
+autoninja -C /out/thorium chrome chrome_sandbox chromedriver thorium_shell thorium_ui_debug_shell clear_key_cdm -j$@ &&
+cd ~/thorium-win7/infra/DEBUG &&
 
 mkdir -v -p ~/chromium/src/out/thorium/Thorium_UI_Debug_Shell &&
 mkdir -v -p ~/chromium/src/out/thorium/Thorium_UI_Debug_Shell/lib &&
@@ -57,7 +67,7 @@ cp -r -f -v ~/chromium/src/out/thorium/resources ~/chromium/src/out/thorium/Thor
 cp -r -f -v ~/chromium/src/out/thorium/ui ~/chromium/src/out/thorium/Thorium_UI_Debug_Shell/ &&
 cp -r -f -v ~/chromium/src/out/thorium/libffmpeg.so ~/chromium/src/out/thorium/Thorium_UI_Debug_Shell/ &&
 cp -r -f -v ~/chromium/src/out/thorium/libffmpeg.so ~/chromium/src/out/thorium/Thorium_UI_Debug_Shell/lib &&
-cp -r -f -v ~/chromium/src/out/thorium/libblink_test_plugin.so ~/chromium/src/out/thorium/Thorium_UI_Debug_Shell/ &&
+# cp -r -f -v ~/chromium/src/out/thorium/libblink_test_plugin.so ~/chromium/src/out/thorium/Thorium_UI_Debug_Shell/ &&
 cp -r -f -v ~/chromium/src/out/thorium/icudtl.dat ~/chromium/src/out/thorium/Thorium_UI_Debug_Shell/ &&
 cp -r -f -v ~/chromium/src/out/thorium/content_resources.pak ~/chromium/src/out/thorium/Thorium_UI_Debug_Shell/ &&
 cp -r -f -v ~/chromium/src/out/thorium/libEGL.so ~/chromium/src/out/thorium/Thorium_UI_Debug_Shell/ &&

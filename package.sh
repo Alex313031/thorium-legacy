@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2023 Alex313031.
+# Copyright (c) 2024 Alex313031.
 
 YEL='\033[1;33m' # Yellow
 CYA='\033[1;96m' # Cyan
@@ -43,7 +43,9 @@ printf "${CYA}\n" &&
 export NINJA_SUMMARIZE_BUILD=1 &&
 export NINJA_STATUS="[%r processes, %f/%t @ %o/s | %e sec. ] " &&
 
-./depot_tools/autoninja -C ${CR_SRC_DIR}/out/thorium "chrome/installer/linux:stable_deb" "chrome/installer/linux:stable_rpm" -j$@ &&
+cd ${CR_SRC_DIR} &&
+
+autoninja -C out/thorium "chrome/installer/linux:stable_deb" "chrome/installer/linux:stable_rpm" -j$@ &&
 
 printf "${GRE}Done! ${YEL}Installers at \'//out/thorium/thorium*.deb\' and \'//out/thorium/thorium*.rpm\'\n" &&
 tput sgr0

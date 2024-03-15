@@ -1,4 +1,4 @@
-# Copyright 2023 The Chromium Authors and Alex313031
+# Copyright 2024 The Chromium Authors and Alex313031
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -136,6 +136,7 @@ component("views_examples_lib") {
     "//ui/color",
     "//ui/events",
     "//ui/gfx",
+    "//ui/gfx:test_support",
     "//ui/gfx/geometry",
     "//ui/lottie",
     "//ui/message_center",
@@ -174,6 +175,7 @@ source_set("views_examples_proc") {
     "//components/viz/service",
     "//mojo/core/embedder",
     "//skia",
+    "//ui/accessibility:test_support",
     "//ui/base",
     "//ui/color:mixers",
     "//ui/compositor",

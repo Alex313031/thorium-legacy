@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors, Alex313031, and Midzer
+// Copyright 2024 The Chromium Authors, Alex313031, and midzer
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -69,14 +69,19 @@ SupplementalProfileCache<AudioType>* GetSupplementalAudioTypeCache() {
   return cache.get();
 }
 
-bool IsSupportedHdrMetadata(const gfx::HdrMetadataType& hdr_metadata_type) {
-  switch (hdr_metadata_type) {
+bool IsSupportedHdrMetadata(const VideoType& type) {
+  switch (type.hdr_metadata_type) {
     case gfx::HdrMetadataType::kNone:
       return true;
 
     case gfx::HdrMetadataType::kSmpteSt2086:
-      return base::FeatureList::IsEnabled(kSupportSmpteSt2086HdrMetadata);
+      // HDR metadata is currently only used with the PQ transfer function.
+      // See gfx::ColorTransform for more details.
+      return type.color_space.transfer ==
+             VideoColorSpace::TransferID::SMPTEST2084;
 
+    // 2094-10 SEI metadata is not the same as Dolby Vision RPU metadata, Dolby
+    // Vision decoders on each platform only support Dolby Vision RPU metadata.
     case gfx::HdrMetadataType::kSmpteSt2094_10:
     case gfx::HdrMetadataType::kSmpteSt2094_40:
       return false;
@@ -197,9 +202,11 @@ bool IsAudioCodecProprietary(AudioCodec codec) {
     case AudioCodec::kDTS:
     case AudioCodec::kDTSXP2:
     case AudioCodec::kDTSE:
+    case AudioCodec::kAC4:
       return true;
 
     case AudioCodec::kFLAC:
+    case AudioCodec::kIAMF:
     case AudioCodec::kMP3:
     case AudioCodec::kOpus:
     case AudioCodec::kVorbis:
@@ -266,8 +273,8 @@ bool IsAV1Supported(const VideoType& type) {
 }
 
 bool IsMPEG4Supported() {
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-  return true;
+#if BUILDFLAG(IS_CHROMEOS) && BUILDFLAG(USE_PROPRIETARY_CODECS)
+  return base::FeatureList::IsEnabled(kCrOSLegacyMediaFormats);
 #else
   return false;
 #endif
@@ -315,8 +322,9 @@ bool IsSupportedVideoType(const VideoType& type) {
 // TODO(chcunningham): Add platform specific logic for Android (move from
 // MimeUtilInternal).
 bool IsDefaultSupportedVideoType(const VideoType& type) {
-  if (!IsSupportedHdrMetadata(type.hdr_metadata_type))
+  if (!IsSupportedHdrMetadata(type)) {
     return false;
+  }
 
 #if !BUILDFLAG(USE_PROPRIETARY_CODECS)
   if (IsVideoCodecProprietary(type.codec))
@@ -324,9 +332,10 @@ bool IsDefaultSupportedVideoType(const VideoType& type) {
 #endif
 
   switch (type.codec) {
+    case VideoCodec::kTheora:
+      return IsBuiltInVideoCodec(type.codec);
     case VideoCodec::kH264:
     case VideoCodec::kVP8:
-    case VideoCodec::kTheora:
     case VideoCodec::kMPEG2:
       return true;
     case VideoCodec::kAV1:
@@ -372,30 +381,25 @@ bool IsDefaultSupportedAudioType(const AudioType& type) {
     case AudioCodec::kGSM_MS:
     case AudioCodec::kALAC:
     case AudioCodec::kMpegHAudio:
+    case AudioCodec::kIAMF:
     case AudioCodec::kUnknown:
       return false;
     case AudioCodec::kDTS:
     case AudioCodec::kDTSXP2:
     case AudioCodec::kDTSE:
-#if BUILDFLAG(ENABLE_PLATFORM_DTS_AUDIO)
-      return true;
-#else
-      return false;
-#endif
+      return BUILDFLAG(ENABLE_PLATFORM_DTS_AUDIO);
     case AudioCodec::kAC3:
     case AudioCodec::kEAC3:
-#if BUILDFLAG(ENABLE_PLATFORM_AC3_EAC3_AUDIO)
-      return true;
-#else
-      return false;
-#endif
+      return BUILDFLAG(ENABLE_PLATFORM_AC3_EAC3_AUDIO);
+    case AudioCodec::kAC4:
+      return BUILDFLAG(ENABLE_PLATFORM_AC4_AUDIO);
   }
 }
 
 bool IsBuiltInVideoCodec(VideoCodec codec) {
 #if BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS)
   if (codec == VideoCodec::kTheora)
-    return true;
+    return base::FeatureList::IsEnabled(kTheoraVideoCodec);
   if (codec == VideoCodec::kVP8)
     return true;
 #if BUILDFLAG(USE_PROPRIETARY_CODECS)

@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors and Alex313031
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -174,16 +174,16 @@ class GM2TabStyleViews : public TabStyleViews {
   void PaintTabBackground(gfx::Canvas* canvas,
                           TabStyle::TabSelectionState selection_state,
                           bool hovered,
-                          absl::optional<int> fill_id,
+                          std::optional<int> fill_id,
                           int y_inset) const;
   void PaintTabBackgroundWithImages(
       gfx::Canvas* canvas,
-      absl::optional<int> active_tab_fill_id,
-      absl::optional<int> inactive_tab_fill_id) const;
+      std::optional<int> active_tab_fill_id,
+      std::optional<int> inactive_tab_fill_id) const;
   void PaintTabBackgroundFill(gfx::Canvas* canvas,
                               TabStyle::TabSelectionState selection_state,
                               bool hovered,
-                              absl::optional<int> fill_id,
+                              std::optional<int> fill_id,
                               int y_inset) const;
   virtual void PaintBackgroundHover(gfx::Canvas* canvas, float scale) const;
   void PaintBackgroundStroke(gfx::Canvas* canvas,
@@ -332,105 +332,86 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
     // stroke width.
 
     // Start with the left side of the shape.
+    path.moveTo(left, extended_bottom);
 
-    if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
-		path.moveTo(left, extended_bottom);
-		if (tab_left != left) {
-		  // Draw the left edge of the extension.
-		  //   ╭─────────╮
-		  //   │ Content │
-		  // ┏─╯         ╰─┐
-		  if (tab_bottom != extended_bottom)
-			path.lineTo(left, tab_bottom);
+    if (tab_left != left) {
+      // Draw the left edge of the extension.
+      //   ╭─────────╮
+      //   │ Content │
+      // ┏─╯         ╰─┐
+      if (tab_bottom != extended_bottom)
+        path.lineTo(left, tab_bottom);
 
-		  // Draw the bottom-left corner.
-		  //   ╭─────────╮
-		  //   │ Content │
-		  // ┌━╝         ╰─┐
-		  if (extend_left_to_bottom) {
-			path.lineTo(tab_left, tab_bottom);
-		  } else {
-			path.lineTo(tab_left - extension_corner_radius, tab_bottom);
-			path.arcTo(extension_corner_radius, extension_corner_radius, 0,
-					   SkPath::kSmall_ArcSize, SkPathDirection::kCCW, tab_left,
-					   tab_bottom - extension_corner_radius);
-		  }
-		}
+      // Draw the bottom-left corner.
+      //   ╭─────────╮
+      //   │ Content │
+      // ┌━╝         ╰─┐
+      if (extend_left_to_bottom) {
+        path.lineTo(tab_left, tab_bottom);
+      } else {
+        path.lineTo(tab_left - extension_corner_radius, tab_bottom);
+        path.arcTo(extension_corner_radius, extension_corner_radius, 0,
+                   SkPath::kSmall_ArcSize, SkPathDirection::kCCW, tab_left,
+                   tab_bottom - extension_corner_radius);
+      }
+    }
 
-		// Draw the ascender and top-left curve, if present.
-		if (extend_to_top) {
-		  //   ┎─────────╮
-		  //   ┃ Content │
-		  // ┌─╯         ╰─┐
-		  path.lineTo(tab_left, tab_top);
-		} else {
-		  //   ╔─────────╮
-		  //   ┃ Content │
-		  // ┌─╯         ╰─┐
-		  path.lineTo(tab_left, tab_top + content_corner_radius);
-		  path.arcTo(content_corner_radius, content_corner_radius, 0,
-					 SkPath::kSmall_ArcSize, SkPathDirection::kCW,
-					 tab_left + content_corner_radius, tab_top);
-		}
-
-		// Draw the top crossbar and top-right curve, if present.
-		if (extend_to_top) {
-		  //   ┌━━━━━━━━━┑
-		  //   │ Content │
-		  // ┌─╯         ╰─┐
-		  path.lineTo(tab_right, tab_top);
-		} else {
-		  //   ╭━━━━━━━━━╗
-		  //   │ Content │
-		  // ┌─╯         ╰─┐
-		  path.lineTo(tab_right - content_corner_radius, tab_top);
-		  path.arcTo(content_corner_radius, content_corner_radius, 0,
-					 SkPath::kSmall_ArcSize, SkPathDirection::kCW, tab_right,
-					 tab_top + content_corner_radius);
-		}
-
-		if (tab_right != right) {
-		  // Draw the descender and bottom-right corner.
-		  //   ╭─────────╮
-		  //   │ Content ┃
-		  // ┌─╯         ╚━┐
-		  if (extend_right_to_bottom) {
-			path.lineTo(tab_right, tab_bottom);
-		  } else {
-			path.lineTo(tab_right, tab_bottom - extension_corner_radius);
-			path.arcTo(extension_corner_radius, extension_corner_radius, 0,
-					   SkPath::kSmall_ArcSize, SkPathDirection::kCCW,
-					   tab_right + extension_corner_radius, tab_bottom);
-		  }
-		  if (tab_bottom != extended_bottom)
-			path.lineTo(right, tab_bottom);
-		}
-
-		// Draw anything remaining: the descender, the bottom right horizontal
-		// stroke, or the right edge of the extension, depending on which
-		// conditions fired above.
-		//   ╭─────────╮
-		//   │ Content │
-		// ┌─╯         ╰─┓
-		path.lineTo(right, extended_bottom);
+    // Draw the ascender and top-left curve, if present.
+    if (extend_to_top) {
+      //   ┎─────────╮
+      //   ┃ Content │
+      // ┌─╯         ╰─┐
+      path.lineTo(tab_left, tab_top);
     } else {
-		path.moveTo(left, extended_bottom);
-		if (extend_to_top) {
-		  // Create the vertical extension by extending the side diagonals until
-		  // they reach the top of the bounds.
-			path.cubicTo(left, extended_bottom, (((tab_left + 10) + left) / 2), ((tab_top + extended_bottom) / 2), tab_left + 10,
-						  tab_top);
-			path.lineTo(tab_right - 10, tab_top);
-			path.cubicTo(tab_right - 10, tab_top, (((tab_right - 10) + right) / 2), ((tab_top + extended_bottom) / 2), right,
-					  extended_bottom);
-		} else {
-			path.cubicTo(left, extended_bottom, (((tab_left + 10) + left) / 2), (((tab_top * 0.5) + extended_bottom) / 2), tab_left + 10,
-						(tab_top * 0.5));
-			path.cubicTo(tab_left + 10, (tab_top * 0.5), ((tab_left + 10) + (tab_right - 10) /2), tab_top * 0.5, tab_right - 10, tab_top * 0.5);
-			path.cubicTo(tab_right - 10, (tab_top * 0.5), (((tab_right - 10) + right) / 2), (((tab_top * 0.5) + extended_bottom) / 2), right,
-					  extended_bottom);
-		}
-	}
+      //   ╔─────────╮
+      //   ┃ Content │
+      // ┌─╯         ╰─┐
+      path.lineTo(tab_left, tab_top + content_corner_radius);
+      path.arcTo(content_corner_radius, content_corner_radius, 0,
+                 SkPath::kSmall_ArcSize, SkPathDirection::kCW,
+                 tab_left + content_corner_radius, tab_top);
+    }
+
+    // Draw the top crossbar and top-right curve, if present.
+    if (extend_to_top) {
+      //   ┌━━━━━━━━━┑
+      //   │ Content │
+      // ┌─╯         ╰─┐
+      path.lineTo(tab_right, tab_top);
+    } else {
+      //   ╭━━━━━━━━━╗
+      //   │ Content │
+      // ┌─╯         ╰─┐
+      path.lineTo(tab_right - content_corner_radius, tab_top);
+      path.arcTo(content_corner_radius, content_corner_radius, 0,
+                 SkPath::kSmall_ArcSize, SkPathDirection::kCW, tab_right,
+                 tab_top + content_corner_radius);
+    }
+
+    if (tab_right != right) {
+      // Draw the descender and bottom-right corner.
+      //   ╭─────────╮
+      //   │ Content ┃
+      // ┌─╯         ╚━┐
+      if (extend_right_to_bottom) {
+        path.lineTo(tab_right, tab_bottom);
+      } else {
+        path.lineTo(tab_right, tab_bottom - extension_corner_radius);
+        path.arcTo(extension_corner_radius, extension_corner_radius, 0,
+                   SkPath::kSmall_ArcSize, SkPathDirection::kCCW,
+                   tab_right + extension_corner_radius, tab_bottom);
+      }
+      if (tab_bottom != extended_bottom)
+        path.lineTo(right, tab_bottom);
+    }
+
+    // Draw anything remaining: the descender, the bottom right horizontal
+    // stroke, or the right edge of the extension, depending on which
+    // conditions fired above.
+    //   ╭─────────╮
+    //   │ Content │
+    // ┌─╯         ╰─┓
+    path.lineTo(right, extended_bottom);
 
     if (path_type != TabStyle::PathType::kBorder) {
       path.close();
@@ -562,11 +543,11 @@ const gfx::FontList& GM2TabStyleViews::GetFontList() const {
 }
 
 void GM2TabStyleViews::PaintTab(gfx::Canvas* canvas) const {
-  absl::optional<int> active_tab_fill_id;
+  std::optional<int> active_tab_fill_id;
   if (tab_->GetThemeProvider()->HasCustomImage(IDR_THEME_TOOLBAR)) {
     active_tab_fill_id = IDR_THEME_TOOLBAR;
   }
-  const absl::optional<int> inactive_tab_fill_id =
+  const std::optional<int> inactive_tab_fill_id =
       tab_->controller()->GetCustomBackgroundId(
           BrowserFrameActiveState::kUseCurrent);
 
@@ -575,14 +556,14 @@ void GM2TabStyleViews::PaintTab(gfx::Canvas* canvas) const {
                                  inactive_tab_fill_id);
   } else {
     PaintTabBackground(canvas, GetSelectionState(), IsHoverAnimationActive(),
-                       absl::nullopt, 0);
+                       std::nullopt, 0);
   }
 }
 
 void GM2TabStyleViews::PaintTabBackgroundWithImages(
     gfx::Canvas* canvas,
-    absl::optional<int> active_tab_fill_id,
-    absl::optional<int> inactive_tab_fill_id) const {
+    std::optional<int> active_tab_fill_id,
+    std::optional<int> inactive_tab_fill_id) const {
   // When at least one of the active or inactive tab backgrounds have an image,
   // we must paint them with the previous method of layering the active and
   // inactive images with two paint calls.
@@ -835,7 +816,7 @@ float GM2TabStyleViews::GetHoverOpacity() const {
 }
 
 int GM2TabStyleViews::GetStrokeThickness(bool should_paint_as_active) const {
-  absl::optional<tab_groups::TabGroupId> group = tab_->group();
+  std::optional<tab_groups::TabGroupId> group = tab_->group();
   if (group.has_value() && tab_->IsActive())
     return TabGroupUnderline::kStrokeThickness;
 
@@ -939,12 +920,12 @@ void GM2TabStyleViews::PaintTabBackground(
     gfx::Canvas* canvas,
     TabStyle::TabSelectionState selection_state,
     bool hovered,
-    absl::optional<int> fill_id,
+    std::optional<int> fill_id,
     int y_inset) const {
   // |y_inset| is only set when |fill_id| is being used.
   DCHECK(!y_inset || fill_id.has_value());
 
-  absl::optional<SkColor> group_color = tab_->GetGroupColor();
+  std::optional<SkColor> group_color = tab_->GetGroupColor();
 
   PaintTabBackgroundFill(canvas, selection_state, hovered, fill_id, y_inset);
 
@@ -963,7 +944,7 @@ void GM2TabStyleViews::PaintTabBackgroundFill(
     gfx::Canvas* canvas,
     TabStyle::TabSelectionState selection_state,
     bool hovered,
-    absl::optional<int> fill_id,
+    std::optional<int> fill_id,
     int y_inset) const {
   const SkPath fill_path =
       GetPath(TabStyle::PathType::kFill, canvas->image_scale(),
@@ -1132,7 +1113,6 @@ class ChromeRefresh2023TabStyleViews : public GM2TabStyleViews {
   SkColor GetTargetTabBackgroundColor(
       TabStyle::TabSelectionState selection_state,
       bool hovered) const override;
-  int GetStrokeThickness(bool should_paint_as_active = false) const override;
   SkPath GetPath(TabStyle::PathType path_type,
                  float scale,
                  bool force_active = false,
@@ -1162,15 +1142,6 @@ SkColor ChromeRefresh2023TabStyleViews::GetTargetTabBackgroundColor(
       selection_state, hovered, active_widget, *tab()->GetColorProvider());
 }
 
-int ChromeRefresh2023TabStyleViews::GetStrokeThickness(
-    bool should_paint_as_active) const {
-  if (tab()->group().has_value() && tab()->IsActive()) {
-    return TabGroupUnderline::kStrokeThickness;
-  }
-
-  return 0;
-}
-
 SkPath ChromeRefresh2023TabStyleViews::GetPath(
     TabStyle::PathType path_type,
     float scale,
@@ -1197,6 +1168,8 @@ SkPath ChromeRefresh2023TabStyleViews::GetPath(
     // tab width (in DIP), not our new, scaled-and-aligned bounds.
     const float content_corner_radius =
         GetTopCornerRadiusForWidth(tab()->width()) * scale;
+    float top_content_corner_radius = content_corner_radius;
+    float bottom_content_corner_radius = content_corner_radius;
     const float extension_corner_radius =
         tab_style()->GetBottomCornerRadius() * scale;
     float tab_height = GetLayoutConstant(TAB_HEIGHT) * scale;
@@ -1208,6 +1181,11 @@ SkPath ChromeRefresh2023TabStyleViews::GetPath(
         path_type != TabStyle::PathType::kHitTest) {
       tab_height -= GetLayoutConstant(TAB_STRIP_PADDING) * scale;
       tab_height -= GetLayoutConstant(TABSTRIP_TOOLBAR_OVERLAP) * scale;
+    }
+
+    // Don't round the bottom corners to avoid creating dead space between tabs.
+    if (path_type == TabStyle::PathType::kHitTest) {
+      bottom_content_corner_radius = 0;
     }
 
     int left = aligned_bounds.x() + extension_corner_radius;
@@ -1222,6 +1200,8 @@ SkPath ChromeRefresh2023TabStyleViews::GetPath(
         (tab()->GetWidget()->IsMaximized() ||
          tab()->GetWidget()->IsFullscreen())) {
       top -= GetLayoutConstant(TAB_STRIP_PADDING) * scale;
+      // Don't round the top corners to avoid creating dead space between tabs.
+      top_content_corner_radius = 0;
     }
 
     // if the size of the space for the path is smaller than the size of a
@@ -1254,10 +1234,15 @@ SkPath ChromeRefresh2023TabStyleViews::GetPath(
       }
     }
 
+    // Radii are clockwise from top left.
+    const SkVector radii[4] = {
+        SkVector(top_content_corner_radius, top_content_corner_radius),
+        SkVector(top_content_corner_radius, top_content_corner_radius),
+        SkVector(bottom_content_corner_radius, bottom_content_corner_radius),
+        SkVector(bottom_content_corner_radius, bottom_content_corner_radius)};
+    SkRRect rrect;
+    rrect.setRectRadii(SkRect::MakeLTRB(left, top, right, bottom), radii);
     SkPath path;
-    SkRRect rrect =
-        SkRRect::MakeRectXY(SkRect::MakeLTRB(left, top, right, bottom),
-                            content_corner_radius, content_corner_radius);
     path.addRRect(rrect);
 
     // Convert path to be relative to the tab origin.
@@ -1370,7 +1355,7 @@ std::u16string ui::metadata::TypeConverter<TabStyle::TabColors>::ToString(
 }
 
 // static
-absl::optional<TabStyle::TabColors> ui::metadata::TypeConverter<
+std::optional<TabStyle::TabColors> ui::metadata::TypeConverter<
     TabStyle::TabColors>::FromString(const std::u16string& source_value) {
   std::u16string trimmed_string;
   base::TrimString(source_value, u"{ }", &trimmed_string);
@@ -1385,11 +1370,11 @@ absl::optional<TabStyle::TabColors> ui::metadata::TypeConverter<
       SkColorConverter::GetNextColor(color_pos, trimmed_string.cend());
   return (foreground_color && background_color && focus_ring_color &&
           close_button_focus_ring_color)
-             ? absl::make_optional<TabStyle::TabColors>(
+             ? std::make_optional<TabStyle::TabColors>(
                    foreground_color.value(), background_color.value(),
                    focus_ring_color.value(),
                    close_button_focus_ring_color.value())
-             : absl::nullopt;
+             : std::nullopt;
 }
 
 // static
