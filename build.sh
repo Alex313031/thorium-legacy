@@ -53,7 +53,7 @@ case $1 in
 	--fix) fixDbghelp;
 esac
 
-autoninja -C out/thorium thorium chromedriver clear_key_cdm setup mini_installer -j$@ &&
+autoninja -C out/thorium thorium chromedriver clear_key_cdm policy_templates setup mini_installer -j$@ &&
 # Disable content_shell for now
 # thorium_shell
 

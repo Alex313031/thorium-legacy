@@ -11180,7 +11180,7 @@ index 619323f485c6a..7fe31a29e46f6 100644
  using blink::Platform;
  using blink::WebAudioDevice;
  using blink::WebAudioLatencyHint;
-@@ -598,6 +602,22 @@ void RendererBlinkPlatformImpl::GetWebRTCRendererPreferences(
+@@ -598,6 +602,25 @@ void RendererBlinkPlatformImpl::GetWebRTCRendererPreferences(
    *allow_mdns_obfuscation = true;
  }
  
@@ -11193,8 +11193,11 @@ index 619323f485c6a..7fe31a29e46f6 100644
 +          switches::kEnableWin7WebRtcHWH264Decoding) &&
 +      video_codec_type == webrtc::kVideoCodecH264 &&
 +      base::win::GetVersion() == base::win::Version::WIN7) {
-+    LOG(WARNING) << "H.264 HW decoding is not supported on Windows 7";
++    DVLOG(1) << "H.264 HW decoding is not supported on Win7";
 +    return false;
++  }
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kEnableWin7WebRtcHWH264Decoding)) {
++    LOG(WARNING) << "H.264 HW decoding is not supported on Windows 7";
 +  }
 +#endif  // BUILDFLAG(IS_WIN)
 +  return true;
@@ -15648,6 +15651,22 @@ index 1b7be19308566..3ea7a0003eac4 100644
    return sk_sp<SkTypeface>(font_manager->matchFamilyStyle(
        name.empty() ? nullptr : name.c_str(), font_description.SkiaFontStyle()));
  }
+diff --git a/third_party/blink/renderer/platform/fonts/web_font_typeface_factory.cc b/third_party/blink/renderer/platform/fonts/web_font_typeface_factory.cc
+index 747298f1903fb..e909fa02e6651 100644
+--- a/third_party/blink/renderer/platform/fonts/web_font_typeface_factory.cc
++++ b/third_party/blink/renderer/platform/fonts/web_font_typeface_factory.cc
+@@ -145,6 +145,11 @@ bool WebFontTypefaceFactory::CreateTypeface(
+     const FontInstantiator& instantiator) {
+   CHECK(!typeface);
+ 
++#if BUILDFLAG(IS_WIN)
++  if(format_check.IsVariableFont() && !FontCache::useDirectWrite())
++    return false;
++#endif
++
+   if (!format_check.IsVariableFont() && !format_check.IsColorFont() &&
+       !format_check.IsCff2OutlineFont()) {
+     typeface = instantiator.make_system(data);
 diff --git a/third_party/blink/renderer/platform/fonts/win/fallback_family_style_cache_win.cc b/third_party/blink/renderer/platform/fonts/win/fallback_family_style_cache_win.cc
 new file mode 100644
 index 0000000000000..2e8c855270541

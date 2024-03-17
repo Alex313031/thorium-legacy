@@ -491,8 +491,8 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
   registry->RegisterBooleanPref(prefs::kEditBookmarksEnabled, true);
   registry->RegisterBooleanPref(
-      // Alex313031 removed in M120
-      prefs::kShowAppsShortcutInBookmarkBar, false,
+      // Alex313031 removed in Thorium M120, but set to true for Win7 build
+      prefs::kShowAppsShortcutInBookmarkBar, true,
       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
   registry->RegisterBooleanPref(
       prefs::kShowManagedBookmarksInBookmarkBar, true,
