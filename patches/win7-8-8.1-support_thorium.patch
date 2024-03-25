@@ -1628,7 +1628,7 @@ index 4c93dcfabf658..85f83dab8192b 100644
  
  bool ScopedWinrtInitializer::Succeeded() const {
 diff --git a/base/win/win_util.cc b/base/win/win_util.cc
-index 25cc9b48a4d14..0995e8aad5788 100644
+index 25cc9b48a4d14..e710062d4d539 100644
 --- a/base/win/win_util.cc
 +++ b/base/win/win_util.cc
 @@ -39,6 +39,7 @@
@@ -1661,9 +1661,16 @@ index 25cc9b48a4d14..0995e8aad5788 100644
  // Sets the value of |property_key| to |property_value| in |property_store|.
  bool SetPropVariantValueForPropertyStore(
      IPropertyStore* property_store,
-@@ -96,10 +112,40 @@ void __cdecl ForceCrashOnSigAbort(int) {
-   *((volatile int*)nullptr) = 0x1337;
+@@ -92,14 +108,44 @@ bool SetPropVariantValueForPropertyStore(
+   return false;
  }
+ 
+-void __cdecl ForceCrashOnSigAbort(int) {
+-  *((volatile int*)nullptr) = 0x1337;
+-}
++//void __cdecl ForceCrashOnSigAbort(int) {
++//  *((volatile int*)nullptr) = 0x1337;
++//}
  
 -// Returns the current platform role. We use the PowerDeterminePlatformRoleEx
 +// Returns the current platform role. We use the PowerDeterminePlatformRole
@@ -1722,6 +1729,15 @@ index 25cc9b48a4d14..0995e8aad5788 100644
                                          IID_PPV_ARGS(&view_settings_interop));
    if (FAILED(hr))
      return false;
+@@ -508,7 +560,7 @@ void SetAbortBehaviorForCrashReporting() {
+   // Set a SIGABRT handler for good measure. We will crash even if the default
+   // is left in place, however this allows us to crash earlier. And it also
+   // lets us crash in response to code which might directly call raise(SIGABRT)
+-  signal(SIGABRT, ForceCrashOnSigAbort);
++  // signal(SIGABRT, ForceCrashOnSigAbort);
+ }
+ 
+ bool IsTabletDevice(std::string* reason, HWND hwnd) {
 @@ -607,8 +659,17 @@ bool IsJoinedToAzureAD() {
  bool IsUser32AndGdi32Available() {
    static auto is_user32_and_gdi32_available = []() {
@@ -1816,7 +1832,7 @@ index 0811d62fd215d..8a64908d27de9 100644
      "//components/no_state_prefetch/browser",
      "//components/no_state_prefetch/common",
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
-index de3be2eec25cc..dd0e76f790ca5 100644
+index de3be2eec25cc..93e34b76376f6 100644
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
 @@ -3777,6 +3777,63 @@ const FeatureEntry::FeatureVariation
@@ -2268,7 +2284,7 @@ index 1d9342a94ad70..c12ef488478df 100644
    HRESULT hr = base::win::GetActivationFactory<
        IUserConsentVerifierStatics,
 diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrome/browser/download/chrome_download_manager_delegate.cc
-index 201cd68c5175c..aed9ef6c63595 100644
+index 201cd68c5175c..ee254bc3b7663 100644
 --- a/chrome/browser/download/chrome_download_manager_delegate.cc
 +++ b/chrome/browser/download/chrome_download_manager_delegate.cc
 @@ -57,6 +57,7 @@
@@ -2498,7 +2514,7 @@ index a0af02d2a73eb..d91f528af0605 100644
    "update-menu-item-custom-summary",
    "use-android-staging-smds",
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
-index 8385c597f050e..0c3074038033a 100644
+index 8385c597f050e..c8b21c41162d4 100644
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
 @@ -1818,6 +1818,18 @@ const char kDrawImmediatelyWhenInteractiveDescription[] =
@@ -2564,7 +2580,7 @@ index 8385c597f050e..0c3074038033a 100644
  const char kForcedColorsDescription[] =
      "Enables forced colors mode for web content.";
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
-index a023e473a3c31..65b2961e8b4ff 100644
+index a023e473a3c31..09375d54c9e93 100644
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
 @@ -1601,6 +1601,18 @@ extern const char kParallelDownloadingDescription[];
@@ -5718,7 +5734,7 @@ index 8f24aba4b8a61..c7ad27ec219e9 100644
    // Paint various sub-components of this view.
    void PaintTitlebar(gfx::Canvas* canvas) const;
 diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
-index a3090da2ca8b4..3c13e0d5f5f39 100644
+index a3090da2ca8b4..21c73e4902f76 100644
 --- a/chrome/browser/ui/views/frame/browser_view.cc
 +++ b/chrome/browser/ui/views/frame/browser_view.cc
 @@ -1895,6 +1895,9 @@ void BrowserView::UpdateExclusiveAccessExitBubbleContent(
@@ -5952,7 +5968,7 @@ index 27e784aa16b31..ffdfb435fad62 100644
    std::unique_ptr<views::FlexLayout> layout =
        std::make_unique<views::FlexLayout>();
 diff --git a/chrome/browser/ui/views/tabs/new_tab_button.cc b/chrome/browser/ui/views/tabs/new_tab_button.cc
-index 9e77662e57e76..5074cb3dfadd5 100644
+index 9e77662e57e76..da13fc6b5dc69 100644
 --- a/chrome/browser/ui/views/tabs/new_tab_button.cc
 +++ b/chrome/browser/ui/views/tabs/new_tab_button.cc
 @@ -7,6 +7,7 @@
@@ -6021,7 +6037,7 @@ index 9e77662e57e76..5074cb3dfadd5 100644
 +					   radius);
 +	  }
 +   } else {
-+	   SkPoint pts [] = {SkPoint(0.0, 8.0), SkPoint(20.0, 8.0), SkPoint(30.0, 20.0), SkPoint(10.0, 20.0)};
++	   SkPoint pts [] = {SkPoint(0.0, 8.0), SkPoint(24.0, 8.0), SkPoint(30.0, 20.0), SkPoint(6.0, 20.0)};
 +	   path.moveTo(origin.x() * 1.10, SkScalar(8.0));
 +	   path.addPoly(pts, 4, true);
 +   }
@@ -6042,7 +6058,7 @@ index 9e77662e57e76..5074cb3dfadd5 100644
  }
  
  gfx::Size NewTabButton::CalculatePreferredSize() const {
-@@ -257,11 +285,31 @@ void NewTabButton::PaintFill(gfx::Canvas* canvas) const {
+@@ -257,11 +285,32 @@ void NewTabButton::PaintFill(gfx::Canvas* canvas) const {
      cc::PaintFlags flags;
      flags.setAntiAlias(true);
      canvas->Translate(GetContentsBounds().OffsetFromOrigin());
@@ -6072,6 +6088,7 @@ index 9e77662e57e76..5074cb3dfadd5 100644
 +	flags.setAlphaf(1.0f);
 +	flags.setColor(SkColorSetRGB(0, 0, 0));
 +	flags.setStyle(cc::PaintFlags::kStroke_Style);
++	flags.setStrokeWidth(0.5f);
 +	canvas->DrawPath(GetBorderPath(gfx::Point(), false),
 +						flags);
 +	}
@@ -6079,7 +6096,7 @@ index 9e77662e57e76..5074cb3dfadd5 100644
  }
  
 diff --git a/chrome/browser/ui/views/tabs/tab_style_views.cc b/chrome/browser/ui/views/tabs/tab_style_views.cc
-index 33c62c24cc521..ccd2eebbf1f2c 100644
+index 33c62c24cc521..2d2eeb9b0881f 100644
 --- a/chrome/browser/ui/views/tabs/tab_style_views.cc
 +++ b/chrome/browser/ui/views/tabs/tab_style_views.cc
 @@ -7,6 +7,7 @@
@@ -6090,7 +6107,7 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
  #include "base/i18n/rtl.h"
  #include "base/memory/raw_ptr.h"
  #include "base/numerics/safe_conversions.h"
-@@ -333,87 +333,106 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
+@@ -322,90 +333,106 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
      // stroke width.
  
      // Start with the left side of the shape.
@@ -6133,7 +6150,7 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
 -                 SkPath::kSmall_ArcSize, SkPathDirection::kCW,
 -                 tab_left + content_corner_radius, tab_top);
 -    }
- 
+-
 -    // Draw the top crossbar and top-right curve, if present.
 -    if (extend_to_top) {
 -      //   ┌━━━━━━━━━┑
@@ -6148,6 +6165,35 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
 -      path.arcTo(content_corner_radius, content_corner_radius, 0,
 -                 SkPath::kSmall_ArcSize, SkPathDirection::kCW, tab_right,
 -                 tab_top + content_corner_radius);
+-    }
+ 
+-    if (tab_right != right) {
+-      // Draw the descender and bottom-right corner.
+-      //   ╭─────────╮
+-      //   │ Content ┃
+-      // ┌─╯         ╚━┐
+-      if (extend_right_to_bottom) {
+-        path.lineTo(tab_right, tab_bottom);
+-      } else {
+-        path.lineTo(tab_right, tab_bottom - extension_corner_radius);
+-        path.arcTo(extension_corner_radius, extension_corner_radius, 0,
+-                   SkPath::kSmall_ArcSize, SkPathDirection::kCCW,
+-                   tab_right + extension_corner_radius, tab_bottom);
+-      }
+-      if (tab_bottom != extended_bottom)
+-        path.lineTo(right, tab_bottom);
+-    }
+-
+-    // Draw anything remaining: the descender, the bottom right horizontal
+-    // stroke, or the right edge of the extension, depending on which
+-    // conditions fired above.
+-    //   ╭─────────╮
+-    //   │ Content │
+-    // ┌─╯         ╰─┓
+-    path.lineTo(right, extended_bottom);
+-
+-    if (path_type != TabStyle::PathType::kBorder) {
+-      path.close();
 +    if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
 +		path.moveTo(left, extended_bottom);
 +		if (tab_left != left) {
@@ -6229,32 +6275,6 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
 +		// ┌─╯         ╰─┓
 +		path.lineTo(right, extended_bottom);
      }
--
--    if (tab_right != right) {
--      // Draw the descender and bottom-right corner.
--      //   ╭─────────╮
--      //   │ Content ┃
--      // ┌─╯         ╚━┐
--      if (extend_right_to_bottom) {
--        path.lineTo(tab_right, tab_bottom);
--      } else {
--        path.lineTo(tab_right, tab_bottom - extension_corner_radius);
--        path.arcTo(extension_corner_radius, extension_corner_radius, 0,
--                   SkPath::kSmall_ArcSize, SkPathDirection::kCCW,
--                   tab_right + extension_corner_radius, tab_bottom);
--      }
--      if (tab_bottom != extended_bottom)
--        path.lineTo(right, tab_bottom);
--    }
--
--    // Draw anything remaining: the descender, the bottom right horizontal
--    // stroke, or the right edge of the extension, depending on which
--    // conditions fired above.
--    //   ╭─────────╮
--    //   │ Content │
--    // ┌─╯         ╰─┓
--    path.lineTo(right, extended_bottom);
--
 +	else {
 +		path.moveTo(left, extended_bottom);
 +		if (extend_to_top) {
@@ -6266,17 +6286,17 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
 +			path.cubicTo(tab_right - 10, tab_top, (((tab_right - 10) + right) / 2), ((tab_top + extended_bottom) / 2), right,
 +					  extended_bottom);
 +		} else {
-+			path.cubicTo(left, extended_bottom, (((tab_left + 10) + left) / 2), (((tab_top * 0.5) + extended_bottom) / 2), tab_left + 10,
++			path.cubicTo(left, extended_bottom, (((tab_left + 4) + left) / 2), (((tab_top * 0.5) + extended_bottom) / 2), tab_left + 4,
 +						(tab_top * 0.5));
-+			path.cubicTo(tab_left + 10, (tab_top * 0.5), ((tab_left + 10) + (tab_right - 10) /2), tab_top * 0.5, tab_right - 10, tab_top * 0.5);
-+			path.cubicTo(tab_right - 10, (tab_top * 0.5), (((tab_right - 10) + right) / 2), (((tab_top * 0.5) + extended_bottom) / 2), right,
++			path.cubicTo(tab_left + 4, (tab_top * 0.5), tab_left + 4, tab_top * 0.5, tab_right - 4, tab_top * 0.5);
++			path.cubicTo(tab_right - 4, (tab_top * 0.5), (((tab_right - 4) + right) / 2), (((tab_top * 0.5) + extended_bottom) / 2), right,
 +					  extended_bottom);
 +		}
 +	}
-     if (path_type != TabStyle::PathType::kBorder) {
-       path.close();
-     }
-@@ -664,6 +706,9 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
+   }
+ 
+   // Convert path to be relative to the tab origin.
+@@ -664,6 +703,9 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
  
    const Tab* adjacent_tab =
        tab_->controller()->GetAdjacentTab(tab_, leading ? -1 : 1);
@@ -6286,7 +6306,7 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
  
    const Tab* left_tab = leading ? adjacent_tab : tab_.get();
    const Tab* right_tab = leading ? tab_.get() : adjacent_tab;
-@@ -671,6 +716,7 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
+@@ -671,6 +713,7 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
        right_tab && right_tab->group().has_value() &&
        (!left_tab || left_tab->group() != right_tab->group());
  
@@ -6294,7 +6314,7 @@ index 33c62c24cc521..ccd2eebbf1f2c 100644
    // If the current tab is selected, default to hiding the separator. Only show
    // the separator if it's adjacent to other selected tabs.
    if (tab_->IsSelected()) {
-@@ -936,8 +982,21 @@ void GM2TabStyleViews::PaintTabBackgroundFill(
+@@ -936,8 +979,21 @@ void GM2TabStyleViews::PaintTabBackgroundFill(
      cc::PaintFlags flags;
      flags.setAntiAlias(true);
      flags.setColor(GetCurrentTabBackgroundColor(selection_state, hovered));
@@ -11125,7 +11145,7 @@ index 7ec35f454a984..a232bc9581726 100644
  
  PP_Resource ResourceCreationImpl::CreateImageDataSimple(
 diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_frame_impl.cc
-index 07bb68687683a..579b000b1e7c4 100644
+index 07bb68687683a..bf4f77383ef53 100644
 --- a/content/renderer/render_frame_impl.cc
 +++ b/content/renderer/render_frame_impl.cc
 @@ -1203,6 +1203,8 @@ WindowOpenDisposition NavigationPolicyToDisposition(
@@ -11137,6 +11157,20 @@ index 07bb68687683a..579b000b1e7c4 100644
        return WindowOpenDisposition::NEW_POPUP;
      case blink::kWebNavigationPolicyPictureInPicture:
        return WindowOpenDisposition::NEW_PICTURE_IN_PICTURE;
+@@ -2220,11 +2222,11 @@ void RenderFrameImpl::Delete(mojom::FrameDeleteIntention intent) {
+       // main frame when a commit (and ownership transfer) is imminent.
+       // TODO(dcheng): This is the case of https://crbug.com/838348.
+       DCHECK(is_main_frame_);
+-#if !BUILDFLAG(IS_ANDROID)
++#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_WIN)
+       // This check is not enabled on Android, since it seems like it's much
+       // easier to trigger data races there.
+       CHECK(!in_frame_tree_);
+-#endif  // !BUILDFLAG(IS_ANDROID)
++#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_WIN)
+       break;
+   }
+ 
 diff --git a/content/renderer/render_view_browsertest.cc b/content/renderer/render_view_browsertest.cc
 index fb0d957ee5d88..245fcda505aba 100644
 --- a/content/renderer/render_view_browsertest.cc
@@ -11166,7 +11200,7 @@ index fb0d957ee5d88..245fcda505aba 100644
    ExecuteJavaScriptForTests("document.getElementById('test').focus();");
  
 diff --git a/content/renderer/renderer_blink_platform_impl.cc b/content/renderer/renderer_blink_platform_impl.cc
-index 619323f485c6a..7fe31a29e46f6 100644
+index 619323f485c6a..8faa0e8848445 100644
 --- a/content/renderer/renderer_blink_platform_impl.cc
 +++ b/content/renderer/renderer_blink_platform_impl.cc
 @@ -127,6 +127,10 @@
@@ -11256,7 +11290,7 @@ index 4953e20861803..c7521519c31aa 100644
      if (!need_sandbox) {
        // The post-sandbox actions still need to happen at some point.
 diff --git a/content/renderer/renderer_main_platform_delegate_win.cc b/content/renderer/renderer_main_platform_delegate_win.cc
-index e7b8caa9ab118..45b9f2823affb 100644
+index e7b8caa9ab118..93bccc4ed53fe 100644
 --- a/content/renderer/renderer_main_platform_delegate_win.cc
 +++ b/content/renderer/renderer_main_platform_delegate_win.cc
 @@ -27,6 +27,18 @@
@@ -11298,7 +11332,7 @@ index e7b8caa9ab118..45b9f2823affb 100644
    if (!no_sandbox) {
      // ICU DateFormat class (used in base/time_format.cc) needs to get the
 diff --git a/content/shell/browser/shell_content_browser_client.cc b/content/shell/browser/shell_content_browser_client.cc
-index 3e0b86f6834c5..bcbfe32cdb23c 100644
+index 3e0b86f6834c5..46e00b4581fbb 100644
 --- a/content/shell/browser/shell_content_browser_client.cc
 +++ b/content/shell/browser/shell_content_browser_client.cc
 @@ -14,6 +14,7 @@
@@ -11309,7 +11343,7 @@ index 3e0b86f6834c5..bcbfe32cdb23c 100644
  #include "base/containers/cxx20_erase.h"
  #include "base/containers/flat_set.h"
  #include "base/feature_list.h"
-@@ -468,6 +468,11 @@ std::string ShellContentBrowserClient::GetDefaultDownloadName() {
+@@ -467,6 +468,11 @@ std::string ShellContentBrowserClient::GetDefaultDownloadName() {
    return "download";
  }
  
@@ -18715,10 +18749,10 @@ index 2c27d56f29eaa..9c314a5185c7f 100644
  }
  
 diff --git a/ui/native_theme/native_theme_win.cc b/ui/native_theme/native_theme_win.cc
-index 50647269ec84f..4633d10f74e6c 100644
+index 50647269ec84f..3ae513ec2c66b 100644
 --- a/ui/native_theme/native_theme_win.cc
 +++ b/ui/native_theme/native_theme_win.cc
-@@ -268,26 +268,61 @@ void NativeThemeWin::Paint(cc::PaintCanvas* canvas,
+@@ -268,26 +268,104 @@ void NativeThemeWin::Paint(cc::PaintCanvas* canvas,
    if (rect.IsEmpty())
      return;
  
@@ -18772,7 +18806,7 @@ index 50647269ec84f..4633d10f74e6c 100644
 +    NativeThemeWin::State state,
 +    const gfx::Rect& rect,
 +    const NativeThemeWin::MenuItemExtraParams& extra) {
-+  HANDLE handle = OpenThemeData(nullptr, L"MENU_POPUPBACKGROUND");
++  HANDLE handle = OpenThemeData(nullptr, L"Menu");
 +  RECT rect_win = rect.ToRECT();
 +  int state_id = MPI_NORMAL;
 +  switch (state) {
@@ -18793,22 +18827,88 @@ index 50647269ec84f..4633d10f74e6c 100644
 +  if (handle)
 +    return DrawThemeBackground(handle, hdc, MENU_POPUPITEM, state_id, &rect_win, NULL);
 +
-+  if (extra.is_selected)
++  if (state_id == MPI_HOT)
 +    FillRect(hdc, &rect_win, GetSysColorBrush(COLOR_HIGHLIGHT));
++  return S_OK;
++}
++
++HRESULT PaintMenuBackgroundClassic(HDC hdc,
++                                   const gfx::Rect& rect) {
++  HANDLE handle = OpenThemeData(nullptr, L"MENU_POPUPBACKGROUND");
++  RECT rect_win = rect.ToRECT();
++  if (handle) {
++    HRESULT result = DrawThemeBackground(handle, hdc, MENU_POPUPBACKGROUND, 0,
++                                 &rect_win, NULL);
++    FrameRect(hdc, &rect_win, GetSysColorBrush(COLOR_3DSHADOW));
++    return result;
++  }
++
++  FillRect(hdc, &rect_win, GetSysColorBrush(COLOR_MENU));
++  DrawEdge(hdc, &rect_win, EDGE_RAISED, BF_RECT);
++  return S_OK;
++}
++
++HRESULT PaintMenuGutterClassic(HDC hdc,
++                                        const gfx::Rect& rect) {
++  RECT rect_win = rect.ToRECT();
++  HANDLE handle = OpenThemeData(nullptr, L"MENU_POPUPGUTTER");
++  return (handle) ?
++      DrawThemeBackground(handle, hdc, MENU_POPUPGUTTER, MPI_NORMAL, &rect_win, NULL) :
++      E_NOTIMPL;
++}
++
++HRESULT PaintMenuSeparatorClassic(
++    HDC hdc,
++    const gfx::Rect& rect) {
++  RECT rect_win = rect.ToRECT();
++
++  HANDLE handle = OpenThemeData(nullptr, L"MENU_POPUPSEPARATOR");
++  if (handle) {
++    // Delta is needed for non-classic to move separator up slightly.
++    --rect_win.top;
++    --rect_win.bottom;
++    return DrawThemeBackground(handle, hdc, MENU_POPUPSEPARATOR, MPI_NORMAL, &rect_win,
++                       NULL);
++  }
++
++  DrawEdge(hdc, &rect_win, EDGE_ETCHED, BF_TOP);
 +  return S_OK;
  }
  
  NativeThemeWin::NativeThemeWin(bool configure_web_instance,
-@@ -512,6 +547,8 @@ void NativeThemeWin::PaintDirect(SkCanvas* destination_canvas,
+@@ -512,9 +590,13 @@ void NativeThemeWin::PaintDirect(SkCanvas* destination_canvas,
        case kTextField:
          break;  // Handled entirely below.
        case kMenuItemBackground:
-+	     PaintMenuItemBackgroundClassic(hdc, state, rect, absl::get<MenuItemExtraParams>(extra));
-+		 return;
++	     break;
        case kMenuPopupBackground:
++	     break;
        case kMenuPopupGutter:
++	     break;
        case kMenuPopupSeparator:
-@@ -921,6 +958,46 @@ void NativeThemeWin::PaintScrollbarArrowClassic(HDC hdc,
++	     break;
+       case kScrollbarCorner:
+       case kSliderTrack:
+       case kSliderThumb:
+@@ -631,9 +713,17 @@ void NativeThemeWin::PaintDirect(SkCanvas* destination_canvas,
+     case kScrollbarVerticalGripper:
+       return;  // No further painting necessary.
+     case kMenuItemBackground:
++      PaintMenuItemBackgroundClassic(hdc, state, rect, absl::get<MenuItemExtraParams>(extra));
++      return;
+     case kMenuPopupBackground:
++      PaintMenuBackgroundClassic(hdc, rect);
++      return;
+     case kMenuPopupGutter:
++      PaintMenuGutterClassic(hdc, rect);
++      return;
+     case kMenuPopupSeparator:
++      PaintMenuSeparatorClassic(hdc, rect);
++      return;
+     case kScrollbarCorner:
+     case kSliderTrack:
+     case kSliderThumb:
+@@ -921,6 +1011,46 @@ void NativeThemeWin::PaintScrollbarArrowClassic(HDC hdc,
                                                  Part part,
                                                  State state,
                                                  RECT* rect) const {
@@ -18855,7 +18955,7 @@ index 50647269ec84f..4633d10f74e6c 100644
    int classic_state = DFCS_SCROLLDOWN;
    switch (part) {
      case kScrollbarDownArrow:
-@@ -954,7 +1031,8 @@ void NativeThemeWin::PaintScrollbarArrowClassic(HDC hdc,
+@@ -954,7 +1084,8 @@ void NativeThemeWin::PaintScrollbarArrowClassic(HDC hdc,
        NOTREACHED();
        break;
    }
@@ -18866,7 +18966,7 @@ index 50647269ec84f..4633d10f74e6c 100644
  
  void NativeThemeWin::PaintScrollbarTrackClassic(
 diff --git a/ui/shell_dialogs/execute_select_file_win.cc b/ui/shell_dialogs/execute_select_file_win.cc
-index 9361287ac3411..bd0eea9c913e0 100644
+index 9361287ac3411..1cb697adcec35 100644
 --- a/ui/shell_dialogs/execute_select_file_win.cc
 +++ b/ui/shell_dialogs/execute_select_file_win.cc
 @@ -4,6 +4,8 @@
@@ -18878,7 +18978,7 @@ index 9361287ac3411..bd0eea9c913e0 100644
  #include <shlobj.h>
  #include <wrl/client.h>
  
-@@ -166,6 +168,216 @@ bool ConfigureDialog(IFileDialog* file_dialog,
+@@ -166,6 +168,217 @@ bool ConfigureDialog(IFileDialog* file_dialog,
           SetFilters(file_dialog, filter, filter_index);
  }
  
@@ -18912,6 +19012,7 @@ index 9361287ac3411..bd0eea9c913e0 100644
 + for (const auto& filter_spec : filter) {
 +	std::u16string filter_str = filter_spec.extension_spec;
 +    filter_buffer.append(filter_str);
++    filter_buffer.push_back(0);
 +  }
 +  filter_buffer.push_back(0);
 +
@@ -19095,7 +19196,7 @@ index 9361287ac3411..bd0eea9c913e0 100644
  // Prompt the user for location to save a file.
  // Callers should provide the filter string, and also a filter index.
  // The parameter |index| indicates the initial index of filter description and
-@@ -185,56 +397,144 @@ bool RunSaveFileDialog(HWND owner,
+@@ -185,56 +398,144 @@ bool RunSaveFileDialog(HWND owner,
                         int* filter_index,
                         base::FilePath* path) {
    Microsoft::WRL::ComPtr<IFileSaveDialog> file_save_dialog;
@@ -19284,7 +19385,7 @@ index 9361287ac3411..bd0eea9c913e0 100644
  }
  
  // Runs an Open file dialog box, with similar semantics for input parameters as
-@@ -248,10 +548,12 @@ bool RunOpenFileDialog(HWND owner,
+@@ -248,10 +549,12 @@ bool RunOpenFileDialog(HWND owner,
                         int* filter_index,
                         std::vector<base::FilePath>* paths) {
    Microsoft::WRL::ComPtr<IFileOpenDialog> file_open_dialog;
@@ -19298,7 +19399,7 @@ index 9361287ac3411..bd0eea9c913e0 100644
    }
  
    // The FOS_FORCEFILESYSTEM option ensures that if the user enters a URL in the
-@@ -260,64 +562,124 @@ bool RunOpenFileDialog(HWND owner,
+@@ -260,64 +563,124 @@ bool RunOpenFileDialog(HWND owner,
    // GetOpenFileName API.
    dialog_options |= FOS_FORCEFILESYSTEM;
  

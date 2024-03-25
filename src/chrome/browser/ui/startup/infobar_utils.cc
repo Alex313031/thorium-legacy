@@ -39,17 +39,17 @@ bool ShouldShowBadFlagsSecurityWarnings() {
 #if !BUILDFLAG(IS_CHROMEOS_ASH)
   PrefService* local_state = g_browser_process->local_state();
   if (!local_state)
-    return true;
+    return false;
 
   const auto* pref = local_state->FindPreference(
       prefs::kCommandLineFlagSecurityWarningsEnabled);
   DCHECK(pref);
 
-  // The warnings can only be disabled by policy. Default to show warnings.
+  // The warnings can only be enabled by policy. Default to not showing warnings.
   if (pref->IsManaged())
     return pref->GetValue()->GetBool();
 #endif
-  return true;
+  return false;
 }
 
 // This is a separate function to avoid accidentally reading the switch from
