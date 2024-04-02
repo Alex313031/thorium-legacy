@@ -183,6 +183,7 @@ copyXP () {
 	cp -r -v other/XP/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -r -v other/XP/v8/* ${CR_SRC_DIR}/v8/ &&
 	cp -r -v other/XP/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v patches/progwrp/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x86/ &&
 	printf "\n"
 }
 case $1 in
