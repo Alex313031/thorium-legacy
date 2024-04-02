@@ -23,6 +23,7 @@ displayHelp () {
 	printf "${bold}${YEL}Use the --raspi flag for Raspberry Pi builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --woa flag for Windows on ARM builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --avx2 flag for AVX2 Builds.${c0}\n" &&
+	printf "${bold}${YEL}Use the --sse4 flag for SSE4.1 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse3 flag for SSE3 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse2 flag for 32 bit SSE2 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --xp flag for 32 bit Windows XP Builds.${c0}\n" &&
@@ -134,6 +135,19 @@ copyAVX2 () {
 }
 case $1 in
 	--avx2) copyAVX2;
+esac
+
+# Copy SSE4 files
+copySSE4 () {
+	printf "\n" &&
+	printf "${YEL}Copying SSE4.1 build files...${c0}\n" &&
+	cp -r -v other/SSE4.1/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v other/SSE4.1/v8/* ${CR_SRC_DIR}/v8/ &&
+	cp -r -v other/SSE4.1/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	printf "\n"
+}
+case $1 in
+	--sse4) copySSE4;
 esac
 
 # Copy SSE3 files
