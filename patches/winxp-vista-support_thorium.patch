@@ -316,6 +316,36 @@ index c6445f267971f..5e19e5f01869b 100644
  
  #if BUILDFLAG(HAS_64_BIT_POINTERS) && \
      (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_ANDROID))
+diff --git a/base/allocator/partition_allocator/src/partition_alloc/shim/shim_alloc_functions.h b/base/allocator/partition_allocator/src/partition_alloc/shim/shim_alloc_functions.h
+index c322138dff6ea..002ab978e4123 100644
+--- a/base/allocator/partition_allocator/src/partition_alloc/shim/shim_alloc_functions.h
++++ b/base/allocator/partition_allocator/src/partition_alloc/shim/shim_alloc_functions.h
+@@ -19,6 +19,15 @@
+ #include "partition_alloc/partition_alloc_buildflags.h"
+ #include "partition_alloc/partition_alloc_check.h"
+ 
++#if BUILDFLAG(IS_WIN)
++#include <Windows.h>
++extern "C" {
++VOID __stdcall TLSInit_DllMain_ThreadAttach(IMAGE_DOS_HEADER* DllBase);
++}
++EXTERN_C IMAGE_DOS_HEADER __ImageBase;
++#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
++#endif
++
+ namespace {
+ 
+ PA_ALWAYS_INLINE size_t GetCachedPageSize() {
+@@ -112,6 +121,9 @@ PA_ALWAYS_INLINE void* ShimMalloc(size_t size, void* context) {
+ }
+ 
+ PA_ALWAYS_INLINE void* ShimCalloc(size_t n, size_t size, void* context) {
++  #if BUILDFLAG(IS_WIN)
++	TLSInit_DllMain_ThreadAttach(&__ImageBase);
++  #endif
+   const allocator_shim::AllocatorDispatch* const chain_head =
+       allocator_shim::internal::GetChainHead();
+   void* ptr;
 diff --git a/base/command_line.cc b/base/command_line.cc
 index 69e4303165259..da42a22ed2894 100644
 --- a/base/command_line.cc
@@ -857,11 +887,30 @@ diff --git a/base/sampling_heap_profiler/poisson_allocation_sampler.cc b/base/sa
 index 9c449e95ee85d..ea299d25f35ef 100644
 --- a/base/sampling_heap_profiler/poisson_allocation_sampler.cc
 +++ b/base/sampling_heap_profiler/poisson_allocation_sampler.cc
-@@ -241,6 +241,7 @@ void PoissonAllocationSampler::DoRecordAllocation(
+@@ -20,6 +20,15 @@
+ #include "build/build_config.h"
+ #include "third_party/abseil-cpp/absl/base/attributes.h"
+ 
++#if BUILDFLAG(IS_WIN)
++#include <windows.h>
++extern "C" {
++VOID __stdcall TLSInit_DllMain_ThreadAttach(IMAGE_DOS_HEADER* DllBase);
++}
++EXTERN_C IMAGE_DOS_HEADER __ImageBase;
++#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
++#endif
++
+ namespace base {
+ 
+ namespace {
+@@ -241,6 +250,10 @@ void PoissonAllocationSampler::DoRecordAllocation(
      size_t size,
      base::allocator::dispatcher::AllocationSubsystem type,
      const char* context) {
 +
++  #if BUILDFLAG(IS_WIN)
++	TLSInit_DllMain_ThreadAttach(&__ImageBase);
++  #endif
    ThreadLocalData* const thread_local_data = GetThreadLocalData();
  
    thread_local_data->accumulated_bytes += size;
@@ -1238,6 +1287,35 @@ index 3a6e0c9f3774c..c4a802c85d6ed 100644
 +
  // The following stubs are provided for when component build is enabled, in
  // order to avoid the propagation of delay-loading CoreWinRT to other modules.
+ 
+diff --git a/base/win/dllmain.cc b/base/win/dllmain.cc
+index 0c5546fb1b406..8bb1b45f053c6 100644
+--- a/base/win/dllmain.cc
++++ b/base/win/dllmain.cc
+@@ -89,9 +89,24 @@ NOINLINE static void CrashOnProcessDetach() {
+   *static_cast<volatile int*>(nullptr) = 0x356;
+ }
+ 
++extern "C" {
++
++VOID __stdcall TLSInit_DllMain_ProcessAttach(PVOID DllBase);
++
++VOID __stdcall TLSInit_DllMain_ThreadAttach(PVOID DllBase);
++
++}
++
+ // Make DllMain call the listed callbacks.  This way any third parties that are
+ // linked in will also be called.
+ BOOL WINAPI DllMain(PVOID h, DWORD reason, PVOID reserved) {
++
++  if (DLL_PROCESS_ATTACH == reason)
++	  TLSInit_DllMain_ProcessAttach(h); // Implicit TLS initialization code for Windows XP and below
++                                             // Implemented in progwrp.dll.
++  if (DLL_THREAD_ATTACH == reason)
++	  TLSInit_DllMain_ThreadAttach(h);
++
+   if (DLL_PROCESS_DETACH == reason && base::win::ShouldCrashOnProcessDetach())
+     CrashOnProcessDetach();
  
 diff --git a/base/win/hstring_reference.cc b/base/win/hstring_reference.cc
 index b254fc64310a1..6b2b1a6290990 100644
@@ -1790,6 +1868,27 @@ index 5c54819e4b85a..8f3f64f29011a 100644
    const std::vector<uint8_t> data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
    Microsoft::WRL::ComPtr<ABI::Windows::Storage::Streams::IBuffer> buffer;
    ASSERT_HRESULT_SUCCEEDED(
+diff --git a/build/config/BUILD.gn b/build/config/BUILD.gn
+index f341687194878..a1da6be7a8e22 100644
+--- a/build/config/BUILD.gn
++++ b/build/config/BUILD.gn
+@@ -162,6 +162,8 @@ config("default_libs") {
+     # instead the targets that use the less common ones (e.g. wininet or
+     # winspool) should include those explicitly.
+     libs = [
++      "progwrp.lib",
++      "ntdll.lib",
+       "advapi32.lib",
+       "comdlg32.lib",
+       "dbghelp.lib",
+@@ -171,6 +173,7 @@ config("default_libs") {
+       "odbc32.lib",
+       "odbccp32.lib",
+       "oleaut32.lib",
++      "psapi.lib",
+       "shell32.lib",
+       "shlwapi.lib",
+       "user32.lib",
 diff --git a/chrome/app/chrome_exe_main_win.cc b/chrome/app/chrome_exe_main_win.cc
 index 0aced300d8dce..d2c530353eca4 100644
 --- a/chrome/app/chrome_exe_main_win.cc
@@ -6523,6 +6622,39 @@ index 37e2d2a50aa2c..196858a63c713 100644
  }
  
  # This target contains utility functions which must only depend on
+diff --git a/chrome/chrome_elf/chrome_elf_main.cc b/chrome/chrome_elf/chrome_elf_main.cc
+index 7ccdb12bf2258..2b706eb4463ca 100644
+--- a/chrome/chrome_elf/chrome_elf_main.cc
++++ b/chrome/chrome_elf/chrome_elf_main.cc
+@@ -49,6 +49,14 @@ bool GetUserDataDirectoryThunk(wchar_t* user_data_dir,
+   return true;
+ }
+ 
++extern "C" {
++
++VOID __stdcall TLSInit_DllMain_ProcessAttach(HMODULE DllBase);
++
++VOID __stdcall TLSInit_DllMain_ThreadAttach(HMODULE DllBase);
++
++}
++
+ // DllMain
+ // -------
+ // Warning: The OS loader lock is held during DllMain.  Be careful.
+@@ -59,6 +67,13 @@ bool GetUserDataDirectoryThunk(wchar_t* user_data_dir,
+ //         that will blow up with the loader lock held.
+ //         https://bugs.chromium.org/p/chromium/issues/detail?id=748949#c18
+ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID reserved) {
++
++  if (DLL_PROCESS_ATTACH == reason)
++	  TLSInit_DllMain_ProcessAttach(module); // Implicit TLS initialization code for Windows XP and below
++                                             // Implemented in progwrp.dll.
++  if (DLL_THREAD_ATTACH == reason)
++	  TLSInit_DllMain_ThreadAttach(module);
++
+   if (reason == DLL_PROCESS_ATTACH) {
+     install_static::InitializeProductDetailsForPrimaryModule();
+     install_static::InitializeProcessType();
 diff --git a/chrome/chrome_elf/chrome_elf_security.cc b/chrome/chrome_elf/chrome_elf_security.cc
 index e7bda43a9814b..00146f72d7a61 100644
 --- a/chrome/chrome_elf/chrome_elf_security.cc
@@ -11379,6 +11511,58 @@ index e5c7230ffcaad..3906ff44e64a6 100644
  
   private:
    std::vector<FakeFont> fonts_;
+diff --git a/crypto/unexportable_key_win.cc b/crypto/unexportable_key_win.cc
+index 7e39e10de7be3..a3ad47adbfc54 100644
+--- a/crypto/unexportable_key_win.cc
++++ b/crypto/unexportable_key_win.cc
+@@ -367,6 +367,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
+     ScopedNCryptProvider provider;
+     {
+       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
++
++	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++		  return absl::nullopt;
++	  }
++
+       if (FAILED(NCryptOpenStorageProvider(
+               ScopedNCryptProvider::Receiver(provider).get(),
+               MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
+@@ -386,6 +391,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
+     ScopedNCryptProvider provider;
+     {
+       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
++
++	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++		  return nullptr;
++	  }
++
+       if (FAILED(NCryptOpenStorageProvider(
+               ScopedNCryptProvider::Receiver(provider).get(),
+               MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
+@@ -612,6 +622,11 @@ class VirtualUnexportableKeyProviderWin
+     ScopedNCryptProvider provider;
+     {
+       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
++
++	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++		  return absl::nullopt;
++	  }
++
+       SECURITY_STATUS status = NCryptOpenStorageProvider(
+           ScopedNCryptProvider::Receiver(provider).get(),
+           MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
+@@ -634,6 +649,11 @@ class VirtualUnexportableKeyProviderWin
+     ScopedNCryptProvider provider;
+     {
+       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
++
++	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++		  return nullptr;
++	  }
++
+       SECURITY_STATUS status = NCryptOpenStorageProvider(
+           ScopedNCryptProvider::Receiver(provider).get(),
+           MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
 diff --git a/device/bluetooth/bluetooth_adapter_winrt.cc b/device/bluetooth/bluetooth_adapter_winrt.cc
 index a2ba812053fa5..195ec4ee6afe8 100644
 --- a/device/bluetooth/bluetooth_adapter_winrt.cc

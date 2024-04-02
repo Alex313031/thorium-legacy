@@ -1,23 +1,3 @@
-diff --git a/.gitignore b/.gitignore
-index 2f9164594b1bb..9286c16780766 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -111,6 +111,7 @@ vs-chromium-project.txt
- /chrome/android/profiles/arm.local.txt
- /chrome/android/profiles/local.txt
- /chrome/angle_unittests_run.xml
-+/chrome/app/resources
- /chrome/build/pgo_profiles/
- /chrome/gl_tests_run.xml
- /chrome/gles2_conform_test_run.xml
-@@ -189,6 +190,7 @@ vs-chromium-project.txt
- /components/history_clusters/internal
- /components/leveldb_proto_test_support.xml
- /components/search_engines/prepopulated_engines.xml
-+/components/strings
- /components/suggestions.xml
- /components/variations.xml
- /components/vector_icons/google_chrome/
 diff --git a/README.md b/README.md
 index 590f4c94f2067..f5f245da9dacb 100644
 --- a/README.md
