@@ -18,9 +18,7 @@ try() { "$@" || die "${RED}Failed $*"; }
 # --help
 displayHelp () {
 	printf "\n" &&
-	printf "${bold}${GRE}Script to patch Thorium for Windows 7, 8, 8.1, and${c0}\n" &&
-	printf "${bold}${GRE} derivatives like Home Server 2011, Server 2008 R2,${c0}\n" &&
-	printf "${bold}${GRE} Server 2012, and Server 2012 R2.${c0}\n" &&
+	printf "${bold}${GRE}Script to patch Thorium for Windows XP and Vista.${c0}\n" &&
 	printf "\n"
 }
 case $1 in
@@ -37,13 +35,13 @@ else
 fi
 
 # Patch Chromium
-cp -v patches/win7-8-8.1-support_thorium.patch ${CR_SRC_DIR}/ &&
+cp -v patches/winxp-vista-support_thorium.patch ${CR_SRC_DIR}/ &&
 cp -v patches/win7-8-8.1-support-in-boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
 cp -v patches/win7-8-8.1-support-in-webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
 
 cd ${CR_SRC_DIR}/ &&
 
-git apply --reject win7-8-8.1-support_thorium.patch &&
+git apply --reject winxp-vista-support_thorium.patch &&
 
 cd third_party/boringssl/src/ &&
 
@@ -55,7 +53,7 @@ cd third_party/webrtc &&
 
 git apply --reject win7-8-8.1-support-in-webrtc.patch &&
 
-printf "${GRE}Done patching Thorium for Windows 7!\n" &&
+printf "${GRE}Done patching Thorium for Windows XP!\n" &&
 printf "\n" &&
 tput sgr0
 

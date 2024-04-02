@@ -25,6 +25,7 @@ displayHelp () {
 	printf "${bold}${YEL}Use the --avx2 flag for AVX2 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse3 flag for SSE3 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse2 flag for 32 bit SSE2 Builds.${c0}\n" &&
+	printf "${bold}${YEL}Use the --xp flag for 32 bit Windows XP Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --android flag for Android Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --cros flag for ChromiumOS Builds.${c0}\n" &&
 	printf "${bold}${YEL}IMPORTANT: For Polly builds, first run build_polly.sh in Thorium/infra, then use the setup_polly.sh${c0}\n" &&
@@ -153,11 +154,25 @@ copySSE2 () {
 	printf "\n" &&
 	printf "${YEL}Copying SSE2 (32-bit) build files...${c0}\n" &&
 	cp -r -v other/SSE2/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v other/SSE2/v8/* ${CR_SRC_DIR}/v8/ &&
 	cp -r -v other/SSE2/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n"
 }
 case $1 in
 	--sse2) copySSE2;
+esac
+
+# Copy WinXP files
+copyXP () {
+	printf "\n" &&
+	printf "${YEL}Copying Windows XP (32-bit) build files...${c0}\n" &&
+	cp -r -v other/XP/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v other/XP/v8/* ${CR_SRC_DIR}/v8/ &&
+	cp -r -v other/XP/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	printf "\n"
+}
+case $1 in
+	--xp) copyXP;
 esac
 
 # Copy Android files
