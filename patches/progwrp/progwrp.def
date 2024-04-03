@@ -151,8 +151,8 @@ WakeAllConditionVariable
 WakeConditionVariable
 WerRegisterRuntimeExceptionModule
 Wow64GetThreadContext
-_TLSInit_DllMain_ProcessAttach
-_TLSInit_DllMain_ThreadAttach
+_TLSInit_DllMain_ProcessAttach@4
+_TLSInit_DllMain_ThreadAttach@4
 freeaddrinfo
 getaddrinfo
 inet_ntop
