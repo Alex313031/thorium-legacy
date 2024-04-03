@@ -5772,7 +5772,7 @@ index ccafa0c6ed945..8e003293c011b 100644
    // Exit UI is unnecessary, since Mac uses the OS fullscreen such that window
    // menu and controls reveal when the cursor is moved to the top.
 diff --git a/chrome/browser/ui/views/location_bar/location_bar_view.cc b/chrome/browser/ui/views/location_bar/location_bar_view.cc
-index b4b2f01a846a7..aacfb61847cd0 100644
+index b4b2f01a846a7..e834ebb91d7af 100644
 --- a/chrome/browser/ui/views/location_bar/location_bar_view.cc
 +++ b/chrome/browser/ui/views/location_bar/location_bar_view.cc
 @@ -9,6 +9,7 @@
@@ -5783,7 +5783,17 @@ index b4b2f01a846a7..aacfb61847cd0 100644
  #include "base/containers/adapters.h"
  #include "base/feature_list.h"
  #include "base/functional/bind.h"
-@@ -347,14 +348,17 @@ void LocationBarView::Init() {
+@@ -203,7 +204,8 @@ LocationBarView::LocationBarView(Browser* browser,
+     if (features::IsChromeRefresh2023()) {
+       views::FocusRing::Get(this)->SetOutsetFocusRingDisabled(true);
+     }
+-    views::InstallPillHighlightPathGenerator(this);
++    if (!base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++        views::InstallPillHighlightPathGenerator(this);
+ 
+ #if BUILDFLAG(IS_MAC)
+     geolocation_permission_observation_.Observe(
+@@ -347,14 +349,17 @@ void LocationBarView::Init() {
  
      params.types_enabled.push_back(PageActionIconType::kSendTabToSelf);
      params.types_enabled.push_back(PageActionIconType::kClickToCall);
@@ -5803,6 +5813,15 @@ index b4b2f01a846a7..aacfb61847cd0 100644
      params.types_enabled.push_back(PageActionIconType::kFind);
      params.types_enabled.push_back(PageActionIconType::kTranslate);
      params.types_enabled.push_back(PageActionIconType::kZoom);
+@@ -431,6 +436,8 @@ bool LocationBarView::IsInitialized() const {
+ }
+ 
+ int LocationBarView::GetBorderRadius() const {
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++      return 0;
+   return ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
+       views::Emphasis::kMaximum, size());
+ }
 diff --git a/chrome/browser/ui/views/location_bar/location_icon_view.cc b/chrome/browser/ui/views/location_bar/location_icon_view.cc
 index 1f3878e1879a6..6f4a84bde8cd0 100644
 --- a/chrome/browser/ui/views/location_bar/location_icon_view.cc
@@ -20262,6 +20281,27 @@ index 0000000000000..8f131b8d1bf86
 +}  // namespace views::corewm
 +
 +#endif  // UI_VIEWS_COREWM_TOOLTIP_WIN_H_
+diff --git a/ui/views/layout/layout_provider.cc b/ui/views/layout/layout_provider.cc
+index 5319192415a63..090fd4574c19a 100644
+--- a/ui/views/layout/layout_provider.cc
++++ b/ui/views/layout/layout_provider.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <algorithm>
+ 
++#include "base/command_line.h"
+ #include "base/containers/fixed_flat_map.h"
+ #include "base/logging.h"
+ #include "ui/base/ui_base_features.h"
+@@ -205,6 +206,8 @@ ShapeSysTokens GetShapeSysToken(ShapeContextTokens id) {
+ 
+ int LayoutProvider::GetCornerRadiusMetric(ShapeContextTokens id,
+                                           const gfx::Size& size) const {
++  if (!base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++      return 0;
+   if (!features::IsChromeRefresh2023()) {
+     switch (id) {
+       case ShapeContextTokens::kBadgeRadius:
 diff --git a/ui/views/views_features.cc b/ui/views/views_features.cc
 index e4314c4d46b43..ea5fd1688e907 100644
 --- a/ui/views/views_features.cc
