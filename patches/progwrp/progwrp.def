@@ -102,6 +102,7 @@ LoadLibraryW
 LocaleNameToLCID
 NtOpenKeyEx
 PdhAddEnglishCounterW
+PdhAddEnglishCounterW
 PowerClearRequest
 PowerCreateRequest
 PowerDeterminePlatformRole
