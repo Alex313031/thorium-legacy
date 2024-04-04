@@ -11055,13 +11055,12 @@ diff --git a/content/public/common/content_switches.cc b/content/public/common/c
 index 0e06580a8d496..43106e9dc7aa4 100644
 --- a/content/public/common/content_switches.cc
 +++ b/content/public/common/content_switches.cc
-@@ -1027,6 +1027,10 @@ const char kDeviceScaleFactor[]     = "device-scale-factor";
+@@ -1027,6 +1027,9 @@ const char kDeviceScaleFactor[]     = "device-scale-factor";
  // Disable the Legacy Window which corresponds to the size of the WebContents.
  const char kDisableLegacyIntermediateWindow[] = "disable-legacy-window";
  
-+// Enables H264 HW decode acceleration for WebRtc on Win 7.
-+const char kEnableWin7WebRtcHWH264Decoding[] =
-+    "enable-win7-webrtc-hw-h264-decoding";
++// Enables H264 HW decode acceleration for WebRTC on Win 7.
++const char kEnableWin7WebRtcHWH264Decoding[] = "enable-win7-webrtc-hw-h264-decoding";
 +
  // DirectWrite FontCache is shared by browser to renderers using shared memory.
  // This switch allows us to pass the shared memory handle to the renderer.
@@ -11225,11 +11224,11 @@ index 619323f485c6a..8faa0e8848445 100644
 +          switches::kEnableWin7WebRtcHWH264Decoding) &&
 +      video_codec_type == webrtc::kVideoCodecH264 &&
 +      base::win::GetVersion() == base::win::Version::WIN7) {
-+    DVLOG(1) << "H.264 HW decoding is not supported on Win7";
++    DVLOG(1) << "WebRTC H.264 HW decoding is not supported on Win7";
 +    return false;
 +  }
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kEnableWin7WebRtcHWH264Decoding)) {
-+    LOG(WARNING) << "H.264 HW decoding is not supported on Windows 7";
++    LOG(WARNING) << "WebRTC H.264 HW decoding is not supported on Windows 7";
 +  }
 +#endif  // BUILDFLAG(IS_WIN)
 +  return true;
