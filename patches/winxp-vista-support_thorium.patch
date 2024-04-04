@@ -5917,7 +5917,7 @@ index b4b2f01a846a7..e834ebb91d7af 100644
  
  int LocationBarView::GetBorderRadius() const {
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
-+      return 0;
++      return 3;
    return ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
        views::Emphasis::kMaximum, size());
  }
@@ -20482,7 +20482,7 @@ index 5319192415a63..090fd4574c19a 100644
  int LayoutProvider::GetCornerRadiusMetric(ShapeContextTokens id,
                                            const gfx::Size& size) const {
 +  if (!base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
-+      return 0;
++      return 3;
    if (!features::IsChromeRefresh2023()) {
      switch (id) {
        case ShapeContextTokens::kBadgeRadius:
