@@ -5772,7 +5772,7 @@ index ccafa0c6ed945..8e003293c011b 100644
    // Exit UI is unnecessary, since Mac uses the OS fullscreen such that window
    // menu and controls reveal when the cursor is moved to the top.
 diff --git a/chrome/browser/ui/views/location_bar/location_bar_view.cc b/chrome/browser/ui/views/location_bar/location_bar_view.cc
-index b4b2f01a846a7..e834ebb91d7af 100644
+index b4b2f01a846a7..e930e03b32a99 100644
 --- a/chrome/browser/ui/views/location_bar/location_bar_view.cc
 +++ b/chrome/browser/ui/views/location_bar/location_bar_view.cc
 @@ -9,6 +9,7 @@
@@ -5798,7 +5798,7 @@ index b4b2f01a846a7..e834ebb91d7af 100644
      params.types_enabled.push_back(PageActionIconType::kSendTabToSelf);
      params.types_enabled.push_back(PageActionIconType::kClickToCall);
 -    params.types_enabled.push_back(PageActionIconType::kQRCodeGenerator);
-+	if (!base::FeatureList::IsEnabled(kDisableQRGenerator))
++    if (!base::FeatureList::IsEnabled(kDisableQRGenerator))
 +      params.types_enabled.push_back(PageActionIconType::kQRCodeGenerator);
      if (base::FeatureList::IsEnabled(kWebOTPCrossDevice))
        params.types_enabled.push_back(PageActionIconType::kSmsRemoteFetcher);
@@ -5807,9 +5807,9 @@ index b4b2f01a846a7..e834ebb91d7af 100644
        params.types_enabled.push_back(PageActionIconType::kIntentPicker);
      }
 -    params.types_enabled.push_back(PageActionIconType::kPwaInstall);
-+	if (!base::CommandLine::ForCurrentProcess()->HasSwitch("disable-pwa-install-prompt")) {
++    if (!base::CommandLine::ForCurrentProcess()->HasSwitch("disable-pwa-install-prompt")) {
 +      params.types_enabled.push_back(PageActionIconType::kPwaInstall);
-+	}
++    }
      params.types_enabled.push_back(PageActionIconType::kFind);
      params.types_enabled.push_back(PageActionIconType::kTranslate);
      params.types_enabled.push_back(PageActionIconType::kZoom);
@@ -5821,6 +5821,23 @@ index b4b2f01a846a7..e834ebb91d7af 100644
 +      return 3;
    return ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
        views::Emphasis::kMaximum, size());
+ }
+@@ -1151,6 +1158,8 @@ void LocationBarView::RefreshBackground() {
+     border_color = color_provider->GetColor(kColorLocationBarBorderOnMismatch);
+   }
+ 
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++      border_color = SK_ColorBLACK;
+   if (is_popup_mode_) {
+     SetBackground(views::CreateSolidBackground(background_color));
+   } else {
+@@ -1163,6 +1172,8 @@ void LocationBarView::RefreshBackground() {
+   // correctly enable subpixel AA.
+   omnibox_view_->SetBackgroundColor(background_color);
+ 
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++    omnibox_view_->SetBorder(views::CreateSolidSidedBorder(gfx::Insets::TLBR(1, 0, 1, 0), SK_ColorBLACK));
+   SchedulePaint();
  }
 diff --git a/chrome/browser/ui/views/location_bar/location_icon_view.cc b/chrome/browser/ui/views/location_bar/location_icon_view.cc
 index 1f3878e1879a6..6f4a84bde8cd0 100644
