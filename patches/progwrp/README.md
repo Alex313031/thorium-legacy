@@ -2,7 +2,7 @@
 
 This is a wrapper Dynamic Link Library made by the well respected [@win32ss](https://win32subsystem.live/) (also the creator of the [Windows Vista Extended Kernel](https://win32subsystem.live/extended-kernel/)).
 
-"Program Wrapper" enabled programs such as Chromium and Electron to run on Windows versions before 7 RTM (6.1.7600).
+The name means "Program Wrapper", and progwrp enables programs such as Chromium and Electron to run on Windows versions before 7 RTM (6.1.7600).
 
 It is used when linking the program, and win32 API functions that are not supported on pre-win7 versions are instead redirected to this .dll.
 The .dll contains custom implementations of these functions, written in C & C++, "translating" them into something that older Windows can understand.
@@ -30,10 +30,9 @@ Currently supported Windows versions are:
 Work in progress support for:
 
  - Windows 2000 x86 (5.00.2195)
- - Windows 2000 x64 (5.00.2195)
 
  - Windows 2000 Server x86 (5.00.2195)
- - Windows 2000 Server x64 (5.00.2195)
+ - Windows 2000 Datacenter x86 (5.00.2195)
 
 Note: The latest service pack for these OSes should be applied before trying to run a program compiled with progwrp.dll.
 
