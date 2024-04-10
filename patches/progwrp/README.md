@@ -36,9 +36,12 @@ Work in progress support for:
 
 Note: The latest service pack for these OSes should be applied before trying to run a program compiled with progwrp.dll.
 
-For XP x86, this is [SP3](https://www.catalog.update.microsoft.com/Search.aspx?q=KB936929). For XP x64 and Server 2003, this is [SP2](https://www.catalog.update.microsoft.com/Search.aspx?q=KB914961). For Vista and Server 2008, this is [SP2](https://www.catalog.update.microsoft.com/Search.aspx?q=KB948465). For 2000, this is [SP4](http://www.download.windowsupdate.com/msdownload/update/v3-19990518/cabpool/w2ksp4_en_7f12d2da3d7c5b6a62ec4fde9a4b1e6.exe).
+For XP x86, this is [SP3](https://www.catalog.update.microsoft.com/Search.aspx?q=KB936929). 
+For XP x64 and Server 2003, this is [SP2](https://www.catalog.update.microsoft.com/Search.aspx?q=KB914961). 
+For Vista and Server 2008, this is [SP2](https://www.catalog.update.microsoft.com/Search.aspx?q=KB948465). 
+For 2000, this is [SP4](http://www.download.windowsupdate.com/msdownload/update/v3-19990518/cabpool/w2ksp4_en_7f12d2da3d7c5b6a62ec4fde9a4b1e6.exe).
 
-Windows 7 SP1 (6.1.7601), Windows 8/Server 2012 (6.2.9200), and Windows Server 8.1/Server 2012 R2 (6.3.9600) do not require or benefit from progwrp.dll.
+Windows 7 SP1 (6.1.7601), Windows 8/Server 2012 (6.2.9200), and Windows Server 8.1/Server 2012 R2 (6.3.9600) do not require or benefit from progwrp.dll. Windows 10 and 11 are not really supported by either Supermium or Thorium-Win7, and why would you run these on those OSes anyway?
 
 ### Dev Usage
 
