@@ -27,6 +27,7 @@ displayHelp () {
 	printf "${bold}${YEL}Use the --sse3 flag for SSE3 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse2 flag for 32 bit SSE2 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --xp flag for 32 bit Windows XP Builds.${c0}\n" &&
+	printf "${bold}${YEL}Use the --xp64 flag for 64 bit Windows XP/Windows Server 2003 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --android flag for Android Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --cros flag for ChromiumOS Builds.${c0}\n" &&
 	printf "${bold}${YEL}IMPORTANT: For Polly builds, first run build_polly.sh in Thorium/infra, then use the setup_polly.sh${c0}\n" &&
@@ -183,11 +184,25 @@ copyXP () {
 	cp -r -v other/XP/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -r -v other/XP/v8/* ${CR_SRC_DIR}/v8/ &&
 	cp -r -v other/XP/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v patches/progwrp/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x86/ &&
+	cp -v patches/progwrp/progwrp_32/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x86/ &&
 	printf "\n"
 }
 case $1 in
 	--xp) copyXP;
+esac
+
+# Copy WinXP x64 or Server 2003 R2 files
+copyXP64 () {
+	printf "\n" &&
+	printf "${YEL}Copying Windows XP (64-bit) build files...${c0}\n" &&
+	cp -r -v other/XP64/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v other/XP64/v8/* ${CR_SRC_DIR}/v8/ &&
+	cp -r -v other/XP64/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v patches/progwrp/progwrp_64/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x86/ &&
+	printf "\n"
+}
+case $1 in
+	--xp64) copyXP64;
 esac
 
 # Copy Android files
