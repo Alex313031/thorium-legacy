@@ -2,9 +2,9 @@
 
 This is a wrapper Dynamic Link Library made by the well respected [@win32ss](https://win32subsystem.live/) (also the creator of the [Windows Vista Extended Kernel](https://win32subsystem.live/extended-kernel/)).
 
-The name means "Program Wrapper", and progwrp enables programs such as Chromium and Electron to run on Windows versions before 7 RTM (6.1.7600).
+The name means "Program Wrapper", and progwrp enables programs such as [Chromium](https://www.chromium.org) and [Electron](https://www.electronjs.org) to run on Windows versions before 7 RTM (6.1.7600).
 
-It is used when linking the program, and win32 API functions that are not supported on pre-win7 versions are instead redirected to this .dll.
+It is used when linking the program, and win32 API functions that are not supported on Pre-Windows 7 versions are instead redirected to this .dll.
 The .dll contains custom implementations of these functions, written in C & C++, "translating" them into something that older Windows can understand.
 While this does introduce a little bit of overhead, it simplifies development greatly, and the fact *that we have Chromium M122 working on Windows XP at all* is a godsend for legacy software/hardware enthusiasts.
 
