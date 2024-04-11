@@ -5925,7 +5925,7 @@ index b4b2f01a846a7..e930e03b32a99 100644
      border_color = color_provider->GetColor(kColorLocationBarBorderOnMismatch);
    }
  
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox-border"))
 +      border_color = SK_ColorBLACK;
    if (is_popup_mode_) {
      SetBackground(views::CreateSolidBackground(background_color));
@@ -5934,7 +5934,7 @@ index b4b2f01a846a7..e930e03b32a99 100644
    // correctly enable subpixel AA.
    omnibox_view_->SetBackgroundColor(background_color);
  
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox-border"))
 +    omnibox_view_->SetBorder(views::CreateSolidSidedBorder(gfx::Insets::TLBR(1, 0, 1, 0), SK_ColorBLACK));
    SchedulePaint();
  }

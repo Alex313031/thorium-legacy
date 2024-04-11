@@ -183,7 +183,11 @@ copyXP () {
 	printf "${YEL}Copying Windows XP (32-bit) build files...${c0}\n" &&
 	cp -r -v other/XP/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -r -v other/XP/v8/* ${CR_SRC_DIR}/v8/ &&
-	cp -r -v other/XP/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	printf "\n" &&
+	printf "${YEL}Copying progwrp files...${c0}\n" &&
+	cp -r -v other/XP/chrome/* ${CR_SRC_DIR}/chrome/ &&
+	cp -v patches/progwrp/progwrp_32/progwrp.dll ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v patches/progwrp/progwrp_32/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x86/ &&
 	printf "\n"
 }
@@ -197,8 +201,12 @@ copyXP64 () {
 	printf "${YEL}Copying Windows XP (64-bit) build files...${c0}\n" &&
 	cp -r -v other/XP64/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -r -v other/XP64/v8/* ${CR_SRC_DIR}/v8/ &&
-	cp -r -v other/XP64/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v patches/progwrp/progwrp_64/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x86/ &&
+	cp -v other/XP64/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	printf "\n" &&
+	printf "${YEL}Copying progwrp files...${c0}\n" &&
+	cp -r -v other/XP/chrome/* ${CR_SRC_DIR}/chrome/ &&
+	cp -v patches/progwrp/progwrp_64/progwrp.dll ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v patches/progwrp/progwrp_64/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x64/ &&
 	printf "\n"
 }
 case $1 in
@@ -216,19 +224,19 @@ copyAndroid () {
 	cp -r -v arm/android/* ${CR_SRC_DIR}/ &&
 	printf "\n" &&
 	#cp -r -v arm/android/third_party/* ${CR_SRC_DIR}/third_party/ &&
-	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_base/drawable-v26/ic_launcher.xml &&
-	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_base/drawable-v26/ic_launcher_round.xml &&
-	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-mdpi/layered_app_icon_background.png &&
-	#rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-mdpi/layered_app_icon.png &&
-	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xhdpi/layered_app_icon_background.png &&
-	#rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xhdpi/layered_app_icon.png &&
-	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxxhdpi/layered_app_icon_background.png &&
-	#rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxxhdpi/layered_app_icon.png &&
-	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-nodpi/layered_app_icon_foreground.xml &&
-	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-hdpi/layered_app_icon_background.png &&
-	#rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-hdpi/layered_app_icon.png &&
-	rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxhdpi/layered_app_icon_background.png &&
-	#rm -v -r -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxhdpi/layered_app_icon.png &&
+	rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_base/drawable-v26/ic_launcher.xml &&
+	rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_base/drawable-v26/ic_launcher_round.xml &&
+	rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-mdpi/layered_app_icon_background.png &&
+	#rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-mdpi/layered_app_icon.png &&
+	rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xhdpi/layered_app_icon_background.png &&
+	#rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xhdpi/layered_app_icon.png &&
+	rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxxhdpi/layered_app_icon_background.png &&
+	#rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxxhdpi/layered_app_icon.png &&
+	rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-nodpi/layered_app_icon_foreground.xml &&
+	rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-hdpi/layered_app_icon_background.png &&
+	#rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-hdpi/layered_app_icon.png &&
+	rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxhdpi/layered_app_icon_background.png &&
+	#rm -v -f ${CR_SRC_DIR}/chrome/android/java/res_chromium_base/mipmap-xxhdpi/layered_app_icon.png &&
 	#./infra/fix_libaom.sh &&
 	printf "\n"
 }
