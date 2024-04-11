@@ -1,9 +1,9 @@
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/alex313031/thorium-win7?label=Version%3A) &nbsp;![GitHub](https://img.shields.io/github/license/alex313031/thorium-win7?color=green&label=License%3A) &nbsp;![GitHub commit activity](https://img.shields.io/github/commit-activity/w/alex313031/thorium-win7?color=blueviolet&label=Commit%20Activity%3A) &nbsp;![Subreddit subscribers](https://img.shields.io/reddit/subreddit-subscribers/ChromiumBrowser?style=social)
-# Thorium for Windows 7 / 8 / 8.1 &nbsp;<img src="https://raw.githubusercontent.com/alex313031/thorium-win7/main/logos/STAGING/win7/compatible-with-windows-7.png" width="48">
+# Thorium for Windows XP / Vista / 7 / 8 / 8.1 &nbsp;<img src="https://raw.githubusercontent.com/alex313031/thorium-win7/main/logos/STAGING/win7/compatible-with-windows-7.png" width="48">
 
 <img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/NEW/thorium_ver_2048_grey_old.png">
 
-## Chromium fork named after [radioactive element No. 90](https://en.wikipedia.org/wiki/Thorium), Windows NT 6.x.x builds!
+## Chromium fork named after [radioactive element No. 90](https://en.wikipedia.org/wiki/Thorium), Old Windows NT builds!
 
 - Always built with the latest stable version of [Chromium](https://www.chromium.org/).
 - Intended to behave like and have the featureset of Google Chrome, with differences/patches/enhancements listed below.
