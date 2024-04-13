@@ -55,3 +55,26 @@ Aw, Snap! > Aw, #@%!, this tab's process has gone bye bye...
  - Restore Win7 WebRTC HW decoding flag (and disable by default) > https://source.chromium.org/chromium/chromium/src/+/3682d7432ea6d3a50661ca565759509a57fe3d4c
 
  - https://source.chromium.org/chromium/chromium/src/+/056a891186fbf7b5cd3f857c331ab3ad5a69019d
+
+
+look up how to add flag, feature flag, commandline, and gui, and multi option flag in docs (maybe just look up dding flags in general)
+
+add feature flags for some thorium stuff maybe? add one for reload right click menu
+
+Look at CR23 refresh enabling differences between chrome and chromium
+
+Make new logo for thoirum-legacy
+
+Fix thorium_shell
+
+Try removing only progwrp.dll for vista, if fails, remove xp specific code, leaving ntdll and psapi, then try removing ntdll and only using psapi
+
+Try making SSE4.2 x32 build
+
+Check if V8 or regular compiler flags are causing builtins pgo to fail
+
+Test -msse4 versus -msse4.2
+
+remove tab duplicates
+fix session buddy and find out wqhen websql is removed and find out how to migrate to indexdb or other alternatives
+
