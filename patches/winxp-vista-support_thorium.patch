@@ -6451,6 +6451,37 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
    }
  
    if (fill_id.has_value()) {
+diff --git a/chrome/browser/ui/webui/settings/settings_utils_win.cc b/chrome/browser/ui/webui/settings/settings_utils_win.cc
+index c39f0509e7d3d..d898145962a05 100644
+--- a/chrome/browser/ui/webui/settings/settings_utils_win.cc
++++ b/chrome/browser/ui/webui/settings/settings_utils_win.cc
+@@ -14,6 +14,7 @@
+ #include "base/task/single_thread_task_runner.h"
+ #include "base/task/thread_pool.h"
+ #include "base/threading/thread.h"
++#include "base/win/windows_version.h"
+ #include "chrome/browser/browser_process.h"
+ #include "chrome/browser/platform_util.h"
+ #include "chrome/browser/profiles/profile.h"
+@@ -102,9 +103,15 @@ void OpenConnectionDialogCallback() {
+ }
+ 
+ void ShowNetworkProxySettings(content::WebContents* /*web_contents*/) {
+-  // See
+-  // https://docs.microsoft.com/en-us/windows/uwp/launch-resume/launch-settings-app#network--internet
+-  platform_util::OpenExternal(GURL("ms-settings:network-proxy"));
++  if (base::win::GetVersion() >= base::win::Version::WIN10) {
++    // See
++    // https://docs.microsoft.com/en-us/windows/uwp/launch-resume/launch-settings-app#network--internet
++    platform_util::OpenExternal(GURL("ms-settings:network-proxy"));
++  } else {
++    base::ThreadPool::PostTask(
++        FROM_HERE, {base::TaskPriority::USER_VISIBLE, base::MayBlock()},
++        base::BindOnce(&OpenConnectionDialogCallback));
++  }
+ }
+ 
+ void ShowManageSSLCertificates(content::WebContents* web_contents) {
 diff --git a/chrome/browser/ui/webui/side_panel/bookmarks/bookmarks_side_panel_ui.cc b/chrome/browser/ui/webui/side_panel/bookmarks/bookmarks_side_panel_ui.cc
 index 91684b8998732..46b241f52841c 100644
 --- a/chrome/browser/ui/webui/side_panel/bookmarks/bookmarks_side_panel_ui.cc
