@@ -182,7 +182,6 @@ copyXP () {
 	printf "\n" &&
 	printf "${YEL}Copying Windows XP (32-bit) build files...${c0}\n" &&
 	cp -r -v other/XP/build/config/* ${CR_SRC_DIR}/build/config/ &&
-	cp -r -v other/XP/v8/* ${CR_SRC_DIR}/v8/ &&
 	cp -v other/XP/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n" &&
 	printf "${YEL}Copying progwrp files...${c0}\n" &&
@@ -200,7 +199,6 @@ copyXP64 () {
 	printf "\n" &&
 	printf "${YEL}Copying Windows XP (64-bit) build files...${c0}\n" &&
 	cp -r -v other/XP64/build/config/* ${CR_SRC_DIR}/build/config/ &&
-	cp -r -v other/XP64/v8/* ${CR_SRC_DIR}/v8/ &&
 	cp -v other/XP64/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n" &&
 	printf "${YEL}Copying progwrp files...${c0}\n" &&
