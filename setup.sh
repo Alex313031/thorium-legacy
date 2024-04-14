@@ -181,6 +181,8 @@ esac
 copyXP () {
 	printf "\n" &&
 	printf "${YEL}Copying Windows XP (32-bit) build files...${c0}\n" &&
+	cp -r -v other/SSE2/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v other/SSE2/v8/* ${CR_SRC_DIR}/v8/ &&
 	cp -r -v other/XP/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -v other/XP/dist/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n" &&
@@ -202,6 +204,8 @@ esac
 copyXP64 () {
 	printf "\n" &&
 	printf "${YEL}Copying Windows XP (64-bit) build files...${c0}\n" &&
+	cp -r -v other/SSE3/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v other/SSE3/v8/* ${CR_SRC_DIR}/v8/ &&
 	cp -r -v other/XP64/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -v other/XP64/dist/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n" &&

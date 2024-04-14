@@ -50,8 +50,6 @@ resources.pak: %(VersionDir)s\
 # shell_resources.pak: %(VersionDir)s\
 # thorium_shell.exe: %(VersionDir)s\
 # thorium_shell.ico: %(VersionDir)s\
-# progwrp.dll also for any .exes in the version dir that need it
-progwrp.dll: %(VersionDir)s\
 ui_resources_100_percent.pak: %(VersionDir)s\
 resources\*.*: %(VersionDir)s\resources\
 vk_swiftshader.dll: %(VersionDir)s\
@@ -109,6 +107,8 @@ MEIPreload\preloaded_data.pb: %(VersionDir)s\MEIPreload\
 [HIDPI]
 chrome_200_percent.pak: %(VersionDir)s\
 thorium.ico: %(VersionDir)s\
+# progwrp.dll also for any .exes in the version dir that need it
+progwrp.dll: %(VersionDir)s\
 # thorium.svg: %(VersionDir)s\
 
 # Add component ffmpeg to Thorium.
