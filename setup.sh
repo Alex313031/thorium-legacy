@@ -186,6 +186,9 @@ copyXP () {
 	printf "\n" &&
 	printf "${YEL}Copying progwrp files...${c0}\n" &&
 	cp -r -v other/XP/chrome/* ${CR_SRC_DIR}/chrome/ &&
+	cp -v other/XP/THORIUM_PORTABLE.bat ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/INSTALL_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/thorium.ico ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v patches/progwrp/progwrp_32/progwrp.dll ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v patches/progwrp/progwrp_32/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x86/ &&
 	printf "\n"
@@ -203,6 +206,9 @@ copyXP64 () {
 	printf "\n" &&
 	printf "${YEL}Copying progwrp files...${c0}\n" &&
 	cp -r -v other/XP/chrome/* ${CR_SRC_DIR}/chrome/ &&
+	cp -v other/XP/THORIUM_PORTABLE.bat ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/INSTALL_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/thorium.ico ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v patches/progwrp/progwrp_64/progwrp.dll ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v patches/progwrp/progwrp_64/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x64/ &&
 	printf "\n"

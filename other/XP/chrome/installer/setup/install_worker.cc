@@ -88,6 +88,8 @@ constexpr wchar_t kLpacChromeInstallFilesCapabilitySid[] =
 const wchar_t kInitPref[] = L"initial_preferences";
 const wchar_t kThorVer[] = L"thor_ver";
 const wchar_t kProgWrp[] = L"progwrp.dll";
+const wchar_t kPortableBat[] = L"THORIUM_PORTABLE.bat";
+const wchar_t kInstallBat[] = L"INSTALL_THORIUM.cmd";
 
 void AddInstallerCopyTasks(const InstallParams& install_params,
                            WorkItemList* install_list) {
@@ -321,9 +323,16 @@ void AddChromeWorkItems(const InstallParams& install_params,
   install_list->AddCopyTreeWorkItem(src_path.Append(kThorVer),
                                     target_path.Append(kThorVer),
                                     temp_path, WorkItem::ALWAYS);
-  // For Windows XP/Vista Support
+  // progwrp.dll for Windows XP/Vista Support
   install_list->AddCopyTreeWorkItem(src_path.Append(kProgWrp),
                                     target_path.Append(kProgWrp),
+                                    temp_path, WorkItem::ALWAYS);
+  // Windows XP/Vista-Specific Files
+  install_list->AddCopyTreeWorkItem(src_path.Append(kPortableBat),
+                                    target_path.Append(kPortableBat),
+                                    temp_path, WorkItem::ALWAYS);
+  install_list->AddCopyTreeWorkItem(src_path.Append(kInstallBat),
+                                    target_path.Append(kInstallBat),
                                     temp_path, WorkItem::ALWAYS);
 
   // Install kVisualElementsManifest if it is present in |src_path|. No need to
