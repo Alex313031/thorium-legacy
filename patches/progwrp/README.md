@@ -1,4 +1,4 @@
-## progwrp.dll  &nbsp;<img src="https://github.com/Alex313031/thorium-legacy/blob/main/logos/NEW/XP/compmgmt.png" width="48">
+## progwrp.dll  &nbsp;<img src="https://github.com/Alex313031/thorium-legacy/blob/main/logos/NEW/XP/compmgmt.png" width="42">
 
 This is a wrapper Dynamic Link Library made by the well respected [@win32ss](https://win32subsystem.live/) (also the creator of the [Windows Vista Extended Kernel](https://win32subsystem.live/extended-kernel/)).
 

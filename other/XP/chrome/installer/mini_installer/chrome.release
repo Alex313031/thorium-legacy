@@ -17,6 +17,7 @@ progwrp.dll: %(ChromeDir)s\
 # XP/Vista-Specific Files
 THORIUM_PORTABLE.bat: %(ChromeDir)s\
 INSTALL_THORIUM.cmd: %(ChromeDir)s\
+README.txt: %(ChromeDir)s\
 #
 # Chrome version dir assembly manifest.
 # The name of this file must match the name of the version dir, so we cannot
