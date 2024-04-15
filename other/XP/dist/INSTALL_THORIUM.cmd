@@ -5,6 +5,17 @@ title Installing Thorium...
 :: Uncomment the line below to see what all is being done.
 :: @echo on
 
+echo.
+echo  NOTE: You should run REMOVE_THORIUM.cmd before installing 
+echo   a new version of Thorium.
+echo.
+echo  Press Ctrl + C at the next prompt, and then press Y + Enter 
+echo   when asked "Terminate batch job (Y/N)?" if you wish to stop 
+echo   the installation.
+echo.
+
+pause
+
 mkdir "C:\Program Files\Thorium"
 
 xcopy /Y /E /H /C /I . "C:\Program Files\Thorium"
@@ -36,11 +47,15 @@ cscript CreateShortcut2.vbs
 
 del CreateShortcut2.vbs
 
+echo.
+echo  Creating Registry Entries...
+echo.
+
 reg import HKCR.reg
 reg import HKLM.reg
 
 echo.
-echo  NOTE: "Cannot create a file when that file already exists." is not an error.
+echo  NOTE: "Cannot create a file when that file already exists." is not an error. 
 echo  It just means that the shortcuts already exist from a previous installation.
 echo.
 echo  Done installing Thorium for Windows XP/Vista!

@@ -12,14 +12,17 @@ chrome_proxy.exe: %(ChromeDir)s\
 initial_preferences: %(ChromeDir)s\
 # thor_ver for Thorium-WinUpdater
 thor_ver: %(ChromeDir)s\
+
+# XP/Vista-Specific Files
 # progwrp.dll for Windows XP/Vista Support
 progwrp.dll: %(ChromeDir)s\
-# XP/Vista-Specific Files
 HKCR.reg: %(ChromeDir)s\
 HKLM.reg: %(ChromeDir)s\
 THORIUM_PORTABLE.bat: %(ChromeDir)s\
 INSTALL_THORIUM.cmd: %(ChromeDir)s\
+REMOVE_THORIUM.cmd: %(ChromeDir)s\
 README.txt: %(ChromeDir)s\
+
 #
 # Chrome version dir assembly manifest.
 # The name of this file must match the name of the version dir, so we cannot

@@ -92,7 +92,8 @@ const wchar_t kHKCR[] = L"HKCR.reg";
 const wchar_t kHKLM[] = L"HKLM.reg";
 const wchar_t kPortableBat[] = L"THORIUM_PORTABLE.bat";
 const wchar_t kInstallBat[] = L"INSTALL_THORIUM.cmd";
-const wchar_t kXpReadme[] = L"README.txt";
+const wchar_t kRemoveBat[] = L"REMOVE_THORIUM.cmd";
+const wchar_t kXpReadMe[] = L"README.txt";
 
 void AddInstallerCopyTasks(const InstallParams& install_params,
                            WorkItemList* install_list) {
@@ -343,9 +344,12 @@ void AddChromeWorkItems(const InstallParams& install_params,
   install_list->AddCopyTreeWorkItem(src_path.Append(kInstallBat),
                                     target_path.Append(kInstallBat),
                                     temp_path, WorkItem::ALWAYS);
+  install_list->AddCopyTreeWorkItem(src_path.Append(kRemoveBat),
+                                    target_path.Append(kRemoveBat),
+                                    temp_path, WorkItem::ALWAYS);
   // README file
-  install_list->AddCopyTreeWorkItem(src_path.Append(kXpReadme),
-                                    target_path.Append(kXpReadme),
+  install_list->AddCopyTreeWorkItem(src_path.Append(kXpReadMe),
+                                    target_path.Append(kXpReadMe),
                                     temp_path, WorkItem::ALWAYS);
 
   // Install kVisualElementsManifest if it is present in |src_path|. No need to

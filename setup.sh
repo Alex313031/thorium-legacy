@@ -190,6 +190,7 @@ copyXP () {
 	cp -r -v other/XP/chrome/* ${CR_SRC_DIR}/chrome/ &&
 	cp -v other/XP/dist/THORIUM_PORTABLE.bat ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v other/XP/dist/INSTALL_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/dist/REMOVE_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v other/XP/dist/HKCR.reg ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v other/XP/dist/HKLM.reg ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v other/XP/dist/thorium.ico ${CR_SRC_DIR}/out/thorium/ &&
@@ -215,6 +216,7 @@ copyXP64 () {
 	cp -r -v other/XP/chrome/* ${CR_SRC_DIR}/chrome/ &&
 	cp -v other/XP/dist/THORIUM_PORTABLE.bat ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v other/XP/dist/INSTALL_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/dist/REMOVE_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v other/XP/dist/HKCR.reg ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v other/XP/dist/HKLM.reg ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v other/XP/dist/thorium.ico ${CR_SRC_DIR}/out/thorium/ &&

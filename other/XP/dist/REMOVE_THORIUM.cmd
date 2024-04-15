@@ -5,7 +5,7 @@ title Uninstalling Thorium...
 :: Uncomment the line below to see what all is being done.
 :: @echo on
 
-deltree "C:\Program Files\Thorium"
+rmdir /s "C:\Program Files\Thorium"
 
 echo.
 echo  Removing Shorcuts...
@@ -20,11 +20,17 @@ del "%USERPROFILE%\Desktop\Thorium.lnk"
 
 del "%USERPROFILE%\Start Menu\Programs\Thorium.lnk"
 
-reg import HKCR.reg
-reg import HKLM.reg
+echo.
+echo  Deleting Registry Entries...
+echo.
+
+reg delete HKCR\ThoriumHTM
+reg delete HKLM\SOFTWARE\Clients\StartMenuInternet\Thorium
 
 echo.
-echo  Done removing Thorium from C:\Program Files\Thorium
+echo  Done uninstalling Thorium from C:\Program Files\Thorium
+echo.
+echo  INSTALL_THORIUM.cmd can be used to re-install Thorium.
 echo.
 
 title Done!
