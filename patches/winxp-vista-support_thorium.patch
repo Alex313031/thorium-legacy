@@ -9169,7 +9169,7 @@ index 801003e99fe39..2e1b93c427f76 100644
    static const bool has_switch =
 -      base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kPdfRenderer);
 +      base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kPdfRenderer) ||
-+      (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kPdfRenderer) && base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kSingleProcess));
++      base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kSingleProcess);
    return has_switch;
  }
  
