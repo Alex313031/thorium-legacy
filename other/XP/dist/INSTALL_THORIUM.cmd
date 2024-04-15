@@ -28,7 +28,7 @@ cscript CreateShortcut.vbs
 del CreateShortcut.vbs
 
 echo Set oWS = WScript.CreateObject("WScript.Shell") > CreateShortcut2.vbs
-echo sLinkFile = "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Thorium.lnk" >> CreateShortcut2.vbs
+echo sLinkFile = "%USERPROFILE%\Start Menu\Programs\Thorium.lnk" >> CreateShortcut2.vbs
 echo Set oLink = oWS.CreateShortcut(sLinkFile) >> CreateShortcut2.vbs
 echo oLink.TargetPath = "C:\Program Files\Thorium\thorium.exe" >> CreateShortcut2.vbs
 echo oLink.Save >> CreateShortcut2.vbs

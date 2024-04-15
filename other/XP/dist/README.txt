@@ -9,6 +9,8 @@ Contains THORIUM_PORTABLE.bat for running portable/standalone.
 	
 Run INSTALL_THORIUM.cmd to install it to C:\Program Files\Thorium and make shortcuts on the Desktop and Start Menu.
 
+Run REMOVE_THORIUM.cmd to uninstall it.
+
 You can also skip using THORIUM.BAT and just copy the contents somewhere, and run thorium.exe from within. 
  Note this will make a profile dir in C:\Users\$USERNAME\AppData\Local\Thorium\User Data\ and write a few registry values.
 
