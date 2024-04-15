@@ -238,6 +238,10 @@
      "Classic Omnibox Borders",
      "Changes the omnibox outline to have black borders, to mimic the M45 appearance.",
      kOsDesktop, SINGLE_VALUE_TYPE("classic-omnibox-border")},
+    {"native-ui-style",
+     "Enable Native User Interface Elements",
+     "Enables native user interface elements on Windows. At this time, it only applies to elements outside the area of the web content itself.",
+     kOsWin, SINGLE_VALUE_TYPE("native-ui-style")},
     {"incognito-brand-consistency-for-desktop",
      flag_descriptions::kIncognitoBrandConsistencyForDesktopName,
      flag_descriptions::kIncognitoBrandConsistencyForDesktopDescription,
@@ -251,4 +255,8 @@
      "Disables prompts about unsafe or uncommon downloads, and "
      "prevents samples of downloads from being sent to Google.",
      kOsAll, SINGLE_VALUE_TYPE("disable-download-upload")},
+    {"disable-alternate-ds",
+     "Disable Alternate Data Streams",
+     "Disables alternate data streams in downloads on Windows. This manifests itself as a \"blocked file\" in its properties.",
+     kOsWin, SINGLE_VALUE_TYPE("disable-alternate-ds")},
 #endif  // CHROME_BROWSER_THORIUM_FLAG_ENTRIES_H_

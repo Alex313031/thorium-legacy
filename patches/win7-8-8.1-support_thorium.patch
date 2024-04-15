@@ -9027,6 +9027,20 @@ index 98e208939a55a..c5717354dcd1e 100644
    DATA_BLOB input = {};
    input.pbData = const_cast<BYTE*>(ciphertext.data());
    input.cbData = static_cast<DWORD>(ciphertext.size());
+diff --git a/components/pdf/renderer/internal_plugin_renderer_helpers.cc b/components/pdf/renderer/internal_plugin_renderer_helpers.cc
+index 801003e99fe39..2e1b93c427f76 100644
+--- a/components/pdf/renderer/internal_plugin_renderer_helpers.cc
++++ b/components/pdf/renderer/internal_plugin_renderer_helpers.cc
+@@ -29,7 +29,8 @@ namespace pdf {
+ 
+ bool IsPdfRenderer() {
+   static const bool has_switch =
+-      base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kPdfRenderer);
++      base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kPdfRenderer) ||
++      base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kPdfRenderer) && base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kSingleProcess);
+   return has_switch;
+ }
+ 
 diff --git a/components/search_engines/template_url_service.cc b/components/search_engines/template_url_service.cc
 index 48b351d2e56ad..0bd04aa016505 100644
 --- a/components/search_engines/template_url_service.cc
@@ -19012,10 +19026,10 @@ index 50647269ec84f..3ae513ec2c66b 100644
  
  void NativeThemeWin::PaintScrollbarTrackClassic(
 diff --git a/ui/shell_dialogs/execute_select_file_win.cc b/ui/shell_dialogs/execute_select_file_win.cc
-index 9361287ac3411..1cb697adcec35 100644
+index 9361287ac3411..4148c1cab9403 100644
 --- a/ui/shell_dialogs/execute_select_file_win.cc
 +++ b/ui/shell_dialogs/execute_select_file_win.cc
-@@ -4,6 +4,8 @@
+@@ -4,16 +4,20 @@
  
  #include "ui/shell_dialogs/execute_select_file_win.h"
  
@@ -19024,7 +19038,19 @@ index 9361287ac3411..1cb697adcec35 100644
  #include <shlobj.h>
  #include <wrl/client.h>
  
-@@ -166,6 +168,217 @@ bool ConfigureDialog(IFileDialog* file_dialog,
+ #include <memory>
+ 
+ #include "base/check.h"
++#include "base/command_line.h"
+ #include "base/feature_list.h"
+ #include "base/files/file.h"
+ #include "base/files/file_util.h"
+ #include "base/functional/callback.h"
++#include "base/logging.h"
+ #include "base/strings/string_util.h"
+ #include "base/threading/hang_watcher.h"
+ #include "base/win/com_init_util.h"
+@@ -166,6 +170,221 @@ bool ConfigureDialog(IFileDialog* file_dialog,
           SetFilters(file_dialog, filter, filter_index);
  }
  
@@ -19056,9 +19082,12 @@ index 9361287ac3411..1cb697adcec35 100644
 +  filter_buffer.clear();
 +
 + for (const auto& filter_spec : filter) {
-+	std::u16string filter_str = filter_spec.extension_spec;
++	std::u16string filter_str = filter_spec.description;
 +    filter_buffer.append(filter_str);
 +    filter_buffer.push_back(0);
++	filter_str = filter_spec.extension_spec;
++	filter_buffer.append(filter_str);
++	filter_buffer.push_back(0);
 +  }
 +  filter_buffer.push_back(0);
 +
@@ -19173,8 +19202,9 @@ index 9361287ac3411..1cb697adcec35 100644
 +  std::vector<std::tuple<std::u16string, std::u16string>> filters;
 +
 +  const char16_t* display_string = (char16_t*)openfilename->lpstrFilter;
-+  if (!display_string)
++  if (!display_string) {
 +    return filters;
++  }
 +
 +  while (*display_string) {
 +    const char16_t* display_string_end = display_string;
@@ -19214,7 +19244,7 @@ index 9361287ac3411..1cb697adcec35 100644
 +                                     const std::wstring& suggested_ext) {
 +  DCHECK(!filename.empty());
 +  std::wstring return_value = filename;
-+
++  LOG(ERROR) << filter_selected;
 +  // If we wanted a specific extension, but the user's filename deleted it or
 +  // changed it to something that the system doesn't understand, re-append.
 +  // Careful: Checking net::GetMimeTypeFromExtension() will only find
@@ -19242,7 +19272,7 @@ index 9361287ac3411..1cb697adcec35 100644
  // Prompt the user for location to save a file.
  // Callers should provide the filter string, and also a filter index.
  // The parameter |index| indicates the initial index of filter description and
-@@ -185,56 +398,144 @@ bool RunSaveFileDialog(HWND owner,
+@@ -185,56 +404,151 @@ bool RunSaveFileDialog(HWND owner,
                         int* filter_index,
                         base::FilePath* path) {
    Microsoft::WRL::ComPtr<IFileSaveDialog> file_save_dialog;
@@ -19387,13 +19417,14 @@ index 9361287ac3411..1cb697adcec35 100644
 +
 +	  BOOL success = ::GetSaveFileNameW((OPENFILENAMEW*)&open_file_name);
 +
-+	  if(open_file_name.lpstrFilter) {
++	  BaseShellDialogImpl::DisableOwner(owner);
++	  if (!success) {
++		if(open_file_name.lpstrFilter) {
 +		  ::HeapFree(::GetProcessHeap(), 0, (LPVOID)open_file_name.lpstrFilter);
 +		  open_file_name.lpstrFilter = nullptr;
-+	  }
-+	  BaseShellDialogImpl::DisableOwner(owner);
-+	  if (!success)
++	    }
 +		return false;
++	  }
 +
 +	  // Return the user's choice.
 +	  //*path = base::FilePath(open_file_name.lpstrFile);
@@ -19413,7 +19444,8 @@ index 9361287ac3411..1cb697adcec35 100644
 +	  // Get the extension that was suggested to the user (when the Save As dialog
 +	  // was opened).
 +	  std::wstring suggested_ext = GetExtensionWithoutLeadingDot(default_path.Extension());
-+
++      LOG(ERROR) << suggested_ext;
++      LOG(ERROR) << filter_selected;
 +	  // If we can't get the extension from the default_path, we use the default
 +	  // extension passed in. This is to cover cases like when saving a web page,
 +	  // where we get passed in a name without an extension and a default extension
@@ -19423,6 +19455,11 @@ index 9361287ac3411..1cb697adcec35 100644
 +
 +	  *path = base::FilePath(
 +		  AppendExtensionIfNeeded(base::FilePath(open_file_name.lpstrFile).value(), std::wstring(filter_selected.begin(), filter_selected.end()), suggested_ext));
++
++    if (open_file_name.lpstrFilter) {
++        ::HeapFree(::GetProcessHeap(), 0, (LPVOID)open_file_name.lpstrFilter);
++        open_file_name.lpstrFilter = nullptr;
++    }
 +	  return true;
    }
 -
@@ -19431,7 +19468,7 @@ index 9361287ac3411..1cb697adcec35 100644
  }
  
  // Runs an Open file dialog box, with similar semantics for input parameters as
-@@ -248,10 +549,12 @@ bool RunOpenFileDialog(HWND owner,
+@@ -248,10 +562,12 @@ bool RunOpenFileDialog(HWND owner,
                         int* filter_index,
                         std::vector<base::FilePath>* paths) {
    Microsoft::WRL::ComPtr<IFileOpenDialog> file_open_dialog;
@@ -19445,7 +19482,7 @@ index 9361287ac3411..1cb697adcec35 100644
    }
  
    // The FOS_FORCEFILESYSTEM option ensures that if the user enters a URL in the
-@@ -260,64 +563,124 @@ bool RunOpenFileDialog(HWND owner,
+@@ -260,64 +576,124 @@ bool RunOpenFileDialog(HWND owner,
    // GetOpenFileName API.
    dialog_options |= FOS_FORCEFILESYSTEM;
  
