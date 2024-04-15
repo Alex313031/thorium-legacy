@@ -198,6 +198,7 @@
               <structure type="chrome_scaled_image" name="IDR_PRODUCT_LOGO_NAME_22_WHITE" file="${branding_path_component}/product_logo_name_22_white.png" />
               <structure type="chrome_scaled_image" name="IDR_PRODUCT_MASCOT" file="chromium/thorium_mascot.png" />
               <structure type="chrome_scaled_image" name="IDR_PRODUCT_NETERROR_FAVICON" file="chromium/dino_favicon.png" />
+              <structure type="chrome_scaled_image" name="IDR_PRODUCT_WINXP" file="chromium/winxp.png" />
               <structure type="chrome_scaled_image" name="IDR_PRODUCT_WIN7" file="chromium/win7.png" />
             </else>
           </if> <!-- _is_chrome_for_testing_branded -->

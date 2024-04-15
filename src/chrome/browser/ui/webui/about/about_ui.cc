@@ -545,6 +545,7 @@ std::string ChromeURLs(content::BrowserContext* browser_context) {
               : base::StrCat({"<li>", url, "</li>\n"});
     }
 
+    html += "<li><a href='chrome://theme/IDR_PRODUCT_WINXP'>chrome://winxp</a></li>\n";
     html += "<li><a href='chrome://theme/IDR_PRODUCT_WIN7'>chrome://win7</a></li>\n";
 
     html +=
