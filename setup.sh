@@ -58,8 +58,7 @@ mkdir -v -p ${CR_SRC_DIR}/out/thorium/ &&
 printf "\n" &&
 
 printf "\n" &&
-printf "${YEL}Copying Thorium source files over the Chromium tree...\n" &&
-tput sgr0 &&
+printf "${YEL}Copying Thorium source files over the Chromium tree...${c0}\n" &&
 
 # Copy libjxl src
 cd ~/thorium-win7 &&
