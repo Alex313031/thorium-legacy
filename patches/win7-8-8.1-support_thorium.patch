@@ -9003,30 +9003,6 @@ index 9ef95f00eaacc..11378f7e96981 100644
    if (minimal_changes)
      return;
  
-diff --git a/components/os_crypt/async/browser/dpapi_key_provider.cc b/components/os_crypt/async/browser/dpapi_key_provider.cc
-index 98e208939a55a..c5717354dcd1e 100644
---- a/components/os_crypt/async/browser/dpapi_key_provider.cc
-+++ b/components/os_crypt/async/browser/dpapi_key_provider.cc
-@@ -9,6 +9,7 @@
- #include <wincrypt.h>
- 
- #include "base/base64.h"
-+#include "base/command_line.h"
- #include "base/logging.h"
- #include "base/metrics/histogram_functions.h"
- #include "base/types/expected.h"
-@@ -35,6 +36,11 @@ constexpr uint8_t kDPAPIKeyPrefix[] = {'D', 'P', 'A', 'P', 'I'};
- 
- std::optional<std::vector<uint8_t>> DecryptKeyWithDPAPI(
-     base::span<const uint8_t> ciphertext) {
-+
-+   if (base::CommandLine::ForCurrentProcess()->HasSwitch("disable-encryption")) {
-+        return std::vector<uint8_t>(ciphertext.data(),
-+                              ciphertext.data() + ciphertext.size());
-+  }
-   DATA_BLOB input = {};
-   input.pbData = const_cast<BYTE*>(ciphertext.data());
-   input.cbData = static_cast<DWORD>(ciphertext.size());
 diff --git a/components/pdf/renderer/internal_plugin_renderer_helpers.cc b/components/pdf/renderer/internal_plugin_renderer_helpers.cc
 index 801003e99fe39..2e1b93c427f76 100644
 --- a/components/pdf/renderer/internal_plugin_renderer_helpers.cc
