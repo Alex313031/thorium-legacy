@@ -30,8 +30,11 @@ displayHelp () {
 	printf "${bold}${YEL}Use the --xp64 flag for 64 bit Windows XP/Windows Server 2003 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --android flag for Android Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --cros flag for ChromiumOS Builds.${c0}\n" &&
-	printf "${bold}${YEL}IMPORTANT: For Polly builds, first run build_polly.sh in Thorium/infra, then use the setup_polly.sh${c0}\n" &&
-	printf "${bold}${YEL}script in Thorium/other/Polly. Both of these actions should be taken AFTER running this script!${c0}\n" &&
+	printf "${bold}${YEL}IMPORTANT: For Polly builds, first run build_polly.sh in ./infra before building.${c0}\n" &&
+	printf "${bold}${YEL} This should be done AFTER running this setup.sh script!${c0}\n" &&
+	printf "\n"
+	printf "${bold}${YEL}NOTE: The \`CR_DIR\` env variable can be used to override the location of \"chromium/src\".${c0}\n" &&
+	printf "${bold}${YEL} The default is $HOME/chromium/src${c0}\n" &&
 	printf "\n"
 }
 case $1 in
@@ -82,8 +85,8 @@ cp -v infra/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 copyMacOS () {
 	printf "\n" &&
 	printf "${YEL}Copying files for MacOS...${c0}\n" &&
-	cp -r -v arm/mac_arm.gni ${CR_SRC_DIR}/build/config/arm.gni &&
-	cp -r -v other/AVX2/build/config/compiler/BUILD.gn ${CR_SRC_DIR}/build/config/compiler/ &&
+	cp -v arm/mac_arm.gni ${CR_SRC_DIR}/build/config/arm.gni &&
+	cp -v other/AVX2/build/config/compiler/BUILD.gn ${CR_SRC_DIR}/build/config/compiler/ &&
 	cp -r -v arm/third_party/* ${CR_SRC_DIR}/third_party/ &&
 	printf "\n"
 }
@@ -117,7 +120,7 @@ copyWOA () {
 	printf "${YEL}Copying Windows on ARM build files...${c0}\n" &&
 	cp -r -v arm/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -r -v arm/third_party/* ${CR_SRC_DIR}/third_party/ &&
-	cp -r -v arm/woa_arm.gni ${CR_SRC_DIR}/build/config/arm.gni &&
+	cp -v arm/woa_arm.gni ${CR_SRC_DIR}/build/config/arm.gni &&
 	printf "\n"
 }
 case $1 in
@@ -131,7 +134,7 @@ copyAVX2 () {
 	cp -r -v other/AVX2/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -r -v other/AVX2/v8/* ${CR_SRC_DIR}/v8/ &&
 	cp -r -v other/AVX2/third_party/* ${CR_SRC_DIR}/third_party/ &&
-	cp -r -v other/AVX2/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/AVX2/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n"
 }
 case $1 in
@@ -144,7 +147,7 @@ copySSE4 () {
 	printf "${YEL}Copying SSE4.1 build files...${c0}\n" &&
 	cp -r -v other/SSE4.1/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -r -v other/SSE4.1/v8/* ${CR_SRC_DIR}/v8/ &&
-	cp -r -v other/SSE4.1/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/SSE4.1/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n"
 }
 case $1 in
@@ -157,7 +160,7 @@ copySSE3 () {
 	printf "${YEL}Copying SSE3 build files...${c0}\n" &&
 	cp -r -v other/SSE3/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -r -v other/SSE3/v8/* ${CR_SRC_DIR}/v8/ &&
-	cp -r -v other/SSE3/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/SSE3/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n"
 }
 case $1 in
@@ -170,7 +173,7 @@ copySSE2 () {
 	printf "${YEL}Copying SSE2 (32-bit) build files...${c0}\n" &&
 	cp -r -v other/SSE2/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	cp -r -v other/SSE2/v8/* ${CR_SRC_DIR}/v8/ &&
-	cp -r -v other/SSE2/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/SSE2/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
 	printf "\n"
 }
 case $1 in
