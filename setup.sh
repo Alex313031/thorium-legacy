@@ -141,7 +141,7 @@ case $1 in
 	--avx2) copyAVX2;
 esac
 
-# Copy SSE4 files
+# Copy SSE4.1 files
 copySSE4 () {
 	printf "\n" &&
 	printf "${YEL}Copying SSE4.1 build files...${c0}\n" &&
