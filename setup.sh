@@ -198,7 +198,7 @@ copyXP () {
 	cp -v other/XP/dist/thorium.ico ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v other/XP/dist/README.txt ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v patches/progwrp/progwrp_32/progwrp.dll ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v patches/progwrp/progwrp_32/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x86/ &&
+	# cp -v patches/progwrp/progwrp_32/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x86/ &&
 	printf "\n"
 }
 case $1 in
@@ -224,7 +224,7 @@ copyXP64 () {
 	cp -v other/XP/dist/thorium.ico ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v other/XP/dist/README.txt ${CR_SRC_DIR}/out/thorium/ &&
 	cp -v patches/progwrp/progwrp_64/progwrp.dll ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v patches/progwrp/progwrp_64/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x64/ &&
+	# cp -v patches/progwrp/progwrp_64/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x64/ &&
 	printf "\n"
 }
 case $1 in
