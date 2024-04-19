@@ -12,7 +12,10 @@ Fixed AVX Windows Builds as per > https://github.com/RobRich999/Chromium_Clang/i
 There are also additional desktop actions: when right clicking the Thorium launcher it gives three additional desktop actions, one to open thorium-shell, another to open in Safe Mode which disables any flags one has set in chrome://flags until the next launch, and lastly to open in Dark Mode which appends the --force-dark-mode flag.
 
 RESTORED WINDOWS 7/8/8.1 SUPPORT!
- - https://github.com/Alex313031/thorium-win7/blob/main/patches/win7-8-8.1-support_thorium.patch
+ - https://github.com/Alex313031/thorium-legacy/blob/main/patches/win7-8-8.1-support_thorium.patch
+
+RESTORED WINDOWS XP/Vista SUPPORT!
+ - https://github.com/Alex313031/thorium-legacy/blob/main/patches/winxp-vista-support_thorium.patch
 
 Patches from [Supermium](https://github.com/win32ss/supermium) > https://github.com/win32ss/supermium/releases
   - Made by Shane Fournier (AKA win32ss)
@@ -67,7 +70,7 @@ Enable Do Not Track By Default Patch > https://github.com/GrapheneOS/Vanadium/bl
 
 Show full URLs by Default Patch > https://github.com/Alex313031/thorium/blob/74219f27911e133483c3ab85c70ba4360ea98423/src/chrome/browser/ui/toolbar/chrome_location_bar_model_delegate.cc#L292
 
-Disable Privacy Sandbox Patch > https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/core/ungoogled-chromium/disable-privacy-sandbox.patch
+Disable Privacy Sandbox (previously known as FLOC) Patch > https://github.com/ungoogled-software/ungoogled-chromium/blob/master/patches/core/ungoogled-chromium/disable-privacy-sandbox.patch
 
 Disable Google API Key Warning Infobar Patch > https://github.com/Eloston/ungoogled-chromium/blob/master/patches/extra/debian/disable/google-api-warning.patch & https://github.com/Eloston/ungoogled-chromium/blob/master/patches/extra/inox-patchset/0013-disable-missing-key-warning.patch
   - Modified by me.
