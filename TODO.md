@@ -61,20 +61,9 @@ look up how to add flag, feature flag, commandline, and gui, and multi option fl
 
 add feature flags for some thorium stuff maybe? add one for reload right click menu
 
-Look at CR23 refresh enabling differences between chrome and chromium
-
-Make new logo for thoirum-legacy
-
 Fix thorium_shell
 
 Try removing only progwrp.dll for vista, if fails, remove xp specific code, leaving ntdll and psapi, then try removing ntdll and only using psapi
 
-Try making SSE4.2 x32 build
-
-Check if V8 or regular compiler flags are causing builtins pgo to fail
-
-Test -msse4 versus -msse4.2
-
-remove tab duplicates
 fix session buddy and find out wqhen websql is removed and find out how to migrate to indexdb or other alternatives
 
