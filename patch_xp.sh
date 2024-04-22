@@ -18,7 +18,9 @@ try() { "$@" || die "${RED}Failed $*"; }
 # --help
 displayHelp () {
 	printf "\n" &&
-	printf "${bold}${GRE}Script to patch Thorium for Windows XP and Vista.${c0}\n" &&
+	printf "${bold}${GRE}Script to patch Thorium for Windows XP and Vista and${c0}\n" &&
+	printf "${bold}${GRE} derivatives like XP x64, POSReady 2009, Home Server 2007,${c0}\n" &&
+	printf "${bold}${GRE} Server 2003, Server 2003 R2, and Server 2008.${c0}\n" &&
 	printf "\n"
 }
 case $1 in
@@ -36,22 +38,30 @@ fi
 
 # Patch Chromium
 cp -v patches/winxp-vista-support_thorium.patch ${CR_SRC_DIR}/ &&
-cp -v patches/win7-8-8.1-support-in-boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
-cp -v patches/win7-8-8.1-support-in-webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
+cp -v patches/boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
+cp -v patches/pdfium.patch ${CR_SRC_DIR}/third_party/pdfium/ &&
+cp -v patches/skia.patch ${CR_SRC_DIR}/third_party/skia/ &&
+cp -v patches/webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
 
 cd ${CR_SRC_DIR}/ &&
 
 git apply --reject winxp-vista-support_thorium.patch &&
 
-cd third_party/boringssl/src/ &&
+cd ${CR_SRC_DIR}/third_party/boringssl/src/ &&
 
-git apply --reject win7-8-8.1-support-in-boringssl.patch &&
+git apply --reject boringssl.patch &&
 
-cd ${CR_SRC_DIR}/ &&
+cd ${CR_SRC_DIR}/third_party/webrtc &&
 
-cd third_party/webrtc &&
+git apply --reject webrtc.patch &&
 
-git apply --reject win7-8-8.1-support-in-webrtc.patch &&
+cd ${CR_SRC_DIR}/third_party/pdfium &&
+
+git apply --reject pdfium.patch &&
+
+cd ${CR_SRC_DIR}/third_party/skia &&
+
+git apply --reject skia.patch &&
 
 printf "${GRE}Done patching Thorium for Windows XP!\n" &&
 printf "\n" &&

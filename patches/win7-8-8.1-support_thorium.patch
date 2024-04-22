@@ -5,7 +5,7 @@ index 590f4c94f2067..7091f956b88b7 100644
 @@ -1,21 +1,36 @@
 -# ![Logo](chrome/app/theme/chromium/product_logo_64.png) Chromium
 +# Supermium + Thorium
-+An up-to-date, compiler optimized Chromium-based web browser compatible with Windows Vista, 7 and 8.x.
++An up-to-date, compiler optimized Chromium-based web browser compatible with Windows 7, 8, and 8.1.
  
 -Chromium is an open-source browser project that aims to build a safer, faster,
 -and more stable way for all users to experience the web.
@@ -2054,18 +2054,18 @@ index de3be2eec25cc..93e34b76376f6 100644
 +     "Compact UI",
 +     "Reduces the amount of padding in all UI elements.",
 +     kOsDesktop, SINGLE_VALUE_TYPE("compact-ui")},
-+	{"transparent-tabs",
-+     "Semi-Transparent Tabs",
-+     "Reduces the opacity of tabs and the new tab button, as was done before the 2018 UI refresh.",
-+     kOsDesktop, SINGLE_VALUE_TYPE("transparent-tabs")},
-+	{"override-tab-outline-default",
-+     "Override Tab Outline Default",
-+     "Trapezoidal tabs normally have outlines while rounded tabs do not. This option allows the user to override the default setting for the tab shape.",
-+     kOsDesktop, SINGLE_VALUE_TYPE("override-tab-outline-default")},
-+	{"override-new-tab-button-shape-default",
-+     "Override New Tab Button Shape Default",
-+     "Trapezoidal tabs used a trapzeoidal new tab button while rounded tabs used a round NTB. This option allows the user to override the default setting for the tab shape.",
-+     kOsDesktop, SINGLE_VALUE_TYPE("override-new-tab-button-shape-default")},
++
++
++
++
++
++
++
++
++
++
++
++
 +
 +
 +

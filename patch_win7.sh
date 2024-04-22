@@ -38,22 +38,30 @@ fi
 
 # Patch Chromium
 cp -v patches/win7-8-8.1-support_thorium.patch ${CR_SRC_DIR}/ &&
-cp -v patches/win7-8-8.1-support-in-boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
-cp -v patches/win7-8-8.1-support-in-webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
+cp -v patches/boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
+cp -v patches/pdfium.patch ${CR_SRC_DIR}/third_party/pdfium/ &&
+cp -v patches/skia.patch ${CR_SRC_DIR}/third_party/skia/ &&
+cp -v patches/webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
 
 cd ${CR_SRC_DIR}/ &&
 
 git apply --reject win7-8-8.1-support_thorium.patch &&
 
-cd third_party/boringssl/src/ &&
+cd ${CR_SRC_DIR}/third_party/boringssl/src/ &&
 
-git apply --reject win7-8-8.1-support-in-boringssl.patch &&
+git apply --reject boringssl.patch &&
 
-cd ${CR_SRC_DIR}/ &&
+cd ${CR_SRC_DIR}/third_party/webrtc &&
 
-cd third_party/webrtc &&
+git apply --reject webrtc.patch &&
 
-git apply --reject win7-8-8.1-support-in-webrtc.patch &&
+cd ${CR_SRC_DIR}/third_party/pdfium &&
+
+git apply --reject pdfium.patch &&
+
+cd ${CR_SRC_DIR}/third_party/skia &&
+
+git apply --reject skia.patch &&
 
 printf "${GRE}Done patching Thorium for Windows 7!\n" &&
 printf "\n" &&

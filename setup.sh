@@ -70,6 +70,15 @@ cp -r -v thorium_shell/. ${CR_SRC_DIR}/out/thorium/ &&
 cp -r -v pak_src/binaries/pak ${CR_SRC_DIR}/out/thorium/ &&
 cp -r -v pak_src/binaries/pak-win/. ${CR_SRC_DIR}/out/thorium/ &&
 
+patchPolicy () {
+	cp -v other/Fix-policy-templates.patch ${CR_SRC_DIR}/ &&
+	cd ${CR_SRC_DIR} &&
+	git apply --reject ./Fix-policy-templates.patch
+}
+[ -f ${CR_SRC_DIR}/Fix-policy-templates.patch ] || patchPolicy;
+
+cd ~/thorium &&
+
 echo "Copying other files to \`out/thorium\`" &&
 
 # Add default_apps dir for Google Docs Offline extension.

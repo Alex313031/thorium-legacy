@@ -1,0 +1,24 @@
+diff --git a/core/fxge/cfx_glyphcache.cpp b/core/fxge/cfx_glyphcache.cpp
+index c686f1bd1..9bb69b814 100644
+--- a/core/fxge/cfx_glyphcache.cpp
++++ b/core/fxge/cfx_glyphcache.cpp
+@@ -27,6 +27,7 @@
+ #include "third_party/skia/include/ports/SkFontMgr_empty.h"  // nogncheck
+ 
+ #if BUILDFLAG(IS_WIN)
++#include "third_party/base/win/win_util.h" // To be changed to core/fxcrt/win on M123 rebase
+ #include "include/ports/SkTypeface_win.h"  // nogncheck
+ #elif BUILDFLAG(IS_APPLE)
+ #include "include/ports/SkFontMgr_mac_ct.h"  // nogncheck
+@@ -238,7 +239,10 @@ SkFontMgr* g_fontmgr = nullptr;
+ void CFX_GlyphCache::InitializeGlobals() {
+   CHECK(!g_fontmgr);
+ #if BUILDFLAG(IS_WIN)
+-  g_fontmgr = SkFontMgr_New_DirectWrite().release();
++  if(pdfium::base::win::IsUser32AndGdi32Available())
++   g_fontmgr = SkFontMgr_New_GDI().release();
++  else
++   g_fontmgr = SkFontMgr_New_DirectWrite().release();
+ #elif BUILDFLAG(IS_APPLE)
+   g_fontmgr = SkFontMgr_New_CoreText(nullptr).release();
+ #else
