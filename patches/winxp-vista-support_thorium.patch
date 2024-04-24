@@ -2149,10 +2149,10 @@ index de3be2eec25cc..93e34b76376f6 100644
 +
 +
 +
-+	{"compact-ui",
-+     "Compact UI",
-+     "Reduces the amount of padding in all UI elements.",
-+     kOsDesktop, SINGLE_VALUE_TYPE("compact-ui")},
++
++
++
++
 +
 +
 +
@@ -5934,7 +5934,7 @@ index b4b2f01a846a7..e930e03b32a99 100644
    // correctly enable subpixel AA.
    omnibox_view_->SetBackgroundColor(background_color);
  
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox-border"))
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox-border") && base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
 +    omnibox_view_->SetBorder(views::CreateSolidSidedBorder(gfx::Insets::TLBR(1, 0, 1, 0), SK_ColorBLACK));
    SchedulePaint();
  }
