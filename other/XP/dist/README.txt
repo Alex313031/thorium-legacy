@@ -9,6 +9,9 @@ Contains THORIUM_PORTABLE.bat for running portable/standalone.
 	
 Run INSTALL_THORIUM.cmd to install it to C:\Program Files\Thorium and make shortcuts on the Desktop and Start Menu.
 
+NOTE: If you are installing on a drive where the drive letter is not "C:\", the .cmd files don't need to be modified, 
+ however, you must replace all instances of "C:" with the actual drive letter in both of the .reg files.
+
 Run REMOVE_THORIUM.cmd to uninstall it.
 
 You can also skip using THORIUM.BAT and just copy the contents somewhere, and run thorium.exe from within. 
