@@ -77,8 +77,9 @@ patchPolicy () {
 }
 [ -f ${CR_SRC_DIR}/Fix-policy-templates.patch ] || patchPolicy;
 
-cd ~/thorium &&
+cd ~/thorium-win7 &&
 
+printf "\n" &&
 echo "Copying other files to \`out/thorium\`" &&
 
 # Add default_apps dir for Google Docs Offline extension.
@@ -106,12 +107,12 @@ esac
 copyRaspi () {
 	printf "\n" &&
 	printf "${YEL}Copying Raspberry Pi build files...${c0}\n" &&
+	cp -r -v arm/build/* ${CR_SRC_DIR}/build/ &&
 	cp -r -v arm/media/* ${CR_SRC_DIR}/media/ &&
 	cp -r -v arm/third_party/* ${CR_SRC_DIR}/third_party/ &&
 	cp -r -v arm/raspi/* ${CR_SRC_DIR}/ &&
 	cp -v pak_src/binaries/pak_arm64 ${CR_SRC_DIR}/out/thorium/pak &&
 	#./infra/fix_libaom.sh &&
-	cp -r -v arm/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	printf "\n" &&
 	cp -r -v arm/raspi/build/config/* ${CR_SRC_DIR}/build/config/ &&
 	printf "\n" &&
@@ -126,9 +127,10 @@ esac
 copyWOA () {
 	printf "\n" &&
 	printf "${YEL}Copying Windows on ARM build files...${c0}\n" &&
-	cp -r -v arm/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v arm/build/* ${CR_SRC_DIR}/build/ &&
 	cp -r -v arm/third_party/* ${CR_SRC_DIR}/third_party/ &&
-	cp -v arm/woa_arm.gni ${CR_SRC_DIR}/build/config/arm.gni &&
+	# Use regular arm.gni from src, pending further testing
+	# cp -v arm/woa_arm.gni ${CR_SRC_DIR}/build/config/arm.gni &&
 	printf "\n"
 }
 case $1 in
@@ -244,7 +246,7 @@ esac
 copyAndroid () {
 	printf "\n" &&
 	printf "${YEL}Copying Android (ARM64 and ARM32) build files...${c0}\n" &&
-	cp -r -v arm/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v arm/build/* ${CR_SRC_DIR}/build/ &&
 	cp -r -v arm/media/* ${CR_SRC_DIR}/media/ &&
 	cp -r -v arm/third_party/* ${CR_SRC_DIR}/third_party/ &&
 	printf "\n" &&
@@ -270,7 +272,7 @@ copyAndroid () {
 	cd ${CR_SRC_DIR} &&
 	python3 tools/update_pgo_profiles.py --target=android-arm64 update --gs-url-base=chromium-optimization-profiles/pgo_profiles &&
 	python3 tools/update_pgo_profiles.py --target=android-arm32 update --gs-url-base=chromium-optimization-profiles/pgo_profiles &&
-	cd ~/thorium &&
+	cd ~/thorium-win7 &&
 	printf "\n"
 }
 case $1 in
