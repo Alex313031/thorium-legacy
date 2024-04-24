@@ -59,7 +59,9 @@ autoninja -C out/thorium thorium chromedriver clear_key_cdm policy_templates pac
 
 mv -v -f ${CR_SRC_DIR}/out/thorium/mini_installer.exe ${CR_SRC_DIR}/out/thorium/thorium_mini_installer.exe &&
 
+printf "\n" &&
 cat ~/thorium-win7/logos/thorium_logo_ascii_art.txt &&
+printf "\n" &&
 
 printf "${GRE}${bold}Build Completed. ${YEL}${bold}Installer at \'//out/thorium/thorium_mini_installer.exe\'\n" &&
 tput sgr0
