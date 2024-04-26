@@ -7,7 +7,7 @@ index 91bbe5897..685298b6c 100644
  void CRYPTO_sysrand_for_seed(uint8_t *buf, size_t len);
  
 -#if defined(OPENSSL_RAND_URANDOM) || defined(OPENSSL_RAND_WINDOWS)
-+#if defined(OPENSSL_RAND_URANDOM)
++#if defined(OPENSSL_RAND_URANDOM) || defined(OPENSSL_URANDOM)
  // CRYPTO_init_sysrand initializes long-lived resources needed to draw entropy
  // from the operating system.
  void CRYPTO_init_sysrand(void);
