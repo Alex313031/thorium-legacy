@@ -1,4 +1,4 @@
-## Thorium FAQ
+## Thorium FAQ <img src="https://github.com/Alex313031/thorium-win7/blob/main/logos/STAGING/faq.png" width="48">
 
  - Commonly asked questions, and answers to common GitHub issues that keep getting filed.
 
@@ -44,13 +44,13 @@ __Q: Why is Thorium always behind Chromium/Chrome as far as the major release nu
  all sorts of malware and viruses. This simply isn't the case. The amount of people who post issues, discussions, and personal emails at me is getting annoying. It is like
  a child in the back seat asking "Are we there yet?" over and over. Asking a billion times is not going to speed up the process at all, and just leads to frustration on my part
  and a cluttering of the GitHub issues and discussions that are better filled with actual bugs. Of course, if there is ever a pertinent security flaw (like the WebP vulnerability
- or something privately relayed to me as per the [SECURITY.md](https://github.com/Alex313031/thorium/blob/main/SECURITY.md) file), I try my best to fix/update it and get
+ or something privately relayed to me as per the [SECURITY.md](https://github.com/Alex313031/thorium-win7blob/main/SECURITY.md) file), I try my best to fix/update it and get
  releases out as soon as possible. Another thing that people keep
  suggesting is to use some kind of CI build service. This wouldn't help with the rebasing/development time, and because of the amount of resources needed to compile Thorium,
  there are no services that I am aware of that have a free tier with hardware capable of the compilation. Again, this comes down to money and is prohibitively expensive.
 
 __Q: Why isn't Thorium UnGoogled?__  
- __A:__ Thorium integrates many patches from UnGoogled Chromium (see [PATCHES.md](https://github.com/Alex313031/thorium/blob/main/infra/PATCHES.md)), but one of the project
+ __A:__ Thorium integrates many patches from UnGoogled Chromium (see [PATCHES.md](https://github.com/Alex313031/thorium-win7blob/main/infra/PATCHES.md)), but one of the project
  goals, as outlined towards the top of the Readme, is to enhance usability.
  A majority of people use Google search, and prefer to have Google Sync enabled to allow seamless synchronization of their bookmarks, history, and preferences across multiple
  instances of multiple Chromium-based browsers. Thus, while Thorium has removed telemetry and field trials, there are instances where Thorium still connects to Google servers, even
@@ -59,6 +59,6 @@ __Q: Why isn't Thorium UnGoogled?__
  integration of patches that tweak the UI, enhance privacy or usability, or reduce the amount of data sent to Google. However, it will never be completely de-googled, and specifically
  removing Google Sync, Google search, or disallowing connections to any Google-owned domains is a no-go. If you desire this kind of functionality, I recommend using UnGoogled Chromium.
  If you feel that you are missing out since UnGoogled Chromium does not have the performance-enhancing compiler optimizations of Thorium, then one could compile it for themselves
- following the instructions [Here](https://github.com/ungoogled-software/ungoogled-chromium/blob/master/docs/building.md), and using the changes in Thorium's [//build directory](https://github.com/Alex313031/thorium/tree/main/src/build) as a starting point for adding the compiler optimizations to UnGoogled's build config. I am
+ following the instructions [Here](https://github.com/ungoogled-software/ungoogled-chromium/blob/master/docs/building.md), and using the changes in Thorium's [//build directory](https://github.com/Alex313031/thorium-win7tree/main/src/build) as a starting point for adding the compiler optimizations to UnGoogled's build config. I am
  willing to provide guidance or help with compiling Chromium or integrating Thorium's compiler optimization patches to an existing source code checkout.
 
