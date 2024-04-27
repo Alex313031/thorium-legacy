@@ -5912,6 +5912,7 @@ index b4b2f01a846a7..5f12d63bcf7de 100644
 +    omnibox_view_->SetBorder(views::CreateSolidSidedBorder(gfx::Insets::TLBR(1, 0, 1, 0), SK_ColorGRAY));
    SchedulePaint();
  }
+ 
 diff --git a/chrome/browser/ui/views/location_bar/location_icon_view.cc b/chrome/browser/ui/views/location_bar/location_icon_view.cc
 index 1f3878e1879a6..6f4a84bde8cd0 100644
 --- a/chrome/browser/ui/views/location_bar/location_icon_view.cc
