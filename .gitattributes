@@ -1,6 +1,7 @@
 * text=auto
 /other/XP/dist/HKCR.reg text eol=crlf
 /other/XP/dist/HKLM.reg text eol=crlf
+/other/XP/dist/REMOVE.reg text eol=crlf
 /other/XP/dist/INSTALL_THORIUM.cmd text eol=crlf
 /other/XP/dist/README.txt text eol=crlf
 /other/XP/dist/REMOVE_THORIUM.cmd text eol=crlf

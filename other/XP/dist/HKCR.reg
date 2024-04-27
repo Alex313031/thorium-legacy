@@ -1,26 +1,14 @@
 Windows Registry Editor Version 5.00
 
-
-
 [HKEY_CLASSES_ROOT\ThoriumHTM]
-
 @="Thorium HTML Document"
 
-
-
 [HKEY_CLASSES_ROOT\ThoriumHTM\DefaultIcon]
-
 @="C:\\Program Files\\Thorium\\thorium.exe,0"
-
-
 
 [HKEY_CLASSES_ROOT\ThoriumHTM\shell]
 
-
-
 [HKEY_CLASSES_ROOT\ThoriumHTM\shell\open]
 
-
 [HKEY_CLASSES_ROOT\ThoriumHTM\shell\open\command]
-
 @="\"C:\\Program Files\\Thorium\\thorium.exe\" --single-argument %1"
