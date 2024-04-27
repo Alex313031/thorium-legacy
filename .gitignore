@@ -22,3 +22,6 @@ thorium_mini_installer_AVX.exe
 thorium_mini_installer_AVX2.exe
 thorium_mini_installer_ARM64.exe
 Thorium_squashfs-root
+!patches/NotoEmoji-Regular_win7.zip
+!patches/NotoEmoji-Regular_winXP.zip
+!patches/xp-api-adapter_x86.zip
