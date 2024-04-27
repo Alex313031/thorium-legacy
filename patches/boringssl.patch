@@ -1,5 +1,5 @@
 diff --git a/crypto/fipsmodule/rand/internal.h b/crypto/fipsmodule/rand/internal.h
-index 91bbe5897..685298b6c 100644
+index 91bbe5897..4a7ab8755 100644
 --- a/crypto/fipsmodule/rand/internal.h
 +++ b/crypto/fipsmodule/rand/internal.h
 @@ -82,15 +82,11 @@ void CRYPTO_sysrand(uint8_t *buf, size_t len);

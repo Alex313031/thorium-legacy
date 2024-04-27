@@ -1,5 +1,5 @@
 diff --git a/core/fxge/cfx_glyphcache.cpp b/core/fxge/cfx_glyphcache.cpp
-index c686f1bd1..9bb69b814 100644
+index c686f1bd18..3d711a49ed 100644
 --- a/core/fxge/cfx_glyphcache.cpp
 +++ b/core/fxge/cfx_glyphcache.cpp
 @@ -27,6 +27,7 @@

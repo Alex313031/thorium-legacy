@@ -1,15 +1,14 @@
 diff --git a/src/ports/SkFontHost_win.cpp b/src/ports/SkFontHost_win.cpp
-index 91283eb713..3568d53d8b 100644
+index 91283eb7135..ba9adf141d8 100644
 --- a/src/ports/SkFontHost_win.cpp
 +++ b/src/ports/SkFontHost_win.cpp
-@@ -942,11 +942,14 @@ void SkScalerContext_GDI::generateFontMetrics(SkFontMetrics* metrics) {
-     if (0 == ret) {
+@@ -943,10 +943,13 @@ void SkScalerContext_GDI::generateFontMetrics(SkFontMetrics* metrics) {
          return;
      }
-+
+ 
 +// Alignment of considerable amounts of text is set too high with outline text metric values.
 +// Standard text metrics for ascent and descent work better and provide results similar to other renderers.
- 
++
  #ifndef SK_GDI_ALWAYS_USE_TEXTMETRICS_FOR_FONT_METRICS
      metrics->fTop = SkIntToScalar(-otm.otmrcFontBox.top);
 -    metrics->fAscent = SkIntToScalar(-otm.otmAscent);
