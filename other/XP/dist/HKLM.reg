@@ -1,53 +1,105 @@
 Windows Registry Editor Version 5.00
 
+
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Thorium]
+
 @="Thorium"
 
+
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Thorium\Capabilities]
+
 "ApplicationDescription"="Thorium is a compiler optimized web browser targeting legacy versions of Windows incorporating additional useful features."
+
 "ApplicationIcon"="C:\\Program Files\\Thorium\\thorium.exe,0"
+
 "ApplicationName"="Thorium"
 
+
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Thorium\Capabilities\FileAssociations]
+
 ".htm"="ThoriumHTM"
+
 ".html"="ThoriumHTM"
+
 ".pdf"="ThoriumHTM"
+
 ".shtml"="ThoriumHTM"
+
 ".svg"="ThoriumHTM"
+
 ".webp"="ThoriumHTM"
+
 ".xht"="ThoriumHTM"
+
 ".xhtml"="ThoriumHTM"
 
+
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Thorium\Capabilities\Startmenu]
+
 "StartMenuInternet"="Thorium"
 
+
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Thorium\Capabilities\URLAssociations]
+
 "http"="ThoriumHTM"
+
 "https"="ThoriumHTM"
+
 "irc"="ThoriumHTM"
+
 "mailto"="ThoriumHTM"
+
 "mms"="ThoriumHTM"
+
 "news"="ThoriumHTM"
+
 "nntp"="ThoriumHTM"
+
 "sms"="ThoriumHTM"
+
 "smsto"="ThoriumHTM"
+
 "snews"="ThoriumHTM"
+
 "tel"="ThoriumHTM"
+
 "urn"="ThoriumHTM"
+
 "webcal"="ThoriumHTM"
 
+
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Thorium\DefaultIcon]
+
 @="C:\\Program Files\\Thorium\\thorium.exe,0"
 
+
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Thorium\InstallInfo]
+
 "HideIconsCommand"="\"C:\\Program Files\\Thorium\\thorium.exe\" --hide-icons"
+
 "ShowIconsCommand"="\"C:\\Program Files\\Thorium\\thorium.exe\" --show-icons"
+
 "ReinstallCommand"="\"C:\\Program Files\\Thorium\\thorium.exe\" --make-default-browser"
+
 "IconsVisible"=dword:00000001
+
+
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Thorium\shell]
 
+
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Thorium\shell\open]
 
+
+
 [HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Thorium\shell\open\command]
+
 @="\"C:\\Program Files\\Thorium\\thorium.exe\" --single-argument %1"
