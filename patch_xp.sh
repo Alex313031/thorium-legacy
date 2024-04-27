@@ -37,6 +37,10 @@ else
 fi
 
 # Patch Thorium
+printf "\n" &&
+printf "${GRE}Copying .patch files...\n" &&
+printf "${c0}\n" &&
+
 cp -v patches/winxp-vista-support_thorium.patch ${CR_SRC_DIR}/ &&
 cp -v patches/boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
 cp -v patches/pdfium.patch ${CR_SRC_DIR}/third_party/pdfium/ &&
@@ -45,41 +49,45 @@ cp -v patches/webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
 
 cd ${CR_SRC_DIR}/ &&
 
-printf "${GRE}Patching Chromium...\n" &&
 printf "\n" &&
+printf "${GRE}Patching Chromium...\n" &&
+printf "${c0}\n" &&
 
 git apply --reject winxp-vista-support_thorium.patch &&
 
 cd ${CR_SRC_DIR}/third_party/boringssl/src/ &&
 
-printf "${GRE}Patching BoringSSL...\n" &&
 printf "\n" &&
+printf "${GRE}Patching BoringSSL...\n" &&
+printf "${c0}\n" &&
 
 git apply --reject boringssl.patch &&
 
 cd ${CR_SRC_DIR}/third_party/webrtc &&
 
-printf "${GRE}Patching WebRTC...\n" &&
 printf "\n" &&
+printf "${GRE}Patching WebRTC...\n" &&
+printf "${c0}\n" &&
 
 git apply --reject webrtc.patch &&
 
 cd ${CR_SRC_DIR}/third_party/pdfium &&
 
-printf "${GRE}Patching PDFium...\n" &&
 printf "\n" &&
+printf "${GRE}Patching PDFium...\n" &&
+printf "${c0}\n" &&
 
 git apply --reject pdfium.patch &&
 
 cd ${CR_SRC_DIR}/third_party/skia &&
 
-printf "${GRE}Patching Skia...\n" &&
 printf "\n" &&
+printf "${GRE}Patching Skia...\n" &&
+printf "${c0}\n" &&
 
 git apply --reject skia.patch &&
 
-printf "${GRE}Done patching Thorium for Windows XP/Vista!\n" &&
 printf "\n" &&
+printf "${GRE}Done patching Thorium for Windows XP/Vista!\n" &&
+printf "${c0}\n" &&
 tput sgr0
-
-exit 0
