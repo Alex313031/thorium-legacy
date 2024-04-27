@@ -1790,6 +1790,34 @@ index 5c54819e4b85a..8f3f64f29011a 100644
    const std::vector<uint8_t> data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
    Microsoft::WRL::ComPtr<ABI::Windows::Storage::Streams::IBuffer> buffer;
    ASSERT_HRESULT_SUCCEEDED(
+diff --git a/cc/tiles/software_image_decode_cache_utils.cc b/cc/tiles/software_image_decode_cache_utils.cc
+index 1a0a378f11b89..14fa07ade8fed 100644
+--- a/cc/tiles/software_image_decode_cache_utils.cc
++++ b/cc/tiles/software_image_decode_cache_utils.cc
+@@ -9,8 +9,10 @@
+ #include <utility>
+ 
+ #include "base/atomic_sequence_num.h"
++#include "base/command_line.h"
+ #include "base/functional/callback_helpers.h"
+ #include "base/hash/hash.h"
++#include "base/logging.h"
+ #include "base/memory/discardable_memory_allocator.h"
+ #include "base/metrics/histogram_macros.h"
+ #include "base/process/memory.h"
+@@ -71,6 +73,12 @@ SoftwareImageDecodeCacheUtils::DoDecodeImage(
+     base::OnceClosure on_no_memory) {
+   const SkISize target_size =
+       SkISize::Make(key.target_size().width(), key.target_size().height());
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("enable-webbloat-mitigation") && (target_size.fWidth * target_size.fHeight) > 1000000) {
++      LOG(ERROR) << "Thorium attempted to load an image of size " << target_size.fWidth * target_size.fHeight << " pixels";
++        return nullptr;
++  } else {
++      LOG(WARNING) << "Thorium loaded an image of size " << target_size.fWidth * target_size.fHeight << " pixels";
++  }
+   DCHECK(target_size == paint_image.GetSupportedDecodeSize(target_size));
+   sk_sp<SkColorSpace> target_color_space =
+       key.target_color_params().color_space.ToSkColorSpace();
 diff --git a/chrome/app/chrome_exe_main_win.cc b/chrome/app/chrome_exe_main_win.cc
 index 0aced300d8dce..d2c530353eca4 100644
 --- a/chrome/app/chrome_exe_main_win.cc
@@ -4599,7 +4627,7 @@ index 0ee4b04c7bb63..26b70281e679b 100644
          browser, /*skip_tab_checking=*/false);
  
 diff --git a/chrome/browser/ui/tabs/tab_style.cc b/chrome/browser/ui/tabs/tab_style.cc
-index aa9cd30374311..019087d8f5b19 100644
+index aa9cd30374311..28091f8229b2b 100644
 --- a/chrome/browser/ui/tabs/tab_style.cc
 +++ b/chrome/browser/ui/tabs/tab_style.cc
 @@ -4,6 +4,7 @@
@@ -4621,16 +4649,16 @@ index aa9cd30374311..019087d8f5b19 100644
    // The overlap includes one separator, so subtract it here.
    return kTabWidth + GetTabOverlap() - GetSeparatorSize().width();
  }
-@@ -118,7 +121,7 @@ int GM2TabStyle::GetMinimumInactiveWidth() const {
+@@ -118,6 +121,8 @@ int GM2TabStyle::GetMinimumInactiveWidth() const {
  }
  
  int GM2TabStyle::GetTabOverlap() const {
--  return GetBottomCornerRadius() * 2 + GetSeparatorSize().width();
-+	return GetBottomCornerRadius() * 2 + GetSeparatorSize().width();
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("rectangular-tabs"))
++      return -6;
+   return GetBottomCornerRadius() * 2 + GetSeparatorSize().width();
  }
  
- int GM2TabStyle::GetDragHandleExtension(int height) const {
-@@ -126,8 +129,15 @@ int GM2TabStyle::GetDragHandleExtension(int height) const {
+@@ -126,8 +131,15 @@ int GM2TabStyle::GetDragHandleExtension(int height) const {
  }
  
  gfx::Size GM2TabStyle::GetSeparatorSize() const {
@@ -4647,7 +4675,7 @@ index aa9cd30374311..019087d8f5b19 100644
  }
  
  gfx::Insets GM2TabStyle::GetSeparatorMargins() const {
-@@ -147,16 +157,25 @@ gfx::Size GM2TabStyle::GetPreviewImageSize() const {
+@@ -147,16 +159,25 @@ gfx::Size GM2TabStyle::GetPreviewImageSize() const {
  }
  
  int GM2TabStyle::GetTopCornerRadius() const {
@@ -4675,7 +4703,7 @@ index aa9cd30374311..019087d8f5b19 100644
    return gfx::Insets::TLBR(0, GetBottomCornerRadius() * 2, 0,
                             GetBottomCornerRadius() * 2);
  }
-@@ -169,10 +188,15 @@ SkColor GM2TabStyle::GetTabBackgroundColor(
+@@ -169,10 +190,15 @@ SkColor GM2TabStyle::GetTabBackgroundColor(
    const SkColor active_color = color_provider.GetColor(
        frame_active ? kColorTabBackgroundActiveFrameActive
                     : kColorTabBackgroundActiveFrameInactive);
@@ -4692,7 +4720,7 @@ index aa9cd30374311..019087d8f5b19 100644
    if (hovered) {
      return active_color;
    }
-@@ -206,10 +230,10 @@ int ChromeRefresh2023TabStyle::GetBottomCornerRadius() const {
+@@ -206,10 +232,10 @@ int ChromeRefresh2023TabStyle::GetBottomCornerRadius() const {
  
  int ChromeRefresh2023TabStyle::GetTabOverlap() const {
    // The overlap removes the width and the margins of the separator.
@@ -5644,10 +5672,29 @@ index a52bb8913d37f..1c1c20afe32df 100644
  
    // Ignore the system theme for web apps with window-controls-overlay as the
 diff --git a/chrome/browser/ui/views/frame/browser_frame_view_win.cc b/chrome/browser/ui/views/frame/browser_frame_view_win.cc
-index bd59ccd1b1784..ac51accaaec18 100644
+index bd59ccd1b1784..ad3a40764aa36 100644
 --- a/chrome/browser/ui/views/frame/browser_frame_view_win.cc
 +++ b/chrome/browser/ui/views/frame/browser_frame_view_win.cc
-@@ -417,7 +417,7 @@ void BrowserFrameViewWin::ResetWindowControls() {
+@@ -10,6 +10,7 @@
+ #include <memory>
+ #include <utility>
+ 
++#include "base/command_line.h"
+ #include "base/trace_event/common/trace_event_common.h"
+ #include "base/trace_event/trace_event.h"
+ #include "chrome/app/chrome_command_ids.h"
+@@ -133,7 +134,9 @@ bool BrowserFrameViewWin::CaptionButtonsOnLeadingEdge() const {
+ 
+ gfx::Rect BrowserFrameViewWin::GetBoundsForTabStripRegion(
+     const gfx::Size& tabstrip_minimum_size) const {
+-  const int x = CaptionButtonsOnLeadingEdge() ? CaptionButtonsRegionWidth() : 0;
++  int x = CaptionButtonsOnLeadingEdge() ? CaptionButtonsRegionWidth() : 0;
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++      x = 8;
+   int end_x = width();
+   if (!CaptionButtonsOnLeadingEdge()) {
+     end_x = std::min(width() - CaptionButtonsRegionWidth(), end_x);
+@@ -417,7 +420,7 @@ void BrowserFrameViewWin::ResetWindowControls() {
  void BrowserFrameViewWin::OnThemeChanged() {
    BrowserNonClientFrameView::OnThemeChanged();
    if (!ShouldBrowserCustomDrawTitlebar(browser_view())) {
@@ -5656,7 +5703,7 @@ index bd59ccd1b1784..ac51accaaec18 100644
    }
  }
  
-@@ -663,24 +663,26 @@ bool BrowserFrameViewWin::ShouldShowWindowTitle(TitlebarType type) const {
+@@ -663,24 +666,26 @@ bool BrowserFrameViewWin::ShouldShowWindowTitle(TitlebarType type) const {
  
  void BrowserFrameViewWin::TabletModeChanged() {
    if (!ShouldBrowserCustomDrawTitlebar(browser_view())) {
@@ -5757,6 +5804,21 @@ index 1dd00552036cb..9e131e95d0982 100644
      tab_search_container = std::make_unique<TabSearchContainer>(
          tab_strip_->controller(), render_tab_search_before_tab_strip_, this);
      tab_search_container->SetProperty(views::kCrossAxisAlignmentKey,
+diff --git a/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc b/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
+index 8a3f3e300bde5..5f2fa8826a9cb 100644
+--- a/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
++++ b/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
+@@ -77,7 +77,9 @@ void OpaqueBrowserFrameViewLayout::SetButtonOrdering(
+ gfx::Rect OpaqueBrowserFrameViewLayout::GetBoundsForTabStripRegion(
+     const gfx::Size& tabstrip_minimum_size,
+     int total_width) const {
+-  const int x = available_space_leading_x_;
++  int x = available_space_leading_x_;
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++      x = 8;
+   const int available_width = available_space_trailing_x_ - x;
+   return gfx::Rect(x, GetTabStripInsetsTop(false), std::max(0, available_width),
+                    tabstrip_minimum_size.height());
 diff --git a/chrome/browser/ui/views/fullscreen_control/fullscreen_control_host.cc b/chrome/browser/ui/views/fullscreen_control/fullscreen_control_host.cc
 index ccafa0c6ed945..8e003293c011b 100644
 --- a/chrome/browser/ui/views/fullscreen_control/fullscreen_control_host.cc
@@ -5772,7 +5834,7 @@ index ccafa0c6ed945..8e003293c011b 100644
    // Exit UI is unnecessary, since Mac uses the OS fullscreen such that window
    // menu and controls reveal when the cursor is moved to the top.
 diff --git a/chrome/browser/ui/views/location_bar/location_bar_view.cc b/chrome/browser/ui/views/location_bar/location_bar_view.cc
-index b4b2f01a846a7..e930e03b32a99 100644
+index b4b2f01a846a7..5f12d63bcf7de 100644
 --- a/chrome/browser/ui/views/location_bar/location_bar_view.cc
 +++ b/chrome/browser/ui/views/location_bar/location_bar_view.cc
 @@ -9,6 +9,7 @@
@@ -5813,7 +5875,15 @@ index b4b2f01a846a7..e930e03b32a99 100644
      params.types_enabled.push_back(PageActionIconType::kFind);
      params.types_enabled.push_back(PageActionIconType::kTranslate);
      params.types_enabled.push_back(PageActionIconType::kZoom);
-@@ -431,6 +436,8 @@ bool LocationBarView::IsInitialized() const {
+@@ -388,6 +393,7 @@ void LocationBarView::Init() {
+   if (browser_) {
+     if (sharing_hub::HasPageAction(profile_, is_popup_mode_) &&
+         !features::IsChromeRefresh2023()) {
++      if (!base::CommandLine::ForCurrentProcess()->HasSwitch("disable-sharing-hub"))
+       params.types_enabled.push_back(PageActionIconType::kSharingHub);
+     }
+   }
+@@ -431,6 +437,8 @@ bool LocationBarView::IsInitialized() const {
  }
  
  int LocationBarView::GetBorderRadius() const {
@@ -5822,24 +5892,26 @@ index b4b2f01a846a7..e930e03b32a99 100644
    return ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
        views::Emphasis::kMaximum, size());
  }
-@@ -1151,6 +1158,8 @@ void LocationBarView::RefreshBackground() {
+@@ -1151,6 +1159,8 @@ void LocationBarView::RefreshBackground() {
      border_color = color_provider->GetColor(kColorLocationBarBorderOnMismatch);
    }
  
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox-border"))
-+      border_color = SK_ColorBLACK;
++      border_color = SK_ColorGRAY;
    if (is_popup_mode_) {
      SetBackground(views::CreateSolidBackground(background_color));
    } else {
-@@ -1163,6 +1172,8 @@ void LocationBarView::RefreshBackground() {
+@@ -1163,6 +1173,11 @@ void LocationBarView::RefreshBackground() {
    // correctly enable subpixel AA.
    omnibox_view_->SetBackgroundColor(background_color);
  
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox-border") && base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
-+    omnibox_view_->SetBorder(views::CreateSolidSidedBorder(gfx::Insets::TLBR(1, 0, 1, 0), SK_ColorBLACK));
++    // When the location bar is shrunken, the border above is only drawn on the sides.
++    // To resolve this, an extra border is drawn in that area on the top and bottom.
++    // Ideally, only one border would be drawn.
++    omnibox_view_->SetBorder(views::CreateSolidSidedBorder(gfx::Insets::TLBR(1, 0, 1, 0), SK_ColorGRAY));
    SchedulePaint();
  }
- 
 diff --git a/chrome/browser/ui/views/location_bar/location_icon_view.cc b/chrome/browser/ui/views/location_bar/location_icon_view.cc
 index 1f3878e1879a6..6f4a84bde8cd0 100644
 --- a/chrome/browser/ui/views/location_bar/location_icon_view.cc
@@ -11625,6 +11697,27 @@ index 49c396d69d172..cf1b234fb616c 100644
  #endif
  
  #if !defined(GOOGLE_CLIENT_ID_REMOTING)
+diff --git a/gpu/command_buffer/service/shared_image/d3d_image_backing_factory.cc b/gpu/command_buffer/service/shared_image/d3d_image_backing_factory.cc
+index 473355dec4e12..3d875b994b69c 100644
+--- a/gpu/command_buffer/service/shared_image/d3d_image_backing_factory.cc
++++ b/gpu/command_buffer/service/shared_image/d3d_image_backing_factory.cc
+@@ -8,6 +8,7 @@
+ 
+ #include "base/memory/shared_memory_mapping.h"
+ #include "base/win/scoped_handle.h"
++#include "base/win/windows_version.h"
+ #include "components/viz/common/resources/shared_image_format_utils.h"
+ #include "gpu/command_buffer/common/gpu_memory_buffer_support.h"
+ #include "gpu/command_buffer/common/shared_image_usage.h"
+@@ -362,7 +363,7 @@ std::unique_ptr<SharedImageBacking> D3DImageBackingFactory::CreateSharedImage(
+   const bool needs_shared_handle =
+       has_webgpu_usage ||
+       (has_gl_usage && (d3d11_device_ != angle_d3d11_device_));
+-  if (needs_shared_handle) {
++  if (needs_shared_handle && base::win::GetVersion() >= base::win::Version::WIN8) {
+     // TODO(crbug.com/1468604): Many texture formats cannot be shared on old
+     // GPUs/drivers to try to detect that and implement a fallback path or
+     // disallow Graphite/WebGPU in those cases.
 diff --git a/gpu/config/gpu_driver_bug_list.json b/gpu/config/gpu_driver_bug_list.json
 index e4176a963cdca..1689bcc6e8761 100644
 --- a/gpu/config/gpu_driver_bug_list.json
@@ -20358,7 +20451,7 @@ index 5319192415a63..090fd4574c19a 100644
  
  int LayoutProvider::GetCornerRadiusMetric(ShapeContextTokens id,
                                            const gfx::Size& size) const {
-+  if (!base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
 +      return 3;
    if (!features::IsChromeRefresh2023()) {
      switch (id) {

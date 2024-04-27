@@ -273,6 +273,10 @@
      "Disables prompts about unsafe or uncommon downloads, and "
      "prevents samples of downloads from being sent to Google.",
      kOsAll, SINGLE_VALUE_TYPE("disable-download-upload")},
+    {"enable-webbloat-mitigation",
+     "Enable Blockage of Unnecessarily Large Web Elements",
+     "Enables blocking bloated web elements from loading, including large images that can force the browser to allocate hundreds of megabytes of memory.",
+     kOsAll, SINGLE_VALUE_TYPE("enable-webbloat-mitigation")},
     {"disable-alternate-ds",
      "Disable Alternate Data Streams",
      "Disables alternate data streams in downloads on Windows. This manifests itself as a \"blocked file\" in its properties.",
