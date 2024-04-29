@@ -90,6 +90,7 @@ const wchar_t kThorVer[] = L"thor_ver";
 const wchar_t kProgWrp[] = L"progwrp.dll";
 const wchar_t kHKCR[] = L"HKCR.reg";
 const wchar_t kHKLM[] = L"HKLM.reg";
+const wchar_t kREMO[] = L"REMOVE.reg";
 const wchar_t kPortableBat[] = L"THORIUM_PORTABLE.bat";
 const wchar_t kInstallBat[] = L"INSTALL_THORIUM.cmd";
 const wchar_t kRemoveBat[] = L"REMOVE_THORIUM.cmd";
@@ -337,6 +338,9 @@ void AddChromeWorkItems(const InstallParams& install_params,
                                     temp_path, WorkItem::ALWAYS);
   install_list->AddCopyTreeWorkItem(src_path.Append(kHKLM),
                                     target_path.Append(kHKLM),
+                                    temp_path, WorkItem::ALWAYS);
+  install_list->AddCopyTreeWorkItem(src_path.Append(kREMO),
+                                    target_path.Append(kREMO),
                                     temp_path, WorkItem::ALWAYS);
   install_list->AddCopyTreeWorkItem(src_path.Append(kPortableBat),
                                     target_path.Append(kPortableBat),

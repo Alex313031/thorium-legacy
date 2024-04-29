@@ -18,7 +18,7 @@ try() { "$@" || die "${RED}Failed $*"; }
 # --help
 displayHelp () {
 	printf "\n" &&
-	printf "${bold}${GRE}Script to copy Thorium source files over the Chromium source tree.${c0}\n" &&
+	printf "${bold}${GRE}Script to copy Thorium Win7 source files over the Chromium source tree.${c0}\n" &&
 	printf "${bold}${YEL}Use the --mac flag for MacOS builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --raspi flag for Raspberry Pi builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --woa flag for Windows on ARM builds.${c0}\n" &&
@@ -26,8 +26,6 @@ displayHelp () {
 	printf "${bold}${YEL}Use the --sse4 flag for SSE4.1 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse3 flag for SSE3 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse2 flag for 32 bit SSE2 Builds.${c0}\n" &&
-	printf "${bold}${YEL}Use the --xp flag for 32 bit Windows XP Builds.${c0}\n" &&
-	printf "${bold}${YEL}Use the --xp64 flag for 64 bit Windows XP/Windows Server 2003 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --android flag for Android Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --cros flag for ChromiumOS Builds.${c0}\n" &&
 	printf "${bold}${YEL}IMPORTANT: For Polly builds, first run build_polly.sh in ./infra before building.${c0}\n" &&
@@ -206,58 +204,6 @@ case $1 in
 	--sse2) copySSE2;
 esac
 
-# Copy NT 5.x x86 files
-copyXP () {
-	printf "\n" &&
-	printf "${YEL}Copying Windows XP (32-bit) build files...${c0}\n" &&
-	cp -r -v other/SSE2/build/config/* ${CR_SRC_DIR}/build/config/ &&
-	cp -r -v other/SSE2/v8/* ${CR_SRC_DIR}/v8/ &&
-	cp -r -v other/XP/build/config/* ${CR_SRC_DIR}/build/config/ &&
-	cp -v other/XP/dist/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
-	printf "\n" &&
-	printf "${YEL}Copying progwrp x86 files...${c0}\n" &&
-	cp -r -v other/XP/chrome/* ${CR_SRC_DIR}/chrome/ &&
-	cp -v other/XP/dist/THORIUM_PORTABLE.bat ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/INSTALL_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/REMOVE_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/HKCR.reg ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/HKLM.reg ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/thorium.ico ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/README.txt ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v patches/progwrp/progwrp_32/progwrp.dll ${CR_SRC_DIR}/out/thorium/ &&
-	# cp -v patches/progwrp/progwrp_32/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x86/ &&
-	printf "\n"
-}
-case $1 in
-	--xp) copyXP;
-esac
-
-# Copy NT 5.x x64 files
-copyXP64 () {
-	printf "\n" &&
-	printf "${YEL}Copying Windows XP (64-bit) build files...${c0}\n" &&
-	cp -r -v other/SSE3/build/config/* ${CR_SRC_DIR}/build/config/ &&
-	cp -r -v other/SSE3/v8/* ${CR_SRC_DIR}/v8/ &&
-	cp -r -v other/XP64/build/config/* ${CR_SRC_DIR}/build/config/ &&
-	cp -v other/XP64/dist/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
-	printf "\n" &&
-	printf "${YEL}Copying progwrp x64 files...${c0}\n" &&
-	cp -r -v other/XP/chrome/* ${CR_SRC_DIR}/chrome/ &&
-	cp -v other/XP/dist/THORIUM_PORTABLE.bat ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/INSTALL_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/REMOVE_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/HKCR.reg ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/HKLM.reg ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/thorium.ico ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v other/XP/dist/README.txt ${CR_SRC_DIR}/out/thorium/ &&
-	cp -v patches/progwrp/progwrp_64/progwrp.dll ${CR_SRC_DIR}/out/thorium/ &&
-	# cp -v patches/progwrp/progwrp_64/progwrp.lib ${CR_SRC_DIR}/third_party/depot_tools/win_toolchain/vs_files/195b2eb383/Windows\ Kits/10/Lib/10.0.22621.0/um/x64/ &&
-	printf "\n"
-}
-case $1 in
-	--xp64) copyXP64;
-esac
-
 # Copy Android files
 copyAndroid () {
 	printf "\n" &&
@@ -334,6 +280,6 @@ printf "\n" &&
 
 cat logos/thorium_ascii_art.txt &&
 
-printf "${GRE}Enjoy Thorium!\n" &&
+printf "${GRE}Enjoy Thorium on Windows 7, 8, or 8.1!\n" &&
 printf "\n" &&
 tput sgr0

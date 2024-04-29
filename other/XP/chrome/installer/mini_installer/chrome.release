@@ -18,6 +18,7 @@ thor_ver: %(ChromeDir)s\
 progwrp.dll: %(ChromeDir)s\
 HKCR.reg: %(ChromeDir)s\
 HKLM.reg: %(ChromeDir)s\
+REMOVE.reg: %(ChromeDir)s\
 THORIUM_PORTABLE.bat: %(ChromeDir)s\
 INSTALL_THORIUM.cmd: %(ChromeDir)s\
 REMOVE_THORIUM.cmd: %(ChromeDir)s\
