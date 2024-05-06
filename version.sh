@@ -36,7 +36,7 @@ else
     export CR_SRC_DIR
 fi
 
-THOR_VER="122.0.6261.169"
+THOR_VER="122.0.6261.171"
 
 export THOR_VER &&
 
@@ -57,6 +57,7 @@ cp -v src/build/vs_toolchain.py ${CR_SRC_DIR}/build/ &&
 
 # Add //third_party/libjxl to DEPS
 cp -v thorium-libjxl/src/DEPS ${CR_SRC_DIR}/ &&
+cp -v src/DEPS ${CR_SRC_DIR}/ &&
 cp -v thorium-libjxl/src/third_party/.gitignore ${CR_SRC_DIR}/third_party/ &&
 
 cd ${CR_SRC_DIR} &&
