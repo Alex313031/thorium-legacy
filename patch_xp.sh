@@ -88,6 +88,6 @@ printf "${c0}\n" &&
 git apply --reject skia.patch &&
 
 printf "\n" &&
-printf "${GRE}Done patching Thorium for Windows XP/Vista!\n" &&
+printf "${GRE}Done patching for Windows XP/Vista!\n" &&
 printf "${c0}\n" &&
 tput sgr0

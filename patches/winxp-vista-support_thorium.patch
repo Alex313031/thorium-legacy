@@ -6490,7 +6490,7 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
  #include "base/i18n/rtl.h"
  #include "base/memory/raw_ptr.h"
  #include "base/numerics/safe_conversions.h"
-@@ -322,90 +333,106 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
+@@ -322,90 +333,108 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
      // stroke width.
  
      // Start with the left side of the shape.
@@ -6675,6 +6675,8 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
 +			path.cubicTo(tab_right - 4, (tab_top * 0.5), (((tab_right - 4) + right) / 2), (((tab_top * 0.5) + extended_bottom) / 2), right,
 +					  extended_bottom);
 +		}
++       if(!force_active)
++           path.close();
 +	}
    }
  

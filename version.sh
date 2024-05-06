@@ -93,5 +93,5 @@ printf "\n" &&
 
 cd ~/thorium-win7 &&
 
-printf "${GRE}Done! ${YEL}You can now run \'./setup.sh\'\n"
+printf "${GRE}Done! ${YEL}You can now run \'./setup.sh\' or \'./setup_xp.sh\'\n"
 tput sgr0

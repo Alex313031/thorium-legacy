@@ -280,6 +280,6 @@ printf "\n" &&
 
 cat logos/thorium_ascii_art.txt &&
 
-printf "${GRE}Enjoy Thorium on Windows 7, 8, or 8.1!\n" &&
+printf "${GRE}Done. ${YEL}You can now run \'./patch_win7.sh\'\n"
 printf "\n" &&
 tput sgr0

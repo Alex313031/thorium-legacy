@@ -219,6 +219,6 @@ printf "\n" &&
 
 cat logos/thorium_ascii_art.txt &&
 
-printf "${GRE}Enjoy Thorium on Windows XP or Vista!\n" &&
+printf "${GRE}Done. ${YEL}You can now run \'./patch_xp.sh\'\n"
 printf "\n" &&
 tput sgr0
