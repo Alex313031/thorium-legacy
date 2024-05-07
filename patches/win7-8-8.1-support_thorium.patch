@@ -1828,7 +1828,7 @@ index 1a0a378f11b89..84857d3b82fcd 100644
 +  // of a 32 bit process to more than 1.1 GB.
 +  PROCESS_MEMORY_COUNTERS pmc;
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("enable-webbloat-mitigation") &&
-+     ::GetProcessMemoryInfo(::GetCurrentProcess(), &pmc, sizeof(PROCESS_MEMORY_COUNTERS)) && 
++     ::GetProcessMemoryInfo(::GetCurrentProcess(), &pmc, sizeof(PROCESS_MEMORY_COUNTERS)) &&
 +     (target_size.fWidth * target_size.fHeight * 4) + pmc.PagefileUsage > 1100000000) {
 +       LOG(ERROR) << "Thorium attempted to load an image of size " << target_size.fWidth * target_size.fHeight << " pixels";
 +       return nullptr;
@@ -6582,7 +6582,7 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
    }
  
    // Convert path to be relative to the tab origin.
-@@ -664,6 +703,9 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
+@@ -664,6 +705,9 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
  
    const Tab* adjacent_tab =
        tab_->controller()->GetAdjacentTab(tab_, leading ? -1 : 1);
@@ -6592,7 +6592,7 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
  
    const Tab* left_tab = leading ? adjacent_tab : tab_.get();
    const Tab* right_tab = leading ? tab_.get() : adjacent_tab;
-@@ -671,6 +713,7 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
+@@ -671,6 +715,7 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
        right_tab && right_tab->group().has_value() &&
        (!left_tab || left_tab->group() != right_tab->group());
  
@@ -6600,7 +6600,7 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
    // If the current tab is selected, default to hiding the separator. Only show
    // the separator if it's adjacent to other selected tabs.
    if (tab_->IsSelected()) {
-@@ -936,8 +979,21 @@ void GM2TabStyleViews::PaintTabBackgroundFill(
+@@ -936,8 +981,21 @@ void GM2TabStyleViews::PaintTabBackgroundFill(
      cc::PaintFlags flags;
      flags.setAntiAlias(true);
      flags.setColor(GetCurrentTabBackgroundColor(selection_state, hovered));

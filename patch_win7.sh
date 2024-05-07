@@ -42,49 +42,46 @@ printf "${GRE}Copying .patch files...\n" &&
 printf "${c0}\n" &&
 
 cp -v patches/win7-8-8.1-support_thorium.patch ${CR_SRC_DIR}/ &&
+cp -v patches/ftp-support-thorium.patch ${CR_SRC_DIR}/ &&
 cp -v patches/boringssl.patch ${CR_SRC_DIR}/third_party/boringssl/src/ &&
 cp -v patches/pdfium.patch ${CR_SRC_DIR}/third_party/pdfium/ &&
 cp -v patches/skia.patch ${CR_SRC_DIR}/third_party/skia/ &&
 cp -v patches/webrtc.patch ${CR_SRC_DIR}/third_party/webrtc/ &&
 
-cd ${CR_SRC_DIR}/ &&
-
 printf "\n" &&
 printf "${GRE}Patching Chromium...\n" &&
 printf "${c0}\n" &&
-
+cd ${CR_SRC_DIR}/ &&
 git apply --reject win7-8-8.1-support_thorium.patch &&
 
-cd ${CR_SRC_DIR}/third_party/boringssl/src/ &&
+printf "\n" &&
+printf "${GRE}Patching FTP support...\n" &&
+printf "${c0}\n" &&
+cd ${CR_SRC_DIR}/ &&
+git apply --reject ftp-support-thorium.patch &&
 
 printf "\n" &&
 printf "${GRE}Patching BoringSSL...\n" &&
 printf "${c0}\n" &&
-
+cd ${CR_SRC_DIR}/third_party/boringssl/src/ &&
 git apply --reject boringssl.patch &&
-
-cd ${CR_SRC_DIR}/third_party/webrtc &&
 
 printf "\n" &&
 printf "${GRE}Patching WebRTC...\n" &&
 printf "${c0}\n" &&
-
+cd ${CR_SRC_DIR}/third_party/webrtc &&
 git apply --reject webrtc.patch &&
-
-cd ${CR_SRC_DIR}/third_party/pdfium &&
 
 printf "\n" &&
 printf "${GRE}Patching PDFium...\n" &&
 printf "${c0}\n" &&
-
+cd ${CR_SRC_DIR}/third_party/pdfium &&
 git apply --reject pdfium.patch &&
-
-cd ${CR_SRC_DIR}/third_party/skia &&
 
 printf "\n" &&
 printf "${GRE}Patching Skia...\n" &&
 printf "${c0}\n" &&
-
+cd ${CR_SRC_DIR}/third_party/skia &&
 git apply --reject skia.patch &&
 
 printf "\n" &&
