@@ -56,6 +56,8 @@ Aw, Snap! > Aw, #@%!, this tab's process has gone bye bye...
 
  - https://source.chromium.org/chromium/chromium/src/+/056a891186fbf7b5cd3f857c331ab3ad5a69019d
 
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\um\x86\
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\um\x64\
 
 look up how to add flag, feature flag, commandline, and gui, and multi option flag in docs (maybe just look up dding flags in general)
 
