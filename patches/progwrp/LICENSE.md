@@ -5,7 +5,7 @@ Copyright (c) 2023-2024, Shane Fournier
 Hereto, progwrp, also known as program wrapper, "the software", is a freeware dynamic link library
  component for Windows NT.
 
-Redistribution of the binary files is permitted, provided that the following conditions are met:
+Redistribution of the software's binary files is permitted, provided that the following conditions are met:
 
 1. Only the .lib file is included in source code.
 
