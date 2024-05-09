@@ -1559,7 +1559,7 @@ index 20e027e34632b..c3342f122ca25 100644
  
  // static
  ScopedHString ScopedHString::Create(std::wstring_view str) {
-+  if(!g_load_succeeded) {
++  if (!g_load_succeeded) {
 +	  return ScopedHString(nullptr);
 +  }
    HSTRING hstr;
@@ -1826,7 +1826,7 @@ index 25cc9b48a4d14..e710062d4d539 100644
 +      reinterpret_cast<decltype(&GetProcessMitigationPolicy)>(::GetProcAddress(
 +          ::GetModuleHandleA("kernel32.dll"), "GetProcessMitigationPolicy"));
 +
-+    if(!get_process_mitigation_policy)
++    if (!get_process_mitigation_policy)
 +		return true;
 +
      PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY policy = {};
@@ -4693,7 +4693,7 @@ index 721e51828987d..61443a280a9b9 100644
    const GURL& url = entry->GetURL();
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("custom-ntp")) {
 +    std::string ntp_location = base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("custom-ntp");
-+	if(GURL(ntp_location).DeprecatedGetOriginAsURL() == url.DeprecatedGetOriginAsURL())
++	if (GURL(ntp_location).DeprecatedGetOriginAsURL() == url.DeprecatedGetOriginAsURL())
 +		return true;
 +  }
    return NewTabUI::IsNewTab(url) || NewTabPageUI::IsNewTabPageOrigin(url) ||
@@ -4999,19 +4999,19 @@ index 347b900c1dab8..87d6cc266381c 100644
        // stretching the container view.
        return 16;
      case LOCATION_BAR_BUBBLE_FONT_VERTICAL_PADDING:
-+	  if(compact_ui)
++	  if (compact_ui)
 +		  return 0;
        return 2;
      case LOCATION_BAR_BUBBLE_ANCHOR_VERTICAL_INSET:
        return 1;
      case LOCATION_BAR_CHILD_INTERIOR_PADDING:
-+	  if(compact_ui)
++	  if (compact_ui)
 +		  return 0;
        return 3;
      case LOCATION_BAR_CHILD_CORNER_RADIUS:
        return 12;
      case LOCATION_BAR_ELEMENT_PADDING:
-+	  if(compact_ui)
++	  if (compact_ui)
 +		  return 0;
        return touch_ui ? 3 : 2;
      case LOCATION_BAR_PAGE_INFO_ICON_VERTICAL_PADDING:
@@ -5020,7 +5020,7 @@ index 347b900c1dab8..87d6cc266381c 100644
      case LOCATION_BAR_TRAILING_DECORATION_EDGE_PADDING:
        return touch_ui ? 3 : 12;
      case LOCATION_BAR_HEIGHT:
-+	  if(compact_ui)
++	  if (compact_ui)
 +		  return 28;
        if (base::FeatureList::IsEnabled(omnibox::kOmniboxSteadyStateHeight) ||
            features::GetChromeRefresh2023Level() ==
@@ -5029,7 +5029,7 @@ index 347b900c1dab8..87d6cc266381c 100644
      case TAB_CLOSE_BUTTON_SIZE:
        return touch_ui ? 24 : 16;
      case TAB_HEIGHT: {
-+	  if(compact_ui)
++	  if (compact_ui)
 +		  return 24;
        bool use_touch_padding = touch_ui && !features::IsChromeRefresh2023();
  #if BUILDFLAG(IS_CHROMEOS)
@@ -5065,7 +5065,7 @@ index aa9cd30374311..28091f8229b2b 100644
    // The standard tab width is 240 DIP including both separators.
 -  constexpr int kTabWidth = 240;
 +  int kTabWidth = 240;
-+  if(base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
 +	kTabWidth = 193;
    // The overlap includes one separator, so subtract it here.
    return kTabWidth + GetTabOverlap() - GetSeparatorSize().width();
@@ -5085,7 +5085,7 @@ index aa9cd30374311..28091f8229b2b 100644
  gfx::Size GM2TabStyle::GetSeparatorSize() const {
 -  return gfx::Size(kGM2SeparatorThickness,
 +  if (!base::FeatureList::IsEnabled(features::kThoriumCustomTabs)) {
-+	  if(base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
++	  if (base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
 +		  return gfx::Size(kGM2SeparatorThickness,
 +                   GetLayoutConstant(TAB_SEPARATOR_HEIGHT) * 0.6);
 +	return gfx::Size(kGM2SeparatorThickness,
@@ -5101,7 +5101,7 @@ index aa9cd30374311..28091f8229b2b 100644
  
  int GM2TabStyle::GetTopCornerRadius() const {
 -  return views::LayoutProvider::Get()->GetCornerRadiusMetric(
-+	if(base::CommandLine::ForCurrentProcess()->HasSwitch("rectangular-tabs"))
++	if (base::CommandLine::ForCurrentProcess()->HasSwitch("rectangular-tabs"))
 +		return 0;
 +	return views::LayoutProvider::Get()->GetCornerRadiusMetric(
        views::Emphasis::kHigh);
@@ -5109,14 +5109,14 @@ index aa9cd30374311..28091f8229b2b 100644
  
  int GM2TabStyle::GetBottomCornerRadius() const {
 -  return views::LayoutProvider::Get()->GetCornerRadiusMetric(
-+	if(base::CommandLine::ForCurrentProcess()->HasSwitch("rectangular-tabs"))
++	if (base::CommandLine::ForCurrentProcess()->HasSwitch("rectangular-tabs"))
 +		return 0;
 +	return views::LayoutProvider::Get()->GetCornerRadiusMetric(
        views::Emphasis::kHigh);
  }
  
  gfx::Insets GM2TabStyle::GetContentsInsets() const {
-+  if(base::CommandLine::ForCurrentProcess()->HasSwitch("rectangular-tabs"))
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("rectangular-tabs"))
 +	 return gfx::Insets::TLBR(0, views::LayoutProvider::Get()->GetCornerRadiusMetric(
 +                             views::Emphasis::kHigh) * 2, 0,
 +                           views::LayoutProvider::Get()->GetCornerRadiusMetric(
@@ -6039,7 +6039,7 @@ index 625c6931ab746..a387da94cc498 100644
 -    return true;
 +  // Use the custom frame where desired.
 +  if (!browser_view_->GetIsNormalType()) {
-+	 if(!browser_view_->GetIsWebAppType() && GetWidget()->GetThemeProvider()->ShouldUseNativeFrame())
++	 if (!browser_view_->GetIsWebAppType() && GetWidget()->GetThemeProvider()->ShouldUseNativeFrame())
 +		return true;
 +	 else
 +		return false;
@@ -6576,7 +6576,7 @@ index 9e77662e57e76..da13fc6b5dc69 100644
 -        GetWidget()->ShouldPaintAsActive()
 -            ? background_frame_active_color_id_
 -            : background_frame_inactive_color_id_));
-+	if(((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
++	if (((base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
 +			!base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default")) ||
 +			(!base::FeatureList::IsEnabled(features::kThoriumCustomTabs) &&
 +			base::CommandLine::ForCurrentProcess()->HasSwitch("override-tab-outline-default"))) &&
@@ -9467,7 +9467,7 @@ index 1db03ae8852aa..4de26908df8bc 100644
    base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                  base::BlockingType::MAY_BLOCK);
  
-+  if(base::win::GetVersion() < base::win::Version::VISTA) {
++  if (base::win::GetVersion() < base::win::Version::VISTA) {
 +	  // The parameters to SHFileOperation must be terminated with 2 NULL chars.
 +	  base::FilePath::StringType source = full_path_.value();
 +	  base::FilePath::StringType target = new_path.value();
@@ -11228,7 +11228,7 @@ index 257f8480a4c49..955f34a4b2973 100644
 +  // GetSystemFontCollection.
 +  // TODO: make DirectWrite optional for the benefit of the NT 5 users.
 +
-+  if(factory3_  == nullptr) {
++  if (factory3_  == nullptr) {
 +  hr = factory_->GetSystemFontCollection(&collection_);
    DCHECK(SUCCEEDED(hr));
 +  }
@@ -11977,7 +11977,7 @@ index 4953e20861803..c7521519c31aa 100644
 -    bool need_sandbox =
 +#if BUILDFLAG(IS_WIN)
 +    bool need_sandbox = true;
-+    if(base::win::GetVersion() >= base::win::Version::WIN8) {
++    if (base::win::GetVersion() >= base::win::Version::WIN8) {
 +	// Windows 8+ specific limitations required renderer sandbox disabled for GDI
 +    need_sandbox = gfx::win::ShouldUseDirectWrite() &&
          !command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
@@ -12110,7 +12110,7 @@ index 7e39e10de7be3..a3ad47adbfc54 100644
      {
        SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
 +
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++	  if (!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return absl::nullopt;
 +	  }
 +
@@ -12122,7 +12122,7 @@ index 7e39e10de7be3..a3ad47adbfc54 100644
      {
        SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
 +
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++	  if (!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return nullptr;
 +	  }
 +
@@ -12134,7 +12134,7 @@ index 7e39e10de7be3..a3ad47adbfc54 100644
      {
        SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
 +
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++	  if (!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return absl::nullopt;
 +	  }
 +
@@ -12146,7 +12146,7 @@ index 7e39e10de7be3..a3ad47adbfc54 100644
      {
        SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
 +
-+	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++	  if (!::LoadLibraryW(L"ncrypt.dll")) {
 +		  return nullptr;
 +	  }
 +
@@ -13900,9 +13900,9 @@ index ee6c56e762753..ad04012dd4293 100644
 +      thunk.reset(new Wow64W8ResolverThunk(child_->Process(), true));
 +    else {
 +      thunk.reset(new Wow64ResolverThunk(child_->Process(), true));
-+	  if(!::ReadProcessMemory(child_->Process(), ntdll_base, &base_code,
++	  if (!::ReadProcessMemory(child_->Process(), ntdll_base, &base_code,
 +			sizeof(base_code), &bytes_read)) {
-+				if(::GetLastError() == ERROR_PARTIAL_COPY) {
++				if (::GetLastError() == ERROR_PARTIAL_COPY) {
 +					::ResumeThread(child_->MainThread());
 +					while(!::ReadProcessMemory(child_->Process(), ntdll_base, &base_code,
 +						sizeof(base_code), &bytes_read)) {
@@ -16280,7 +16280,7 @@ index f2f90c197e28b..0344f989487a5 100644
 -      font_data_cache_(FontDataCache::Create()) {
 +      font_data_cache_(FontDataCache::Create()){
  #if BUILDFLAG(IS_WIN)
-+  if(!s_useDirectWrite) {
++  if (!s_useDirectWrite) {
 +	  font_manager_ = SkFontMgr_New_GDI();
 +  }
 +
@@ -16468,7 +16468,7 @@ index 1b7be19308566..3ea7a0003eac4 100644
    // ctor.
    auto font_manager = font_manager_ ? font_manager_ : skia::DefaultFontMgr();
 +#if BUILDFLAG(IS_WIN)
-+  if(!useDirectWrite()) {
++  if (!useDirectWrite()) {
 +	return sk_sp<SkTypeface>(font_manager->legacyMakeTypeface(
 +      name.empty() ? nullptr : name.c_str(), font_description.SkiaFontStyle()));
 +  }
@@ -16486,7 +16486,7 @@ index 747298f1903fb..e4063b8916588 100644
    CHECK(!typeface);
 -
 +#if BUILDFLAG(IS_WIN)
-+  if(format_check.IsVariableFont() && !FontCache::useDirectWrite()) {
++  if (format_check.IsVariableFont() && !FontCache::useDirectWrite()) {
 +    typeface = instantiator.make_system(data);
 +    if (typeface) {
 +      ReportInstantiationResult(
@@ -16907,7 +16907,7 @@ index fe7c9a5c819bd..12b8e76a39921 100644
 -  sk_sp<SkTypeface> tf(
 -      font_manager->matchFamilyStyle(family.Utf8().c_str(), SkFontStyle()));
 +  sk_sp<SkTypeface> tf;
-+  if(FontCache::useDirectWrite()) {
++  if (FontCache::useDirectWrite()) {
 +	tf = font_manager->matchFamilyStyle(family.Utf8().c_str(), SkFontStyle());
 +  } else {
 +	tf = font_manager->legacyMakeTypeface(family.Utf8().data(), SkFontStyle());
@@ -19107,7 +19107,7 @@ index 11d7121476942..3a3e0119c198c 100644
      if (range.IsValid())
        render_text->ApplyStyle(TEXT_STYLE_UNDERLINE, true, range);
 +
-+    if(flags & GDI_OFFSET_RENDERING)
++    if (flags & GDI_OFFSET_RENDERING)
 +		render_text->SetVerticalAlignment(gfx::ALIGN_SPECIAL);
 +
      render_text->Draw(this);
@@ -19570,7 +19570,7 @@ index 50647269ec84f..3ae513ec2c66b 100644
 -    default:
 -      PaintIndirect(canvas, part, state, rect, extra);
 -      return;
-+  if(!base::CommandLine::ForCurrentProcess()->HasSwitch("native-ui-style")) {
++  if (!base::CommandLine::ForCurrentProcess()->HasSwitch("native-ui-style")) {
 +	  switch (part) {
 +		case kMenuPopupGutter:
 +		  PaintMenuGutter(canvas, color_provider, rect);
@@ -20153,7 +20153,7 @@ index 9361287ac3411..4148c1cab9403 100644
 +	  BOOL success = ::GetSaveFileNameW((OPENFILENAMEW*)&open_file_name);
 +	  BaseShellDialogImpl::DisableOwner(owner);
 +	  if (!success) {
-+		if(open_file_name.lpstrFilter) {
++		if (open_file_name.lpstrFilter) {
 +		  ::HeapFree(::GetProcessHeap(), 0, (LPVOID)open_file_name.lpstrFilter);
 +		  open_file_name.lpstrFilter = nullptr;
 +	    }
@@ -20223,7 +20223,7 @@ index 9361287ac3411..4148c1cab9403 100644
 -  if (!ConfigureDialog(file_open_dialog.Get(), title, ok_button_label,
 -                       default_path, filter, *filter_index, dialog_options)) {
 -    return false;
-+  if(!use_legacy_dialogs) {
++  if (!use_legacy_dialogs) {
 +	  if (!ConfigureDialog(file_open_dialog.Get(), title, ok_button_label,
 +						   default_path, filter, *filter_index, dialog_options)) {
 +		return false;
@@ -20340,12 +20340,12 @@ index 9361287ac3411..4148c1cab9403 100644
 +	  bool success = ::GetOpenFileNameW((OPENFILENAMEW*)&open_file_name);
 +	  BaseShellDialogImpl::DisableOwner(owner);
 +
-+	  if(open_file_name.lpstrFilter) {
++	  if (open_file_name.lpstrFilter) {
 +		  ::HeapFree(::GetProcessHeap(), 0, (LPVOID)open_file_name.lpstrFilter);
 +		  open_file_name.lpstrFilter = nullptr;
 +	  }
 +
-+	  if(success) {
++	  if (success) {
 +		  base::FilePath directory;
 +          std::vector<base::FilePath> filenames;
 +		  const wchar_t* selection = open_file_name.lpstrFile;
@@ -21519,7 +21519,7 @@ index 3327d96ad2970..34fd76937b5da 100644
 +
      SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
 +
-+    if(!base::win::ResolveCoreWinRTDelayload()){
++    if (!base::win::ResolveCoreWinRTDelayload()){
 +	  pen_device_statics_ = nullptr;
 +	  pointer_point_statics_ = nullptr;
 +	  return;
