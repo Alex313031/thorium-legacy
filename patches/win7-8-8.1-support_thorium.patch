@@ -7258,7 +7258,7 @@ index 03a38089b56a8..2a7fdd070d030 100644
  
  void InstallUtil::AddInstallerResultItems(bool system_install,
 diff --git a/chrome/installer/util/shell_util.cc b/chrome/installer/util/shell_util.cc
-index 1f9d3449c04ce..fcb97d425b960 100644
+index 1f9d3449c04ce..050db0e033641 100644
 --- a/chrome/installer/util/shell_util.cc
 +++ b/chrome/installer/util/shell_util.cc
 @@ -12,6 +12,7 @@
@@ -7368,6 +7368,19 @@ index 1f9d3449c04ce..fcb97d425b960 100644
    std::vector<std::unique_ptr<RegistryEntry>> entries;
    ShellUtil::ApplicationInfo app_info =
        ShellUtil::GetApplicationInfoForProgId(prog_id);
+@@ -1520,10 +1548,10 @@ const wchar_t* ShellUtil::kDefaultFileAssociations[] = {
+ const wchar_t* ShellUtil::kPotentialFileAssociations[] = {
+     L".htm", L".html",  L".pdf",  L".shtml", L".svg",
+     L".xht", L".xhtml", L".webp", nullptr};
+-const wchar_t* ShellUtil::kBrowserProtocolAssociations[] = {L"http", L"https",
++const wchar_t* ShellUtil::kBrowserProtocolAssociations[] = {L"ftp", L"http", L"https",
+                                                             nullptr};
+ const wchar_t* ShellUtil::kPotentialProtocolAssociations[] = {
+-    L"http", L"https", L"irc",   L"mailto", L"mms", L"news",   L"nntp",
++    L"ftp", L"http", L"https", L"irc",   L"mailto", L"mms", L"news",   L"nntp",
+     L"sms",  L"smsto", L"snews", L"tel",    L"urn", L"webcal", nullptr};
+ const wchar_t* ShellUtil::kRegUrlProtocol = L"URL Protocol";
+ const wchar_t* ShellUtil::kRegApplication = L"\\Application";
 @@ -1569,10 +1597,12 @@ bool ShellUtil::ShortcutLocationIsSupported(ShortcutLocation location) {
      case SHORTCUT_LOCATION_START_MENU_ROOT:                   // Falls through.
      case SHORTCUT_LOCATION_START_MENU_CHROME_DIR_DEPRECATED:  // Falls through.
@@ -11526,6 +11539,72 @@ index a638c432bb49d..e68ee23fdbd23 100644
  
    ASSERT_EQ(ids.size(), expected_colors.size());
  
+diff --git a/content/common/font_list_win.cc b/content/common/font_list_win.cc
+index 7a26dddd5c8dc..061e913812fa5 100644
+--- a/content/common/font_list_win.cc
++++ b/content/common/font_list_win.cc
+@@ -18,6 +18,45 @@
+ 
+ namespace content {
+ 
++static int CALLBACK EnumFontFamExProc(ENUMLOGFONTEXW* logical_font,
++                                      NEWTEXTMETRICEXW* physical_font,
++                                      DWORD font_type,
++                                      LPARAM lparam) {
++  std::set<std::wstring>* font_names =
++      reinterpret_cast<std::set<std::wstring>*>(lparam);
++  if (font_names) {
++    const LOGFONTW& lf = logical_font->elfLogFont;
++    if (lf.lfFaceName[0] && lf.lfFaceName[0] != '@') {
++      std::wstring face_name(lf.lfFaceName);
++      font_names->insert(face_name);
++    }
++  }
++  return 1;
++}
++
++base::Value::List GetFontList_SlowBlocking_Legacy() {
++  std::set<std::u16string> font_names;
++
++  LOGFONTW logfont;
++  memset(&logfont, 0, sizeof(logfont));
++  logfont.lfCharSet = DEFAULT_CHARSET;
++
++  HDC hdc = ::GetDC(NULL);
++  ::EnumFontFamiliesExW(hdc, &logfont, (FONTENUMPROCW)&EnumFontFamExProc,
++                        (LPARAM)&font_names, 0);
++  ::ReleaseDC(NULL, hdc);
++
++  base::Value::List font_list;
++  std::set<std::u16string>::iterator iter;
++  for (iter = font_names.begin(); iter != font_names.end(); ++iter) {
++    base::Value::List font_item;
++    font_item.Append(*iter);
++    font_item.Append(*iter);
++    font_list.Append(std::move(font_item));
++  }
++  return font_list;
++}
++
+ base::Value::List GetFontList_SlowBlocking() {
+   TRACE_EVENT0("fonts", "GetFontList_SlowBlocking");
+ 
+@@ -25,12 +64,13 @@ base::Value::List GetFontList_SlowBlocking() {
+ 
+   Microsoft::WRL::ComPtr<IDWriteFactory> factory;
+   gfx::win::CreateDWriteFactory(&factory);
++  // Fall back to GDI font list API if DirectWrite is unavailable
+   if (!factory)
+-    return font_list;
++    return GetFontList_SlowBlocking_Legacy();
+ 
+   Microsoft::WRL::ComPtr<IDWriteFontCollection> collection;
+   if (FAILED(factory->GetSystemFontCollection(&collection)))
+-    return font_list;
++    return GetFontList_SlowBlocking_Legacy();
+ 
+   // Retrieve the localized font family name. If there is no localized name,
+   // used the native name instead.
 diff --git a/content/common/sandbox_init_win.cc b/content/common/sandbox_init_win.cc
 index 498f60227d13e..724ce1120b720 100644
 --- a/content/common/sandbox_init_win.cc
@@ -20969,26 +21048,62 @@ index 0000000000000..8f131b8d1bf86
 +
 +#endif  // UI_VIEWS_COREWM_TOOLTIP_WIN_H_
 diff --git a/ui/views/layout/layout_provider.cc b/ui/views/layout/layout_provider.cc
-index 5319192415a63..090fd4574c19a 100644
+index 5319192415a63..4245bf02d66f3 100644
 --- a/ui/views/layout/layout_provider.cc
 +++ b/ui/views/layout/layout_provider.cc
-@@ -6,6 +6,7 @@
+@@ -6,6 +6,8 @@
  
  #include <algorithm>
  
 +#include "base/command_line.h"
++#include "base/environment.h"
  #include "base/containers/fixed_flat_map.h"
  #include "base/logging.h"
  #include "ui/base/ui_base_features.h"
-@@ -205,6 +206,8 @@ ShapeSysTokens GetShapeSysToken(ShapeContextTokens id) {
+@@ -23,6 +25,11 @@ LayoutProvider* g_layout_delegate = nullptr;
+ }  // namespace
  
- int LayoutProvider::GetCornerRadiusMetric(ShapeContextTokens id,
-                                           const gfx::Size& size) const {
-+  // if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
-+      // return 3;
-   if (!features::IsChromeRefresh2023()) {
-     switch (id) {
-       case ShapeContextTokens::kBadgeRadius:
+ LayoutProvider::LayoutProvider() {
++  // On creation of the LayoutProvider object, update the metrics with user preferences if applicable.
++  std::string corner_metrics;
++  auto env = base::Environment::Create();
++  if (env->GetVar("davenport_corner_metrics", &corner_metrics))
++    kMenuCornerRadius = std::stoi(corner_metrics);
+   g_layout_delegate = this;
+ }
+ 
+@@ -221,9 +228,17 @@ int LayoutProvider::GetCornerRadiusMetric(ShapeContextTokens id,
+       case ShapeContextTokens::kMenuTouchRadius:
+         return GetCornerRadiusMetric(Emphasis::kHigh);
+       case ShapeContextTokens::kOmniboxExpandedRadius:
+-        return 16;
++        if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox")) {
++          return 3;
++        } else {
++          return 16;
++        }
+       case ShapeContextTokens::kTextfieldRadius:
+-        return FocusRing::kDefaultCornerRadiusDp;
++        if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox")) {
++          return 3;
++        } else {
++          return FocusRing::kDefaultCornerRadiusDp;
++        }
+       case ShapeContextTokens::kSidePanelContentRadius:
+         return GetCornerRadiusMetric(Emphasis::kMedium);
+       default:
+diff --git a/ui/views/layout/layout_provider.h b/ui/views/layout/layout_provider.h
+index 87259be15b9b1..b7200add941dd 100644
+--- a/ui/views/layout/layout_provider.h
++++ b/ui/views/layout/layout_provider.h
+@@ -234,6 +234,7 @@ class VIEWS_EXPORT LayoutProvider {
+ 
+  private:
+   TypographyProvider typography_provider_;
++  int kMenuCornerRadius = 3;
+ };
+ 
+ }  // namespace views
 diff --git a/ui/views/views_features.cc b/ui/views/views_features.cc
 index e4314c4d46b43..ea5fd1688e907 100644
 --- a/ui/views/views_features.cc
