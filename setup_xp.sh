@@ -24,8 +24,9 @@ displayHelp () {
 	printf "${bold}${YEL}Use the --sse4 flag for 32 bit SSE4.1 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse3-64 flag for 64 bit SSE3 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse4-64 flag for 64 bit SSE4.1 Builds.${c0}\n" &&
-	printf "${bold}${YEL}The 64 bit build files are for 64 bit Windows XP/Windows Server 2003.${c0}\n" &&
-	printf "\n"
+	printf "${bold}${YEL}The 64 bit flags are for 64 bit Windows XP/Windows Server 2003.${c0}\n" &&
+	printf "${bold}${YEL}use the --help flag to show this help.${c0}\n" &&
+	printf "\n" &&
 	printf "${bold}${YEL}NOTE: The \`CR_DIR\` env variable can be used to override the location of \"chromium/src\".${c0}\n" &&
 	printf "${bold}${YEL} The default is $HOME/chromium/src${c0}\n" &&
 	printf "\n"
@@ -44,72 +45,123 @@ else
 fi
 
 printf "\n" &&
-printf "${YEL}Creating build output directory...\n" &&
-tput sgr0 &&
-
-mkdir -v -p ${CR_SRC_DIR}/out/thorium/ &&
+printf "${bold}${GRE}Script to copy Thorium for WinXP source files over the Chromium source tree.${c0}\n" &&
+printf "${bold}${YEL}Use the --sse2 flag for 32 bit SSE2 Builds.${c0}\n" &&
+printf "${bold}${YEL}Use the --sse3 flag for 32 bit SSE3 Builds.${c0}\n" &&
+printf "${bold}${YEL}Use the --sse4 flag for 32 bit SSE4.1 Builds.${c0}\n" &&
+printf "${bold}${YEL}Use the --sse3-64 flag for 64 bit SSE3 Builds.${c0}\n" &&
+printf "${bold}${YEL}Use the --sse4-64 flag for 64 bit SSE4.1 Builds.${c0}\n" &&
+printf "${bold}${YEL}The 64 bit flags are for 64 bit Windows XP/Windows Server 2003.${c0}\n" &&
+printf "${bold}${YEL}use the --help flag to show this help.${c0}\n" &&
 printf "\n" &&
-
+printf "${bold}${YEL}NOTE: The \`CR_DIR\` env variable can be used to override the location of \"chromium/src\".${c0}\n" &&
+printf "${bold}${YEL} The default is $HOME/chromium/src${c0}\n" &&
 printf "\n" &&
-printf "${YEL}Copying Thorium source files over the Chromium tree...${c0}\n" &&
-
-# Copy libjxl src
-cd ~/thorium-win7 &&
-cp -r -v thorium-libjxl/src/. ${CR_SRC_DIR}/ &&
-
-# Copy Thorium sources
-cp -r -v src/BUILD.gn ${CR_SRC_DIR}/ &&
-cp -r -v src/ash ${CR_SRC_DIR}/ &&
-cp -r -v src/build ${CR_SRC_DIR}/ &&
-cp -r -v src/chrome ${CR_SRC_DIR}/ &&
-cp -r -v src/chromeos ${CR_SRC_DIR}/ &&
-cp -r -v src/components ${CR_SRC_DIR}/ &&
-cp -r -v src/content ${CR_SRC_DIR}/ &&
-cp -r -v src/extensions ${CR_SRC_DIR}/ &&
-cp -r -v src/media ${CR_SRC_DIR}/ &&
-cp -r -v src/net ${CR_SRC_DIR}/ &&
-cp -r -v src/sandbox ${CR_SRC_DIR}/ &&
-cp -r -v src/services ${CR_SRC_DIR}/ &&
-cp -r -v src/third_party ${CR_SRC_DIR}/ &&
-cp -r -v src/tools ${CR_SRC_DIR}/ &&
-cp -r -v src/ui ${CR_SRC_DIR}/ &&
-cp -r -v src/v8 ${CR_SRC_DIR}/ &&
-
-cp -r -v thorium_shell/. ${CR_SRC_DIR}/out/thorium/ &&
-cp -r -v pak_src/binaries/pak ${CR_SRC_DIR}/out/thorium/ &&
-cp -r -v pak_src/binaries/pak-win/. ${CR_SRC_DIR}/out/thorium/ &&
 
 patchPolicy () {
 	cp -v other/Fix-policy-templates.patch ${CR_SRC_DIR}/ &&
 	cd ${CR_SRC_DIR} &&
 	git apply --reject ./Fix-policy-templates.patch
 }
-[ -f ${CR_SRC_DIR}/Fix-policy-templates.patch ] || patchPolicy;
+
+copyThorSrc () {
+	printf "\n" &&
+	printf "${YEL}Creating build output directory...\n" &&
+	tput sgr0 &&
+
+	mkdir -v -p ${CR_SRC_DIR}/out/thorium/ &&
+	printf "\n" &&
+
+	printf "\n" &&
+	printf "${YEL}Copying Thorium source files over the Chromium tree...${c0}\n" &&
+
+	# Copy libjxl src
+	cd ~/thorium-win7 &&
+	cp -r -v thorium-libjxl/src/. ${CR_SRC_DIR}/ &&
+
+	# Copy Thorium sources
+	cp -r -v src/BUILD.gn ${CR_SRC_DIR}/ &&
+	cp -r -v src/ash ${CR_SRC_DIR}/ &&
+	cp -r -v src/build ${CR_SRC_DIR}/ &&
+	cp -r -v src/chrome ${CR_SRC_DIR}/ &&
+	cp -r -v src/chromeos ${CR_SRC_DIR}/ &&
+	cp -r -v src/components ${CR_SRC_DIR}/ &&
+	cp -r -v src/content ${CR_SRC_DIR}/ &&
+	cp -r -v src/extensions ${CR_SRC_DIR}/ &&
+	cp -r -v src/media ${CR_SRC_DIR}/ &&
+	cp -r -v src/net ${CR_SRC_DIR}/ &&
+	cp -r -v src/sandbox ${CR_SRC_DIR}/ &&
+	cp -r -v src/services ${CR_SRC_DIR}/ &&
+	cp -r -v src/third_party ${CR_SRC_DIR}/ &&
+	cp -r -v src/tools ${CR_SRC_DIR}/ &&
+	cp -r -v src/ui ${CR_SRC_DIR}/ &&
+	cp -r -v src/v8 ${CR_SRC_DIR}/ &&
+
+	cp -r -v thorium_shell/. ${CR_SRC_DIR}/out/thorium/ &&
+	cp -r -v pak_src/binaries/pak ${CR_SRC_DIR}/out/thorium/ &&
+	cp -r -v pak_src/binaries/pak-win/. ${CR_SRC_DIR}/out/thorium/ &&
+
+	printf "\n" &&
+	echo "Copying other files to \`out/thorium\`" &&
+
+	# Add default_apps dir for Google Docs Offline extension.
+	mkdir -v -p ${CR_SRC_DIR}/out/thorium/default_apps &&
+	cp -r -v infra/default_apps/. ${CR_SRC_DIR}/out/thorium/default_apps/ &&
+
+	# Add initial preferences file to open Thorium welcome page on first run.
+	cp -v infra/initial_preferences ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v infra/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+
+	# Copy NT 5.x files
+	printf "\n" &&
+	printf "${YEL}Copying NT 5.x Installer/Uninstaller files...${c0}\n" &&
+	cp -r -v other/XP/chrome/* ${CR_SRC_DIR}/chrome/ &&
+	cp -v other/XP/dist/THORIUM_PORTABLE.bat ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/dist/INSTALL_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/dist/REMOVE_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/dist/HKCR.reg ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/dist/HKLM.reg ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/dist/thorium.ico ${CR_SRC_DIR}/out/thorium/ &&
+	cp -v other/XP/dist/README.txt ${CR_SRC_DIR}/out/thorium/ &&
+
+	[ -f ${CR_SRC_DIR}/Fix-policy-templates.patch ] || patchPolicy;
+	cd ~/thorium-win7
+}
 
 cd ~/thorium-win7 &&
 
-printf "\n" &&
-echo "Copying other files to \`out/thorium\`" &&
+postCopy () {
+	printf "${GRE}Done!\n" &&
+	printf "\n" &&
 
-# Add default_apps dir for Google Docs Offline extension.
-mkdir -v -p ${CR_SRC_DIR}/out/thorium/default_apps &&
-cp -r -v infra/default_apps/. ${CR_SRC_DIR}/out/thorium/default_apps/ &&
+	printf "${YEL}Exporting variables and setting handy aliases...${c0}\n" &&
 
-# Add initial preferences file to open Thorium welcome page on first run.
-cp -v infra/initial_preferences ${CR_SRC_DIR}/out/thorium/ &&
-cp -v infra/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	. ~/thorium-win7/aliases &&
 
-# Copy NT 5.x files
-printf "\n" &&
-printf "${YEL}Copying NT 5.x Installer/Uninstaller files...${c0}\n" &&
-cp -r -v other/XP/chrome/* ${CR_SRC_DIR}/chrome/ &&
-cp -v other/XP/dist/THORIUM_PORTABLE.bat ${CR_SRC_DIR}/out/thorium/ &&
-cp -v other/XP/dist/INSTALL_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
-cp -v other/XP/dist/REMOVE_THORIUM.cmd ${CR_SRC_DIR}/out/thorium/ &&
-cp -v other/XP/dist/HKCR.reg ${CR_SRC_DIR}/out/thorium/ &&
-cp -v other/XP/dist/HKLM.reg ${CR_SRC_DIR}/out/thorium/ &&
-cp -v other/XP/dist/thorium.ico ${CR_SRC_DIR}/out/thorium/ &&
-cp -v other/XP/dist/README.txt ${CR_SRC_DIR}/out/thorium/ &&
+	printf "\n" &&
+	printf "export ${CYA}NINJA_SUMMARIZE_BUILD=1${c0}\n" &&
+	printf "export ${CYA}EDITOR=nano${c0}\n" &&
+	printf "export ${CYA}VISUAL=nano${c0}\n" &&
+	printf "\n" &&
+	printf "alias ${YEL}origin${c0} = ${CYA}git checkout -f origin/main${c0}\n" &&
+	printf "alias ${YEL}gfetch${c0} = ${CYA}git fetch --tags${c0}\n" &&
+	printf "alias ${YEL}rebase${c0} = ${CYA}git rebase-update${c0}\n" &&
+	printf "alias ${YEL}gsync${c0} = ${CYA}gclient sync --with_branch_heads --with_tags -f -R -D${c0}\n" &&
+	printf "alias ${YEL}args${c0} = ${CYA}gn args out/thorium${c0}\n" &&
+	printf "alias ${YEL}gnls${c0} = ${CYA}gn ls out/thorium${c0}\n" &&
+	printf "alias ${YEL}show${c0} = ${CYA}git show-ref${c0}\n" &&
+	printf "alias ${YEL}runhooks${c0} = ${CYA}gclient runhooks${c0}\n" &&
+	printf "alias ${YEL}pgo${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=linux update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
+	printf "alias ${YEL}pgow${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=win64 update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
+	printf "alias ${YEL}pgom${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=mac update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
+	printf "alias ${YEL}pgomac-arm${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=mac-arm update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
+	printf "\n" &&
+
+	cat logos/thorium_ascii_art.txt &&
+
+	printf "${GRE}Done. ${YEL}You can now run \'./patch_xp.sh\'\n"
+	printf "\n"
+}
 
 copySSE2 () {
 	printf "\n" &&
@@ -124,7 +176,7 @@ copySSE2 () {
 	printf "\n"
 }
 case $1 in
-	--sse2) copySSE2;
+	--sse2) copyThorSrc; copySSE2; postCopy;
 esac
 
 copySSE3 () {
@@ -140,7 +192,7 @@ copySSE3 () {
 	printf "\n"
 }
 case $1 in
-	--sse3) copySSE3;
+	--sse3) copyThorSrc; copySSE3; postCopy;
 esac
 
 copySSE4 () {
@@ -156,7 +208,7 @@ copySSE4 () {
 	printf "\n"
 }
 case $1 in
-	--sse4) copySSE4;
+	--sse4) copyThorSrc; copySSE4; postCopy;
 esac
 
 copyXP64SSE3 () {
@@ -172,7 +224,7 @@ copyXP64SSE3 () {
 	printf "\n"
 }
 case $1 in
-	--sse3-64) copyXP64SSE3;
+	--sse3-64) copyThorSrc; copyXP64SSE3; postCopy;
 esac
 
 copyXP64SSE4 () {
@@ -188,37 +240,7 @@ copyXP64SSE4 () {
 	printf "\n"
 }
 case $1 in
-	--sse4-64) copyXP64SSE4;
+	--sse4-64) copyThorSrc; copyXP64SSE4; postCopy;
 esac
 
-printf "${GRE}Done!\n" &&
-printf "\n" &&
-
-printf "${YEL}Exporting variables and setting handy aliases...${c0}\n" &&
-
-. ~/thorium-win7/aliases &&
-
-printf "\n" &&
-printf "export ${CYA}NINJA_SUMMARIZE_BUILD=1${c0}\n" &&
-printf "export ${CYA}EDITOR=nano${c0}\n" &&
-printf "export ${CYA}VISUAL=nano${c0}\n" &&
-printf "\n" &&
-printf "alias ${YEL}origin${c0} = ${CYA}git checkout -f origin/main${c0}\n" &&
-printf "alias ${YEL}gfetch${c0} = ${CYA}git fetch --tags${c0}\n" &&
-printf "alias ${YEL}rebase${c0} = ${CYA}git rebase-update${c0}\n" &&
-printf "alias ${YEL}gsync${c0} = ${CYA}gclient sync --with_branch_heads --with_tags -f -R -D${c0}\n" &&
-printf "alias ${YEL}args${c0} = ${CYA}gn args out/thorium${c0}\n" &&
-printf "alias ${YEL}gnls${c0} = ${CYA}gn ls out/thorium${c0}\n" &&
-printf "alias ${YEL}show${c0} = ${CYA}git show-ref${c0}\n" &&
-printf "alias ${YEL}runhooks${c0} = ${CYA}gclient runhooks${c0}\n" &&
-printf "alias ${YEL}pgo${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=linux update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
-printf "alias ${YEL}pgow${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=win64 update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
-printf "alias ${YEL}pgom${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=mac update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
-printf "alias ${YEL}pgomac-arm${c0} = ${CYA}python3 tools/update_pgo_profiles.py --target=mac-arm update --gs-url-base=chromium-optimization-profiles/pgo_profiles${c0}\n" &&
-printf "\n" &&
-
-cat logos/thorium_ascii_art.txt &&
-
-printf "${GRE}Done. ${YEL}You can now run \'./patch_xp.sh\'\n"
-printf "\n" &&
 tput sgr0
