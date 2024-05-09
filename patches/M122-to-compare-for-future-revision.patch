@@ -1,11 +1,11 @@
 diff --git a/README.md b/README.md
-index 590f4c94f2067..7091f956b88b7 100644
+index 590f4c94f2067..80a4adbff85f5 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,21 +1,36 @@
 -# ![Logo](chrome/app/theme/chromium/product_logo_64.png) Chromium
 +# Supermium + Thorium
-+An up-to-date, compiler optimized Chromium-based web browser compatible with Windows 7, 8, and 8.1.
++An up-to-date, compiler optimized Chromium-based web browser compatible with Windows XP, Vista, 7, 8, and 8.1.
  
 -Chromium is an open-source browser project that aims to build a safer, faster,
 -and more stable way for all users to experience the web.
@@ -316,6 +316,36 @@ index c6445f267971f..5e19e5f01869b 100644
  
  #if BUILDFLAG(HAS_64_BIT_POINTERS) && \
      (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_ANDROID))
+diff --git a/base/allocator/partition_allocator/src/partition_alloc/shim/shim_alloc_functions.h b/base/allocator/partition_allocator/src/partition_alloc/shim/shim_alloc_functions.h
+index c322138dff6ea..002ab978e4123 100644
+--- a/base/allocator/partition_allocator/src/partition_alloc/shim/shim_alloc_functions.h
++++ b/base/allocator/partition_allocator/src/partition_alloc/shim/shim_alloc_functions.h
+@@ -19,6 +19,15 @@
+ #include "partition_alloc/partition_alloc_buildflags.h"
+ #include "partition_alloc/partition_alloc_check.h"
+ 
++#if BUILDFLAG(IS_WIN)
++#include <Windows.h>
++extern "C" {
++VOID __stdcall TLSInit_DllMain_ThreadAttach(IMAGE_DOS_HEADER* DllBase);
++}
++EXTERN_C IMAGE_DOS_HEADER __ImageBase;
++#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
++#endif
++
+ namespace {
+ 
+ PA_ALWAYS_INLINE size_t GetCachedPageSize() {
+@@ -112,6 +121,9 @@ PA_ALWAYS_INLINE void* ShimMalloc(size_t size, void* context) {
+ }
+ 
+ PA_ALWAYS_INLINE void* ShimCalloc(size_t n, size_t size, void* context) {
++  #if BUILDFLAG(IS_WIN)
++	TLSInit_DllMain_ThreadAttach(&__ImageBase);
++  #endif
+   const allocator_shim::AllocatorDispatch* const chain_head =
+       allocator_shim::internal::GetChainHead();
+   void* ptr;
 diff --git a/base/command_line.cc b/base/command_line.cc
 index 69e4303165259..da42a22ed2894 100644
 --- a/base/command_line.cc
@@ -339,16 +369,16 @@ index 69e4303165259..da42a22ed2894 100644
  }
  
 diff --git a/base/features.cc b/base/features.cc
-index 50cb76282689b..82151c93ffd3e 100644
+index 50cb76282689b..ef0aaa5d56db4 100644
 --- a/base/features.cc
 +++ b/base/features.cc
 @@ -34,6 +34,20 @@ BASE_FEATURE(kUseRustJsonParser,
  
  BASE_FEATURE(kJsonNegativeZero, "JsonNegativeZero", FEATURE_ENABLED_BY_DEFAULT);
  
-+
-+
-+
++BASE_FEATURE(kForceDarkModeFlag,
++             "ForceDarkModeFlag",
++             base::FEATURE_DISABLED_BY_DEFAULT);
 +
 +BASE_FEATURE(kIncognitoBrandConsistencyForDesktop,
 +			"IncognitoBrandConsistencyForDesktop",
@@ -364,14 +394,14 @@ index 50cb76282689b..82151c93ffd3e 100644
  // Force to enable LowEndDeviceMode partially on Android 3Gb devices.
  // (see PartialLowEndModeOnMidRangeDevices below)
 diff --git a/base/features.h b/base/features.h
-index a80ac17fb20d1..6b050f7b8bc60 100644
+index a80ac17fb20d1..167b5467076f0 100644
 --- a/base/features.h
 +++ b/base/features.h
 @@ -25,6 +25,14 @@ BASE_EXPORT BASE_DECLARE_FEATURE(kUseRustJsonParser);
  
  BASE_EXPORT BASE_DECLARE_FEATURE(kJsonNegativeZero);
  
-+
++BASE_EXPORT BASE_DECLARE_FEATURE(kForceDarkModeFlag);
 +
 +BASE_EXPORT BASE_DECLARE_FEATURE(kIncognitoBrandConsistencyForDesktop);
 +
@@ -854,14 +884,33 @@ index 6aae763d98715..f1f21d13fba42 100644
  
  }  // namespace
 diff --git a/base/sampling_heap_profiler/poisson_allocation_sampler.cc b/base/sampling_heap_profiler/poisson_allocation_sampler.cc
-index 9c449e95ee85d..ea299d25f35ef 100644
+index 9c449e95ee85d..56ad97b314221 100644
 --- a/base/sampling_heap_profiler/poisson_allocation_sampler.cc
 +++ b/base/sampling_heap_profiler/poisson_allocation_sampler.cc
-@@ -241,6 +241,7 @@ void PoissonAllocationSampler::DoRecordAllocation(
+@@ -20,6 +20,15 @@
+ #include "build/build_config.h"
+ #include "third_party/abseil-cpp/absl/base/attributes.h"
+ 
++#if BUILDFLAG(IS_WIN)
++#include <windows.h>
++extern "C" {
++VOID __stdcall TLSInit_DllMain_ThreadAttach(IMAGE_DOS_HEADER* DllBase);
++}
++EXTERN_C IMAGE_DOS_HEADER __ImageBase;
++#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
++#endif
++
+ namespace base {
+ 
+ namespace {
+@@ -241,6 +250,10 @@ void PoissonAllocationSampler::DoRecordAllocation(
      size_t size,
      base::allocator::dispatcher::AllocationSubsystem type,
      const char* context) {
 +
++  #if BUILDFLAG(IS_WIN)
++	TLSInit_DllMain_ThreadAttach(&__ImageBase);
++  #endif
    ThreadLocalData* const thread_local_data = GetThreadLocalData();
  
    thread_local_data->accumulated_bytes += size;
@@ -1238,6 +1287,35 @@ index 3a6e0c9f3774c..c4a802c85d6ed 100644
 +
  // The following stubs are provided for when component build is enabled, in
  // order to avoid the propagation of delay-loading CoreWinRT to other modules.
+ 
+diff --git a/base/win/dllmain.cc b/base/win/dllmain.cc
+index 0c5546fb1b406..8bb1b45f053c6 100644
+--- a/base/win/dllmain.cc
++++ b/base/win/dllmain.cc
+@@ -89,9 +89,24 @@ NOINLINE static void CrashOnProcessDetach() {
+   *static_cast<volatile int*>(nullptr) = 0x356;
+ }
+ 
++extern "C" {
++
++VOID __stdcall TLSInit_DllMain_ProcessAttach(PVOID DllBase);
++
++VOID __stdcall TLSInit_DllMain_ThreadAttach(PVOID DllBase);
++
++}
++
+ // Make DllMain call the listed callbacks.  This way any third parties that are
+ // linked in will also be called.
+ BOOL WINAPI DllMain(PVOID h, DWORD reason, PVOID reserved) {
++
++  if (DLL_PROCESS_ATTACH == reason)
++	  TLSInit_DllMain_ProcessAttach(h); // Implicit TLS initialization code for Windows XP and below
++                                             // Implemented in progwrp.dll.
++  if (DLL_THREAD_ATTACH == reason)
++	  TLSInit_DllMain_ThreadAttach(h);
++
+   if (DLL_PROCESS_DETACH == reason && base::win::ShouldCrashOnProcessDetach())
+     CrashOnProcessDetach();
  
 diff --git a/base/win/hstring_reference.cc b/base/win/hstring_reference.cc
 index b254fc64310a1..6b2b1a6290990 100644
@@ -1628,7 +1706,7 @@ index 4c93dcfabf658..85f83dab8192b 100644
  
  bool ScopedWinrtInitializer::Succeeded() const {
 diff --git a/base/win/win_util.cc b/base/win/win_util.cc
-index 25cc9b48a4d14..e710062d4d539 100644
+index 25cc9b48a4d14..175800bb10574 100644
 --- a/base/win/win_util.cc
 +++ b/base/win/win_util.cc
 @@ -39,6 +39,7 @@
@@ -1734,7 +1812,7 @@ index 25cc9b48a4d14..e710062d4d539 100644
    // is left in place, however this allows us to crash earlier. And it also
    // lets us crash in response to code which might directly call raise(SIGABRT)
 -  signal(SIGABRT, ForceCrashOnSigAbort);
-+  // signal(SIGABRT, ForceCrashOnSigAbort);
++ // signal(SIGABRT, ForceCrashOnSigAbort);
  }
  
  bool IsTabletDevice(std::string* reason, HWND hwnd) {
@@ -1790,8 +1868,29 @@ index 5c54819e4b85a..8f3f64f29011a 100644
    const std::vector<uint8_t> data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
    Microsoft::WRL::ComPtr<ABI::Windows::Storage::Streams::IBuffer> buffer;
    ASSERT_HRESULT_SUCCEEDED(
+diff --git a/build/config/BUILD.gn b/build/config/BUILD.gn
+index f341687194878..a1da6be7a8e22 100644
+--- a/build/config/BUILD.gn
++++ b/build/config/BUILD.gn
+@@ -162,6 +162,8 @@ config("default_libs") {
+     # instead the targets that use the less common ones (e.g. wininet or
+     # winspool) should include those explicitly.
+     libs = [
++      "progwrp.lib",
++      "ntdll.lib",
+       "advapi32.lib",
+       "comdlg32.lib",
+       "dbghelp.lib",
+@@ -171,6 +173,7 @@ config("default_libs") {
+       "odbc32.lib",
+       "odbccp32.lib",
+       "oleaut32.lib",
++      "psapi.lib",
+       "shell32.lib",
+       "shlwapi.lib",
+       "user32.lib",
 diff --git a/cc/tiles/software_image_decode_cache_utils.cc b/cc/tiles/software_image_decode_cache_utils.cc
-index 1a0a378f11b89..84857d3b82fcd 100644
+index 1a0a378f11b89..a27dfb3ac0c01 100644
 --- a/cc/tiles/software_image_decode_cache_utils.cc
 +++ b/cc/tiles/software_image_decode_cache_utils.cc
 @@ -9,8 +9,10 @@
@@ -1817,26 +1916,6 @@ index 1a0a378f11b89..84857d3b82fcd 100644
  namespace cc {
  namespace {
  // If the size of the original sized image breaches kMemoryRatioToSubrect but we
-@@ -71,6 +78,19 @@ SoftwareImageDecodeCacheUtils::DoDecodeImage(
-     base::OnceClosure on_no_memory) {
-   const SkISize target_size =
-       SkISize::Make(key.target_size().width(), key.target_size().height());
-+#if BUILDFLAG (IS_WIN) && _M_IX86
-+  // Supermium (#507): Options for limiting the size of loaded images are very limited.
-+  // Insufficient information is available at all levels on the size of the image data.
-+  // So the best that can be done is to block image loading if it will increase the memory usage
-+  // of a 32 bit process to more than 1.1 GB.
-+  PROCESS_MEMORY_COUNTERS pmc;
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("enable-webbloat-mitigation") &&
-+     ::GetProcessMemoryInfo(::GetCurrentProcess(), &pmc, sizeof(PROCESS_MEMORY_COUNTERS)) &&
-+     (target_size.fWidth * target_size.fHeight * 4) + pmc.PagefileUsage > 1100000000) {
-+       LOG(ERROR) << "Thorium attempted to load an image of size " << target_size.fWidth * target_size.fHeight << " pixels";
-+       return nullptr;
-+  }
-+#endif
-   DCHECK(target_size == paint_image.GetSupportedDecodeSize(target_size));
-   sk_sp<SkColorSpace> target_color_space =
-       key.target_color_params().color_space.ToSkColorSpace();
 diff --git a/chrome/app/chrome_exe_main_win.cc b/chrome/app/chrome_exe_main_win.cc
 index 0aced300d8dce..d2c530353eca4 100644
 --- a/chrome/app/chrome_exe_main_win.cc
@@ -2155,7 +2234,7 @@ index de3be2eec25cc..93e34b76376f6 100644
      // "LoginCustomFlags" in tools/metrics/histograms/enums.xml. See "Flag
      // Histograms" in tools/metrics/histograms/README.md (run the
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
-index 57cb42c63eb6a..b3db6309c5f59 100644
+index 57cb42c63eb6a..486f27737519f 100644
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
 @@ -20,11 +20,13 @@
@@ -2331,7 +2410,7 @@ index 1d9342a94ad70..c12ef488478df 100644
    HRESULT hr = base::win::GetActivationFactory<
        IUserConsentVerifierStatics,
 diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrome/browser/download/chrome_download_manager_delegate.cc
-index 201cd68c5175c..ee254bc3b7663 100644
+index 201cd68c5175c..aed9ef6c63595 100644
 --- a/chrome/browser/download/chrome_download_manager_delegate.cc
 +++ b/chrome/browser/download/chrome_download_manager_delegate.cc
 @@ -57,6 +57,7 @@
@@ -2346,7 +2425,7 @@ index 201cd68c5175c..ee254bc3b7663 100644
  bool ChromeDownloadManagerDelegate::ShouldBlockFile(
      download::DownloadItem* item,
      download::DownloadDangerType danger_type) const {
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload) || base::CommandLine::ForCurrentProcess()->HasSwitch("allow-insecure-downloads") ||
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kDisableDownloadUpload) ||
 +		base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kUngoogledThorium))	{
 +	  return false;
 +  }
@@ -2447,7 +2526,7 @@ index 16c5b86a66345..6ad24e278dcb0 100644
    if (!global_settings_->install_sources.has_value())
      return false;
 diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
-index d70932e1ad965..f339f340eacdd 100644
+index d70932e1ad965..56c6b3464ab28 100644
 --- a/chrome/browser/flag-metadata.json
 +++ b/chrome/browser/flag-metadata.json
 @@ -1765,6 +1765,11 @@
@@ -2456,7 +2535,7 @@ index d70932e1ad965..f339f340eacdd 100644
    },
 +  {
 +    "name": "disable-download-upload",
-+    "owners": [ "win32", "supermium" ],
++    "owners": [ "win32", "thorium" ],
 +    "expiry_milestone": -1
 +  },
    {
@@ -2468,25 +2547,25 @@ index d70932e1ad965..f339f340eacdd 100644
    },
 +  {
 +    "name": "disable-windows-10-custom-titlebar",
-+    "owners": [ "win32ss", "alex313031" ],
++    "owners": [ "win32", "thorium" ],
 +    "expiry_milestone": -1
 +  },
    {
      "name": "disallow-doc-written-script-loads",
      "owners": [ "//chrome/browser/data_saver/OWNERS" ],
-@@ -4507,6 +4523,11 @@
+@@ -4507,6 +4517,11 @@
      // have no access to commandline flags.
      "expiry_milestone": -1
    },
 +  {
-+    "name": "disable-aero",
-+    "owners": [ "win32ss", "alex313031" ],
++    "name": "force-xp-theme",
++    "owners": [ "win32", "thorium" ],
 +    "expiry_milestone": -1
 +  },
    {
      "name": "forced-colors",
      "owners": [ "almaher@microsoft.com" ],
-@@ -4888,11 +4909,6 @@
+@@ -4888,11 +4903,6 @@
      "owners": [ "//chrome/android/feed/OWNERS", "jianli@chromium.org" ],
      "expiry_milestone": 130
    },
@@ -2499,7 +2578,7 @@ index d70932e1ad965..f339f340eacdd 100644
      "name": "install-isolated-web-app-from-url",
      "owners": [ "kuragin@chromium.org", "reillyg@chromium.org", "rmcelrath@chromium.org" ],
 diff --git a/chrome/browser/flag-never-expire-list.json b/chrome/browser/flag-never-expire-list.json
-index a0af02d2a73eb..d91f528af0605 100644
+index a0af02d2a73eb..cb11c893bf0ae 100644
 --- a/chrome/browser/flag-never-expire-list.json
 +++ b/chrome/browser/flag-never-expire-list.json
 @@ -32,10 +32,12 @@
@@ -2527,7 +2606,7 @@ index a0af02d2a73eb..d91f528af0605 100644
    "force-text-direction",
    "force-ui-direction",
    "force-update-menu-type",
-+  "disable-aero",
++  "force-xp-theme",
    "fullscreen-promos-manager-skip-internal-limits",
    "fullscreen-viewport-adjustment-experiment",
    "gesture-properties-dbus-service",
@@ -2540,7 +2619,7 @@ index a0af02d2a73eb..d91f528af0605 100644
    "update-menu-item-custom-summary",
    "use-android-staging-smds",
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
-index 8385c597f050e..c8b21c41162d4 100644
+index 8385c597f050e..6d501018c95ac 100644
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
 @@ -1818,6 +1818,18 @@ const char kDrawImmediatelyWhenInteractiveDescription[] =
@@ -2551,12 +2630,12 @@ index 8385c597f050e..c8b21c41162d4 100644
 +    "Enable Incognito brand consistency in desktop.";
 +const char kIncognitoBrandConsistencyForDesktopDescription[] =
 +    "When enabled, removes any theme or background customization done by the "
-+    "user when in Incognito mode.";
++    "user on the Incognito UI.";
 +
 +const char kInheritNativeThemeFromParentWidgetName[] =
 +    "Allow widgets to inherit native theme from its parent widget.";
 +const char kInheritNativeThemeFromParentWidgetDescription[] =
-+    "When enabled, secondary UI like menus, dialog etc would be in dark mode "
++    "When enabled, secondary UI like menu, dialog etc would be in dark mode "
 +    "when Incognito mode is open.";
 +
  const char kFillingAcrossGroupedSitesName[] =
@@ -2570,9 +2649,9 @@ index 8385c597f050e..c8b21c41162d4 100644
 +const char kForceGdiDescription[] =
 +    "Use GDI font rendering in place of DirectWrite font rendering on Windows.";
 +
-+const char kDisableWindows10CustomTitlebarName[] = "Force disable Windows 10 custom titlebar";
++const char kDisableWindows10CustomTitlebarName[] = "Force disabling of Windows 10 custom titlebar";
 +const char kDisableWindows10CustomTitlebarDescription[] =
-+    "Disable the \"Windows 10\" custom titlebar to take advantage of Aero Glass fixes for Windows 7.";
++    "Disable the \"Windows 10\" custom titlebar to take advantage of Aero Glass fixes for the operating system.";
 +
  const char kForceUiDirectionName[] = "Force UI direction";
  const char kForceUiDirectionDescription[] =
@@ -2592,29 +2671,29 @@ index 8385c597f050e..c8b21c41162d4 100644
  const char kAutoWebContentsDarkModeDescription[] =
      "Automatically render all web contents using a dark theme.";
  
++const char kForceDarkModeFlagName[] = "Forced Dark Mode for UI";
++const char kForceDarkModeFlagDescription[] =
++	"Enables dark mode for all UI elements (but not web contents - "
++	"enable #enable-force-dark for darkening web contents).";
 +
-+
-+
-+
-+
-+const char kDisableAeroThemeName[] = "Use Classic Theme: Disable Aero Window Frame Compositing";
-+const char kDisableAeroThemeDescription[] =
-+	"Use the classic Chromium theme designed to mimick \"Aero\" window controls. "
++const char kForceXpThemeName[] = "Use Classic Theme";
++const char kForceXpThemeDescription[] =
++	"Use the classic Chrome theme designed to mimick \"Aero\" window controls. "
 +	"Typically used when desktop composition is disabled or unavailable.";
 +
  const char kForcedColorsName[] = "Forced Colors";
  const char kForcedColorsDescription[] =
      "Enables forced colors mode for web content.";
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
-index a023e473a3c31..09375d54c9e93 100644
+index a023e473a3c31..3ea23cfcdccd3 100644
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
 @@ -1601,6 +1601,18 @@ extern const char kParallelDownloadingDescription[];
  extern const char kPasswordGenerationExperimentName[];
  extern const char kPasswordGenerationExperimentDescription[];
  
-+
-+
++extern const char kDisableDownloadUploadName[];
++extern const char kDisableDownloadUploadDescription[];
 +
 +extern const char kUngoogledThoriumName[];
 +extern const char kUngoogledThoriumDescription[];
@@ -2632,16 +2711,16 @@ index a023e473a3c31..09375d54c9e93 100644
  extern const char kAutoWebContentsDarkModeName[];
  extern const char kAutoWebContentsDarkModeDescription[];
  
++extern const char kForceDarkModeFlagName[];
++extern const char kForceDarkModeFlagDescription[];
 +
-+
-+
-+extern const char kDisableAeroThemeName[];
-+extern const char kDisableAeroThemeDescription[];
++extern const char kForceXpThemeName[];
++extern const char kForceXpThemeDescription[];
 +
  extern const char kForcedColorsName[];
  extern const char kForcedColorsDescription[];
  
-@@ -4612,6 +4635,12 @@ extern const char kTheoraVideoCodecDescription[];
+@@ -4612,6 +4630,12 @@ extern const char kTheoraVideoCodecDescription[];
  extern const char kForceSigninFlowInProfilePickerName[];
  extern const char kForceSigninFlowInProfilePickerDescription[];
  
@@ -2654,6 +2733,20 @@ index a023e473a3c31..09375d54c9e93 100644
  // ============================================================================
  // Don't just add flags to the end, put them in the right section in
  // alphabetical order. See top instructions for more.
+diff --git a/chrome/browser/metrics/chrome_feature_list_creator.cc b/chrome/browser/metrics/chrome_feature_list_creator.cc
+index 4013c8788b569..38fdd6c19a8e1 100644
+--- a/chrome/browser/metrics/chrome_feature_list_creator.cc
++++ b/chrome/browser/metrics/chrome_feature_list_creator.cc
+@@ -91,6 +91,9 @@ GetSwitchDependentFeatureOverrides(const base::CommandLine& command_line) {
+       {switches::kEnableDownloadWarningImprovements,
+        std::cref(safe_browsing::kDeepScanningEncryptedArchives),
+        base::FeatureList::OVERRIDE_ENABLE_FEATURE},
++      {switches::kEnableDownloadWarningImprovements,
++       std::cref(safe_browsing::kDownloadBubble),
++       base::FeatureList::OVERRIDE_ENABLE_FEATURE},
+       {switches::kEnableDownloadWarningImprovements,
+        std::cref(safe_browsing::kDownloadTailoredWarnings),
+        base::FeatureList::OVERRIDE_ENABLE_FEATURE},
 diff --git a/chrome/browser/notifications/notification_platform_bridge_win.cc b/chrome/browser/notifications/notification_platform_bridge_win.cc
 index f8f6950152bcb..b951f482802a2 100644
 --- a/chrome/browser/notifications/notification_platform_bridge_win.cc
@@ -4698,7 +4791,7 @@ diff --git a/chrome/browser/ui/browser_commands.cc b/chrome/browser/ui/browser_c
 index 2feee0eb96a33..9749a09c6f019 100644
 --- a/chrome/browser/ui/browser_commands.cc
 +++ b/chrome/browser/ui/browser_commands.cc
-@@ -1310,7 +1310,8 @@ void BookmarkCurrentTab(Browser* browser) {
+@@ -1315,7 +1315,8 @@ void BookmarkCurrentTab(Browser* browser) {
    bool was_bookmarked_by_user = bookmarks::IsBookmarkedByUser(model, url);
  #if !BUILDFLAG(IS_ANDROID)
    PrefService* prefs = browser->profile()->GetPrefs();
@@ -4949,7 +5042,7 @@ index bd38b23f61c16..0f266a3b5496a 100644
  
    return true;
 diff --git a/chrome/browser/ui/tabs/tab_style.cc b/chrome/browser/ui/tabs/tab_style.cc
-index aa9cd30374311..28091f8229b2b 100644
+index aa9cd30374311..cf5df92f1a052 100644
 --- a/chrome/browser/ui/tabs/tab_style.cc
 +++ b/chrome/browser/ui/tabs/tab_style.cc
 @@ -4,6 +4,7 @@
@@ -4971,15 +5064,17 @@ index aa9cd30374311..28091f8229b2b 100644
    // The overlap includes one separator, so subtract it here.
    return kTabWidth + GetTabOverlap() - GetSeparatorSize().width();
  }
-@@ -118,6 +121,8 @@ int GM2TabStyle::GetMinimumInactiveWidth() const {
+@@ -118,7 +121,9 @@ int GM2TabStyle::GetMinimumInactiveWidth() const {
  }
  
  int GM2TabStyle::GetTabOverlap() const {
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("rectangular-tabs"))
-+      return -6;
-   return GetBottomCornerRadius() * 2 + GetSeparatorSize().width();
+-  return GetBottomCornerRadius() * 2 + GetSeparatorSize().width();
++	if (base::CommandLine::ForCurrentProcess()->HasSwitch("rectangular-tabs"))
++	    return -6;
++	return GetBottomCornerRadius() * 2 + GetSeparatorSize().width();
  }
  
+ int GM2TabStyle::GetDragHandleExtension(int height) const {
 @@ -126,8 +131,15 @@ int GM2TabStyle::GetDragHandleExtension(int height) const {
  }
  
@@ -5061,7 +5156,7 @@ diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
 index a5621a1406701..a89093804ccfc 100644
 --- a/chrome/browser/ui/ui_features.cc
 +++ b/chrome/browser/ui/ui_features.cc
-@@ -99,6 +99,11 @@ BASE_FEATURE(kLightweightExtensionOverrideConfirmations,
+@@ -98,6 +98,11 @@ BASE_FEATURE(kLightweightExtensionOverrideConfirmations,
               base::FEATURE_ENABLED_BY_DEFAULT);
  #endif
  
@@ -5994,7 +6089,7 @@ index a52bb8913d37f..1c1c20afe32df 100644
  
    // Ignore the system theme for web apps with window-controls-overlay as the
 diff --git a/chrome/browser/ui/views/frame/browser_frame_view_win.cc b/chrome/browser/ui/views/frame/browser_frame_view_win.cc
-index bd59ccd1b1784..ad3a40764aa36 100644
+index bd59ccd1b1784..c7885ee26f989 100644
 --- a/chrome/browser/ui/views/frame/browser_frame_view_win.cc
 +++ b/chrome/browser/ui/views/frame/browser_frame_view_win.cc
 @@ -10,6 +10,7 @@
@@ -6012,7 +6107,7 @@ index bd59ccd1b1784..ad3a40764aa36 100644
 -  const int x = CaptionButtonsOnLeadingEdge() ? CaptionButtonsRegionWidth() : 0;
 +  int x = CaptionButtonsOnLeadingEdge() ? CaptionButtonsRegionWidth() : 0;
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
-+      x = 8;
++	  x = 8;
    int end_x = width();
    if (!CaptionButtonsOnLeadingEdge()) {
      end_x = std::min(width() - CaptionButtonsRegionWidth(), end_x);
@@ -6082,7 +6177,7 @@ index 8f24aba4b8a61..c7ad27ec219e9 100644
    // Paint various sub-components of this view.
    void PaintTitlebar(gfx::Canvas* canvas) const;
 diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
-index a3090da2ca8b4..21c73e4902f76 100644
+index a3090da2ca8b4..3c13e0d5f5f39 100644
 --- a/chrome/browser/ui/views/frame/browser_view.cc
 +++ b/chrome/browser/ui/views/frame/browser_view.cc
 @@ -1895,6 +1895,9 @@ void BrowserView::UpdateExclusiveAccessExitBubbleContent(
@@ -6096,7 +6191,7 @@ index a3090da2ca8b4..21c73e4902f76 100644
    bool is_trusted_pinned =
        platform_util::IsBrowserLockedFullscreen(browser_.get());
 diff --git a/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc b/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
-index 8a3f3e300bde5..5f2fa8826a9cb 100644
+index 8a3f3e300bde5..e29f1057d0214 100644
 --- a/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
 +++ b/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
 @@ -77,7 +77,9 @@ void OpaqueBrowserFrameViewLayout::SetButtonOrdering(
@@ -6106,7 +6201,7 @@ index 8a3f3e300bde5..5f2fa8826a9cb 100644
 -  const int x = available_space_leading_x_;
 +  int x = available_space_leading_x_;
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
-+      x = 8;
++	  x = 8;
    const int available_width = available_space_trailing_x_ - x;
    return gfx::Rect(x, GetTabStripInsetsTop(false), std::max(0, available_width),
                     tabstrip_minimum_size.height());
@@ -6156,7 +6251,7 @@ index ccafa0c6ed945..8e003293c011b 100644
    // Exit UI is unnecessary, since Mac uses the OS fullscreen such that window
    // menu and controls reveal when the cursor is moved to the top.
 diff --git a/chrome/browser/ui/views/location_bar/location_bar_view.cc b/chrome/browser/ui/views/location_bar/location_bar_view.cc
-index b4b2f01a846a7..5f12d63bcf7de 100644
+index b4b2f01a846a7..87c239440de47 100644
 --- a/chrome/browser/ui/views/location_bar/location_bar_view.cc
 +++ b/chrome/browser/ui/views/location_bar/location_bar_view.cc
 @@ -9,6 +9,7 @@
@@ -6172,8 +6267,8 @@ index b4b2f01a846a7..5f12d63bcf7de 100644
        views::FocusRing::Get(this)->SetOutsetFocusRingDisabled(true);
      }
 -    views::InstallPillHighlightPathGenerator(this);
-+    if (!base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
-+        views::InstallPillHighlightPathGenerator(this);
++	if (!base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++		views::InstallPillHighlightPathGenerator(this);
  
  #if BUILDFLAG(IS_MAC)
      geolocation_permission_observation_.Observe(
@@ -6182,7 +6277,7 @@ index b4b2f01a846a7..5f12d63bcf7de 100644
      params.types_enabled.push_back(PageActionIconType::kSendTabToSelf);
      params.types_enabled.push_back(PageActionIconType::kClickToCall);
 -    params.types_enabled.push_back(PageActionIconType::kQRCodeGenerator);
-+    if (!base::FeatureList::IsEnabled(kDisableQRGenerator))
++	if (!base::FeatureList::IsEnabled(kDisableQRGenerator))
 +      params.types_enabled.push_back(PageActionIconType::kQRCodeGenerator);
      if (base::FeatureList::IsEnabled(kWebOTPCrossDevice))
        params.types_enabled.push_back(PageActionIconType::kSmsRemoteFetcher);
@@ -6191,9 +6286,9 @@ index b4b2f01a846a7..5f12d63bcf7de 100644
        params.types_enabled.push_back(PageActionIconType::kIntentPicker);
      }
 -    params.types_enabled.push_back(PageActionIconType::kPwaInstall);
-+    if (!base::CommandLine::ForCurrentProcess()->HasSwitch("disable-pwa-install-prompt")) {
++	if (!base::CommandLine::ForCurrentProcess()->HasSwitch("disable-pwa-install-prompt")) {
 +      params.types_enabled.push_back(PageActionIconType::kPwaInstall);
-+    }
++	}
      params.types_enabled.push_back(PageActionIconType::kFind);
      params.types_enabled.push_back(PageActionIconType::kTranslate);
      params.types_enabled.push_back(PageActionIconType::kZoom);
@@ -6201,37 +6296,49 @@ index b4b2f01a846a7..5f12d63bcf7de 100644
    if (browser_) {
      if (sharing_hub::HasPageAction(profile_, is_popup_mode_) &&
          !features::IsChromeRefresh2023()) {
-+      if (!base::CommandLine::ForCurrentProcess()->HasSwitch("disable-sharing-hub"))
+-      params.types_enabled.push_back(PageActionIconType::kSharingHub);
++	  if (!base::CommandLine::ForCurrentProcess()->HasSwitch("disable-sharing-hub"))
        params.types_enabled.push_back(PageActionIconType::kSharingHub);
      }
    }
+   if (browser_ && !is_popup_mode_)
 @@ -431,6 +437,8 @@ bool LocationBarView::IsInitialized() const {
  }
  
  int LocationBarView::GetBorderRadius() const {
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
-+      return 3;
++	  return 3;
    return ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
        views::Emphasis::kMaximum, size());
  }
-@@ -1151,6 +1159,8 @@ void LocationBarView::RefreshBackground() {
+@@ -1150,19 +1158,25 @@ void LocationBarView::RefreshBackground() {
+     // applied.
      border_color = color_provider->GetColor(kColorLocationBarBorderOnMismatch);
    }
- 
+-
+-  if (is_popup_mode_) {
 +  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox-border"))
-+      border_color = SK_ColorGRAY;
-   if (is_popup_mode_) {
++	  border_color = SK_ColorGRAY;
++    if (is_popup_mode_) {
      SetBackground(views::CreateSolidBackground(background_color));
-   } else {
-@@ -1163,6 +1173,11 @@ void LocationBarView::RefreshBackground() {
+-  } else {
++    } else {
+     SetBackground(CreateRoundRectBackground(
+         background_color, border_color, /*blend_mode=*/SkBlendMode::kSrcOver,
+         /*antialias=*/true, /*should_border_scale=*/true));
+-  }
++    }
+ 
+   // Keep the views::Textfield in sync. It needs an opaque background to
    // correctly enable subpixel AA.
    omnibox_view_->SetBackgroundColor(background_color);
- 
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox-border") && base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
-+    // When the location bar is shrunken, the border above is only drawn on the sides.
-+    // To resolve this, an extra border is drawn in that area on the top and bottom.
-+    // Ideally, only one border would be drawn.
-+    omnibox_view_->SetBorder(views::CreateSolidSidedBorder(gfx::Insets::TLBR(1, 0, 1, 0), SK_ColorGRAY));
+-
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox") &&
++      base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
++        // When the location bar is shrunken, the border above is only drawn on the sides.
++        // To resolve this, an extra border is drawn in that area on the top and bottom.
++        // Ideally, only one border would be drawn.
++	omnibox_view_->SetBorder(views::CreateSolidSidedBorder(gfx::Insets::TLBR(1, 0, 1, 0), SK_ColorGRAY));
    SchedulePaint();
  }
  
@@ -6518,7 +6625,7 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
  #include "base/i18n/rtl.h"
  #include "base/memory/raw_ptr.h"
  #include "base/numerics/safe_conversions.h"
-@@ -322,90 +333,108 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
+@@ -322,90 +323,106 @@ SkPath GM2TabStyleViews::GetPath(TabStyle::PathType path_type,
      // stroke width.
  
      // Start with the left side of the shape.
@@ -6709,7 +6816,7 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
    }
  
    // Convert path to be relative to the tab origin.
-@@ -664,6 +705,9 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
+@@ -664,6 +681,9 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
  
    const Tab* adjacent_tab =
        tab_->controller()->GetAdjacentTab(tab_, leading ? -1 : 1);
@@ -6719,7 +6826,7 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
  
    const Tab* left_tab = leading ? adjacent_tab : tab_.get();
    const Tab* right_tab = leading ? tab_.get() : adjacent_tab;
-@@ -671,6 +715,7 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
+@@ -671,6 +691,7 @@ float GM2TabStyleViews::GetSeparatorOpacity(bool for_layout,
        right_tab && right_tab->group().has_value() &&
        (!left_tab || left_tab->group() != right_tab->group());
  
@@ -6727,7 +6834,7 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
    // If the current tab is selected, default to hiding the separator. Only show
    // the separator if it's adjacent to other selected tabs.
    if (tab_->IsSelected()) {
-@@ -936,8 +981,21 @@ void GM2TabStyleViews::PaintTabBackgroundFill(
+@@ -936,8 +957,21 @@ void GM2TabStyleViews::PaintTabBackgroundFill(
      cc::PaintFlags flags;
      flags.setAntiAlias(true);
      flags.setColor(GetCurrentTabBackgroundColor(selection_state, hovered));
@@ -6750,7 +6857,7 @@ index 33c62c24cc521..2d2eeb9b0881f 100644
  
    if (fill_id.has_value()) {
 diff --git a/chrome/browser/ui/webui/settings/settings_utils_win.cc b/chrome/browser/ui/webui/settings/settings_utils_win.cc
-index c39f0509e7d3d..d898145962a05 100644
+index c39f0509e7d3d..705595afe1e3c 100644
 --- a/chrome/browser/ui/webui/settings/settings_utils_win.cc
 +++ b/chrome/browser/ui/webui/settings/settings_utils_win.cc
 @@ -14,6 +14,7 @@
@@ -6958,7 +7065,7 @@ index 48f413792d5aa..d87174bd1d78c 100644
  class BrowserView;
  
  BASE_DECLARE_FEATURE(kWindows11MicaTitlebar);
-+BASE_DECLARE_FEATURE(kDisableAeroTheme);
++BASE_DECLARE_FEATURE(kForceXpTheme);
  
  // Returns whether we should custom draw the titlebar for a browser window.
  bool ShouldBrowserCustomDrawTitlebar(BrowserView* browser_view);
@@ -6993,6 +7100,39 @@ index 37e2d2a50aa2c..196858a63c713 100644
  }
  
  # This target contains utility functions which must only depend on
+diff --git a/chrome/chrome_elf/chrome_elf_main.cc b/chrome/chrome_elf/chrome_elf_main.cc
+index 7ccdb12bf2258..2b706eb4463ca 100644
+--- a/chrome/chrome_elf/chrome_elf_main.cc
++++ b/chrome/chrome_elf/chrome_elf_main.cc
+@@ -49,6 +49,14 @@ bool GetUserDataDirectoryThunk(wchar_t* user_data_dir,
+   return true;
+ }
+ 
++extern "C" {
++
++VOID __stdcall TLSInit_DllMain_ProcessAttach(HMODULE DllBase);
++
++VOID __stdcall TLSInit_DllMain_ThreadAttach(HMODULE DllBase);
++
++}
++
+ // DllMain
+ // -------
+ // Warning: The OS loader lock is held during DllMain.  Be careful.
+@@ -59,6 +67,13 @@ bool GetUserDataDirectoryThunk(wchar_t* user_data_dir,
+ //         that will blow up with the loader lock held.
+ //         https://bugs.chromium.org/p/chromium/issues/detail?id=748949#c18
+ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID reserved) {
++
++  if (DLL_PROCESS_ATTACH == reason)
++	  TLSInit_DllMain_ProcessAttach(module); // Implicit TLS initialization code for Windows XP and below
++                                            // Implemented in progwrp.dll.
++  if (DLL_THREAD_ATTACH == reason)
++	  TLSInit_DllMain_ThreadAttach(module);
++
+   if (reason == DLL_PROCESS_ATTACH) {
+     install_static::InitializeProductDetailsForPrimaryModule();
+     install_static::InitializeProcessType();
 diff --git a/chrome/chrome_elf/chrome_elf_security.cc b/chrome/chrome_elf/chrome_elf_security.cc
 index e7bda43a9814b..00146f72d7a61 100644
 --- a/chrome/chrome_elf/chrome_elf_security.cc
@@ -9537,7 +9677,7 @@ index 9ef95f00eaacc..11378f7e96981 100644
      return;
  
 diff --git a/components/pdf/renderer/internal_plugin_renderer_helpers.cc b/components/pdf/renderer/internal_plugin_renderer_helpers.cc
-index 801003e99fe39..2e1b93c427f76 100644
+index 801003e99fe39..c6d1d1e2a541e 100644
 --- a/components/pdf/renderer/internal_plugin_renderer_helpers.cc
 +++ b/components/pdf/renderer/internal_plugin_renderer_helpers.cc
 @@ -29,7 +29,8 @@ namespace pdf {
@@ -9728,7 +9868,7 @@ diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
 index a460c6503d695..598067532ae00 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -2848,6 +2848,8 @@ source_set("browser") {
+@@ -2849,6 +2849,8 @@ source_set("browser") {
        "renderer_host/direct_manipulation_helper_win.h",
        "renderer_host/dwrite_font_file_util_win.cc",
        "renderer_host/dwrite_font_file_util_win.h",
@@ -11587,6 +11727,27 @@ index d0a5dbc454670..670c9a80489b8 100644
    // Returns the path to the browser shader disk cache root.
    virtual base::FilePath GetShaderDiskCacheDirectory();
  
+diff --git a/content/public/browser/frame_accept_header.cc b/content/public/browser/frame_accept_header.cc
+index 341a585720048..9d08e62fc9f01 100644
+--- a/content/public/browser/frame_accept_header.cc
++++ b/content/public/browser/frame_accept_header.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "content/public/browser/frame_accept_header.h"
+ 
++#include "base/command_line.h"
+ #include "content/browser/web_package/signed_exchange_consts.h"
+ #include "content/browser/web_package/signed_exchange_utils.h"
+ #include "content/common/content_constants_internal.h"
+@@ -12,6 +13,8 @@ namespace content {
+ 
+ std::string FrameAcceptHeaderValue(bool allow_sxg_responses,
+                                    BrowserContext* browser_context) {
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("http-accept-header"))
++     return base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII("http-accept-header");
+   std::string header_value = kFrameAcceptHeaderValue;
+ 
+   if (allow_sxg_responses &&
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 index 7890cd4195e8f..53b8c7b09f63f 100644
 --- a/content/public/common/content_features.cc
@@ -11627,12 +11788,13 @@ diff --git a/content/public/common/content_switches.cc b/content/public/common/c
 index 0e06580a8d496..43106e9dc7aa4 100644
 --- a/content/public/common/content_switches.cc
 +++ b/content/public/common/content_switches.cc
-@@ -1027,6 +1027,9 @@ const char kDeviceScaleFactor[]     = "device-scale-factor";
+@@ -1027,6 +1027,10 @@ const char kDeviceScaleFactor[]     = "device-scale-factor";
  // Disable the Legacy Window which corresponds to the size of the WebContents.
  const char kDisableLegacyIntermediateWindow[] = "disable-legacy-window";
  
-+// Enables H264 HW decode acceleration for WebRTC on Win 7.
-+const char kEnableWin7WebRtcHWH264Decoding[] = "enable-win7-webrtc-hw-h264-decoding";
++// Enables H264 HW decode acceleration for WebRtc on Win 7.
++const char kEnableWin7WebRtcHWH264Decoding[] =
++    "enable-win7-webrtc-hw-h264-decoding";
 +
  // DirectWrite FontCache is shared by browser to renderers using shared memory.
  // This switch allows us to pass the shared memory handle to the renderer.
@@ -11769,7 +11931,7 @@ index fb0d957ee5d88..245fcda505aba 100644
    ExecuteJavaScriptForTests("document.getElementById('test').focus();");
  
 diff --git a/content/renderer/renderer_blink_platform_impl.cc b/content/renderer/renderer_blink_platform_impl.cc
-index 619323f485c6a..8faa0e8848445 100644
+index 619323f485c6a..7fe31a29e46f6 100644
 --- a/content/renderer/renderer_blink_platform_impl.cc
 +++ b/content/renderer/renderer_blink_platform_impl.cc
 @@ -127,6 +127,10 @@
@@ -11783,7 +11945,7 @@ index 619323f485c6a..8faa0e8848445 100644
  using blink::Platform;
  using blink::WebAudioDevice;
  using blink::WebAudioLatencyHint;
-@@ -598,6 +602,25 @@ void RendererBlinkPlatformImpl::GetWebRTCRendererPreferences(
+@@ -598,6 +602,22 @@ void RendererBlinkPlatformImpl::GetWebRTCRendererPreferences(
    *allow_mdns_obfuscation = true;
  }
  
@@ -11796,11 +11958,8 @@ index 619323f485c6a..8faa0e8848445 100644
 +          switches::kEnableWin7WebRtcHWH264Decoding) &&
 +      video_codec_type == webrtc::kVideoCodecH264 &&
 +      base::win::GetVersion() == base::win::Version::WIN7) {
-+    DVLOG(1) << "WebRTC H.264 HW decoding is not supported on Win7";
++    DVLOG(1) << "H.264 HW decoding is not supported on Win7";
 +    return false;
-+  }
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kEnableWin7WebRtcHWH264Decoding)) {
-+    LOG(WARNING) << "WebRTC H.264 HW decoding is not supported on Windows 7";
 +  }
 +#endif  // BUILDFLAG(IS_WIN)
 +  return true;
@@ -11859,7 +12018,7 @@ index 4953e20861803..c7521519c31aa 100644
      if (!need_sandbox) {
        // The post-sandbox actions still need to happen at some point.
 diff --git a/content/renderer/renderer_main_platform_delegate_win.cc b/content/renderer/renderer_main_platform_delegate_win.cc
-index e7b8caa9ab118..93bccc4ed53fe 100644
+index e7b8caa9ab118..45b9f2823affb 100644
 --- a/content/renderer/renderer_main_platform_delegate_win.cc
 +++ b/content/renderer/renderer_main_platform_delegate_win.cc
 @@ -27,6 +27,18 @@
@@ -11887,7 +12046,7 @@ index e7b8caa9ab118..93bccc4ed53fe 100644
    // malicious code if the renderer gets compromised.
 -  bool no_sandbox =
 -      command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
-+  bool no_sandbox = command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
++  bool no_sandbox =command_line.HasSwitch(sandbox::policy::switches::kNoSandbox);
 +
 +  bool use_direct_write = gfx::win::ShouldUseDirectWrite();
 +
@@ -11901,7 +12060,7 @@ index e7b8caa9ab118..93bccc4ed53fe 100644
    if (!no_sandbox) {
      // ICU DateFormat class (used in base/time_format.cc) needs to get the
 diff --git a/content/shell/browser/shell_content_browser_client.cc b/content/shell/browser/shell_content_browser_client.cc
-index 3e0b86f6834c5..46e00b4581fbb 100644
+index 3e0b86f6834c5..3762ae6ac5267 100644
 --- a/content/shell/browser/shell_content_browser_client.cc
 +++ b/content/shell/browser/shell_content_browser_client.cc
 @@ -14,6 +14,7 @@
@@ -11912,7 +12071,7 @@ index 3e0b86f6834c5..46e00b4581fbb 100644
  #include "base/containers/cxx20_erase.h"
  #include "base/containers/flat_set.h"
  #include "base/feature_list.h"
-@@ -468,6 +468,11 @@ std::string ShellContentBrowserClient::GetDefaultDownloadName() {
+@@ -467,6 +467,11 @@ std::string ShellContentBrowserClient::GetDefaultDownloadName() {
    return "download";
  }
  
@@ -11969,6 +12128,58 @@ index e5c7230ffcaad..3906ff44e64a6 100644
  
   private:
    std::vector<FakeFont> fonts_;
+diff --git a/crypto/unexportable_key_win.cc b/crypto/unexportable_key_win.cc
+index 7e39e10de7be3..a3ad47adbfc54 100644
+--- a/crypto/unexportable_key_win.cc
++++ b/crypto/unexportable_key_win.cc
+@@ -367,6 +367,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
+     ScopedNCryptProvider provider;
+     {
+       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
++
++	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++		  return absl::nullopt;
++	  }
++
+       if (FAILED(NCryptOpenStorageProvider(
+               ScopedNCryptProvider::Receiver(provider).get(),
+               MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
+@@ -386,6 +391,11 @@ class UnexportableKeyProviderWin : public UnexportableKeyProvider {
+     ScopedNCryptProvider provider;
+     {
+       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
++
++	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++		  return nullptr;
++	  }
++
+       if (FAILED(NCryptOpenStorageProvider(
+               ScopedNCryptProvider::Receiver(provider).get(),
+               MS_PLATFORM_CRYPTO_PROVIDER, /*flags=*/0))) {
+@@ -612,6 +622,11 @@ class VirtualUnexportableKeyProviderWin
+     ScopedNCryptProvider provider;
+     {
+       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
++
++	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++		  return absl::nullopt;
++	  }
++
+       SECURITY_STATUS status = NCryptOpenStorageProvider(
+           ScopedNCryptProvider::Receiver(provider).get(),
+           MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
+@@ -634,6 +649,11 @@ class VirtualUnexportableKeyProviderWin
+     ScopedNCryptProvider provider;
+     {
+       SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
++
++	  if(!::LoadLibraryW(L"ncrypt.dll")) {
++		  return nullptr;
++	  }
++
+       SECURITY_STATUS status = NCryptOpenStorageProvider(
+           ScopedNCryptProvider::Receiver(provider).get(),
+           MS_KEY_STORAGE_PROVIDER, /*dwFlags=*/0);
 diff --git a/device/bluetooth/bluetooth_adapter_winrt.cc b/device/bluetooth/bluetooth_adapter_winrt.cc
 index a2ba812053fa5..195ec4ee6afe8 100644
 --- a/device/bluetooth/bluetooth_adapter_winrt.cc
@@ -18756,7 +18967,7 @@ index 5d352b58257ef..cd238276358fc 100644
        case ui::mojom::WindowOpenDisposition::NEW_WINDOW:
          *out = WindowOpenDisposition::NEW_WINDOW;
 diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
-index 152122c117cdd..a4ed4dcebce1e 100644
+index 152122c117cdd..2e95c6ee0e697 100644
 --- a/ui/base/ui_base_features.cc
 +++ b/ui/base/ui_base_features.cc
 @@ -11,6 +11,10 @@
@@ -18806,7 +19017,7 @@ index 152122c117cdd..a4ed4dcebce1e 100644
  // When enabled, images will be written to the system clipboard as both a TIFF
  // and a PNG (as opposed to just a TIFF). This requires encoding the sanitized
 diff --git a/ui/base/ui_base_features.h b/ui/base/ui_base_features.h
-index 67f99842c04e5..a8aac0c1e041f 100644
+index 67f99842c04e5..9aefd52c314ae 100644
 --- a/ui/base/ui_base_features.h
 +++ b/ui/base/ui_base_features.h
 @@ -57,6 +57,7 @@ BASE_DECLARE_FEATURE(kInputPaneOnScreenKeyboard);
@@ -19360,7 +19571,7 @@ index 2c27d56f29eaa..9c314a5185c7f 100644
  }
  
 diff --git a/ui/native_theme/native_theme_win.cc b/ui/native_theme/native_theme_win.cc
-index 50647269ec84f..3ae513ec2c66b 100644
+index 50647269ec84f..5de17d3762a79 100644
 --- a/ui/native_theme/native_theme_win.cc
 +++ b/ui/native_theme/native_theme_win.cc
 @@ -268,26 +268,104 @@ void NativeThemeWin::Paint(cc::PaintCanvas* canvas,
@@ -19491,13 +19702,13 @@ index 50647269ec84f..3ae513ec2c66b 100644
        case kTextField:
          break;  // Handled entirely below.
        case kMenuItemBackground:
-+	     break;
++		break;
        case kMenuPopupBackground:
-+	     break;
++	    break;
        case kMenuPopupGutter:
-+	     break;
++	    break;
        case kMenuPopupSeparator:
-+	     break;
++        break;
        case kScrollbarCorner:
        case kSliderTrack:
        case kSliderThumb:
@@ -19505,17 +19716,17 @@ index 50647269ec84f..3ae513ec2c66b 100644
      case kScrollbarVerticalGripper:
        return;  // No further painting necessary.
      case kMenuItemBackground:
-+      PaintMenuItemBackgroundClassic(hdc, state, rect, absl::get<MenuItemExtraParams>(extra));
-+      return;
++	  PaintMenuItemBackgroundClassic(hdc, state, rect, absl::get<MenuItemExtraParams>(extra));
++	  return;
      case kMenuPopupBackground:
-+      PaintMenuBackgroundClassic(hdc, rect);
-+      return;
++	  PaintMenuBackgroundClassic(hdc, rect);
++	  return;
      case kMenuPopupGutter:
-+      PaintMenuGutterClassic(hdc, rect);
-+      return;
++	  PaintMenuGutterClassic(hdc, rect);
++	  return;
      case kMenuPopupSeparator:
-+      PaintMenuSeparatorClassic(hdc, rect);
-+      return;
++	  PaintMenuSeparatorClassic(hdc, rect);
++	  return;
      case kScrollbarCorner:
      case kSliderTrack:
      case kSliderThumb:
@@ -19577,7 +19788,7 @@ index 50647269ec84f..3ae513ec2c66b 100644
  
  void NativeThemeWin::PaintScrollbarTrackClassic(
 diff --git a/ui/shell_dialogs/execute_select_file_win.cc b/ui/shell_dialogs/execute_select_file_win.cc
-index 9361287ac3411..4148c1cab9403 100644
+index 9361287ac3411..2cea92e7704aa 100644
 --- a/ui/shell_dialogs/execute_select_file_win.cc
 +++ b/ui/shell_dialogs/execute_select_file_win.cc
 @@ -4,16 +4,20 @@
@@ -19635,7 +19846,7 @@ index 9361287ac3411..4148c1cab9403 100644
 + for (const auto& filter_spec : filter) {
 +	std::u16string filter_str = filter_spec.description;
 +    filter_buffer.append(filter_str);
-+    filter_buffer.push_back(0);
++	filter_buffer.push_back(0);
 +	filter_str = filter_spec.extension_spec;
 +	filter_buffer.append(filter_str);
 +	filter_buffer.push_back(0);
@@ -19995,7 +20206,7 @@ index 9361287ac3411..4148c1cab9403 100644
 +	  // was opened).
 +	  std::wstring suggested_ext = GetExtensionWithoutLeadingDot(default_path.Extension());
 +      LOG(ERROR) << suggested_ext;
-+      LOG(ERROR) << filter_selected;
++	  LOG(ERROR) << filter_selected;
 +	  // If we can't get the extension from the default_path, we use the default
 +	  // extension passed in. This is to cover cases like when saving a web page,
 +	  // where we get passed in a name without an extension and a default extension
@@ -20006,10 +20217,10 @@ index 9361287ac3411..4148c1cab9403 100644
 +	  *path = base::FilePath(
 +		  AppendExtensionIfNeeded(base::FilePath(open_file_name.lpstrFile).value(), std::wstring(filter_selected.begin(), filter_selected.end()), suggested_ext));
 +
-+    if (open_file_name.lpstrFilter) {
-+        ::HeapFree(::GetProcessHeap(), 0, (LPVOID)open_file_name.lpstrFilter);
-+        open_file_name.lpstrFilter = nullptr;
-+    }
++	if(open_file_name.lpstrFilter) {
++		::HeapFree(::GetProcessHeap(), 0, (LPVOID)open_file_name.lpstrFilter);
++		open_file_name.lpstrFilter = nullptr;
++	}
 +	  return true;
    }
 -
@@ -20917,7 +21128,7 @@ index 0000000000000..8f131b8d1bf86
 +
 +#endif  // UI_VIEWS_COREWM_TOOLTIP_WIN_H_
 diff --git a/ui/views/layout/layout_provider.cc b/ui/views/layout/layout_provider.cc
-index 5319192415a63..090fd4574c19a 100644
+index 5319192415a63..623d6a5e063c9 100644
 --- a/ui/views/layout/layout_provider.cc
 +++ b/ui/views/layout/layout_provider.cc
 @@ -6,6 +6,7 @@
@@ -20932,8 +21143,8 @@ index 5319192415a63..090fd4574c19a 100644
  
  int LayoutProvider::GetCornerRadiusMetric(ShapeContextTokens id,
                                            const gfx::Size& size) const {
-+  // if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
-+      // return 3;
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++	  return 3;
    if (!features::IsChromeRefresh2023()) {
      switch (id) {
        case ShapeContextTokens::kBadgeRadius:

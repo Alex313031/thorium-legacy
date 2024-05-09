@@ -4403,6 +4403,147 @@ index 57d5a500579aa..168b1b576f47a 100644
  
  #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS)
  void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+diff --git a/chrome/browser/shell_integration.cc b/chrome/browser/shell_integration.cc
+index 9c94c9450e179..2b203e4d00ba5 100644
+--- a/chrome/browser/shell_integration.cc
++++ b/chrome/browser/shell_integration.cc
+@@ -284,11 +284,17 @@ void DefaultBrowserWorker::SetAsDefaultImpl(
+     case SET_DEFAULT_INTERACTIVE:
+ #if BUILDFLAG(IS_WIN)
+       if (interactive_permitted_) {
+-        win::SetAsDefaultBrowserUsingSystemSettings(
+-            std::move(on_finished_callback));
+-        // Early return because the function above takes care of calling
+-        // `on_finished_callback`.
+-        return;
++        switch (ShellUtil::GetInteractiveSetDefaultMode()) {
++          case ShellUtil::INTENT_PICKER:
++            win::SetAsDefaultBrowserUsingIntentPicker();
++            break;
++          case ShellUtil::SYSTEM_SETTINGS:
++            win::SetAsDefaultBrowserUsingSystemSettings(
++                std::move(on_finished_callback));
++            // Early return because the function above takes care of calling
++            // |on_finished_callback|.
++            return;
++        }
+       }
+ #endif  // BUILDFLAG(IS_WIN)
+       break;
+@@ -371,11 +377,17 @@ void DefaultSchemeClientWorker::SetAsDefaultImpl(
+     case SET_DEFAULT_INTERACTIVE:
+ #if BUILDFLAG(IS_WIN)
+       if (interactive_permitted_) {
+-        win::SetAsDefaultClientForSchemeUsingSystemSettings(
+-            scheme_, std::move(on_finished_callback));
+-        // Early return because the function above takes care of calling
+-        // `on_finished_callback`.
+-        return;
++        switch (ShellUtil::GetInteractiveSetDefaultMode()) {
++          case ShellUtil::INTENT_PICKER:
++            win::SetAsDefaultClientForSchemeUsingIntentPicker(scheme_);
++            break;
++          case ShellUtil::SYSTEM_SETTINGS:
++            win::SetAsDefaultClientForSchemeUsingSystemSettings(
++                scheme_, std::move(on_finished_callback));
++            // Early return because the function above takes care of calling
++            // |on_finished_callback|.
++            return;
++        }
+       }
+ #endif  // BUILDFLAG(IS_WIN)
+       break;
+diff --git a/chrome/browser/shell_integration_win.cc b/chrome/browser/shell_integration_win.cc
+index 7fda57c2451ec..9c171c39c2fa6 100644
+--- a/chrome/browser/shell_integration_win.cc
++++ b/chrome/browser/shell_integration_win.cc
+@@ -742,6 +742,25 @@ DefaultWebClientSetPermission GetPlatformSpecificDefaultWebClientSetPermission(
+ 
+ namespace win {
+ 
++bool SetAsDefaultBrowserUsingIntentPicker() {
++  base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
++                                                base::BlockingType::MAY_BLOCK);
++
++  base::FilePath chrome_exe;
++  if (!base::PathService::Get(base::FILE_EXE, &chrome_exe)) {
++    NOTREACHED() << "Error getting app exe path";
++    return false;
++  }
++
++  if (!ShellUtil::ShowMakeChromeDefaultSystemUI(chrome_exe)) {
++    LOG(ERROR) << "Failed to launch the set-default-browser Windows UI.";
++    return false;
++  }
++
++  VLOG(1) << "Set-default-browser Windows UI completed.";
++  return true;
++}
++
+ void SetAsDefaultBrowserUsingSystemSettings(
+     base::OnceClosure on_finished_callback) {
+   base::FilePath chrome_exe;
+@@ -767,6 +786,27 @@ void SetAsDefaultBrowserUsingSystemSettings(
+                                std::move(on_finished_callback)));
+ }
+ 
++bool SetAsDefaultClientForSchemeUsingIntentPicker(const std::string& scheme) {
++  base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
++                                                base::BlockingType::MAY_BLOCK);
++
++  base::FilePath chrome_exe;
++  if (!base::PathService::Get(base::FILE_EXE, &chrome_exe)) {
++    NOTREACHED() << "Error getting app exe path";
++    return false;
++  }
++
++  std::wstring wscheme(base::UTF8ToWide(scheme));
++  if (!ShellUtil::ShowMakeChromeDefaultProtocolClientSystemUI(chrome_exe,
++                                                              wscheme)) {
++    LOG(ERROR) << "Failed to launch the set-default-client Windows UI.";
++    return false;
++  }
++
++  VLOG(1) << "Set-default-client Windows UI completed.";
++  return true;
++}
++
+ void SetAsDefaultClientForSchemeUsingSystemSettings(
+     const std::string& scheme,
+     base::OnceClosure on_finished_callback) {
+diff --git a/chrome/browser/shell_integration_win.h b/chrome/browser/shell_integration_win.h
+index 0abec6c560e12..14cc1525b6482 100644
+--- a/chrome/browser/shell_integration_win.h
++++ b/chrome/browser/shell_integration_win.h
+@@ -22,12 +22,28 @@ namespace shell_integration::win {
+ struct ShortcutProperties;
+ enum class ShortcutOperation;
+ 
++// Initiates an OS shell flow which (if followed by the user) should set
++// Chrome as the default browser. Returns false if the flow cannot be
++// initialized, if it is not supported (introduced for Windows 8) or if the
++// user cancels the operation. This is a blocking call and requires a FILE
++// thread. If Chrome is already default browser, no interactive dialog will be
++// shown and this method returns true.
++bool SetAsDefaultBrowserUsingIntentPicker();
++
+ // Initiates the interaction with the system settings for the default browser.
+ // The function takes care of making sure |on_finished_callback| will get called
+ // exactly once when the interaction is finished.
+ void SetAsDefaultBrowserUsingSystemSettings(
+     base::OnceClosure on_finished_callback);
+ 
++// Initiates an OS shell flow which (if followed by the user) should set
++// Chrome as the default handler for |scheme|. Returns false if the flow
++// cannot be initialized, if it is not supported (introduced for Windows 8)
++// or if the user cancels the operation. This is a blocking call and requires
++// a FILE thread. If Chrome is already default for |scheme|, no interactive
++// dialog will be shown and this method returns true.
++bool SetAsDefaultClientForSchemeUsingIntentPicker(const std::string& scheme);
++
+ // Initiates the interaction with the system settings for the default handler of
+ // |scheme|. The function takes care of making sure |on_finished_callback|
+ // will get called exactly once when the interaction is finished.
 diff --git a/chrome/browser/themes/theme_helper.cc b/chrome/browser/themes/theme_helper.cc
 index 43b03f9c3dce7..b09f78acef546 100644
 --- a/chrome/browser/themes/theme_helper.cc
@@ -4906,20 +5047,6 @@ index bd38b23f61c16..0f266a3b5496a 100644
      return false;
  
    return true;
-diff --git a/chrome/browser/ui/startup/infobar_utils.cc b/chrome/browser/ui/startup/infobar_utils.cc
-index 0ee4b04c7bb63..26b70281e679b 100644
---- a/chrome/browser/ui/startup/infobar_utils.cc
-+++ b/chrome/browser/ui/startup/infobar_utils.cc
-@@ -117,7 +117,8 @@ void AddInfoBarsIfNecessary(Browser* browser,
-     return;
- 
-   // Web apps should not display the session restore bubble (crbug.com/1264121)
--  if (!is_web_app && HasPendingUncleanExit(browser->profile()))
-+  if (!is_web_app && HasPendingUncleanExit(browser->profile()) &&
-+      !startup_command_line.HasSwitch("hide-crashed-bubble"))
-     SessionCrashedBubble::ShowIfNotOffTheRecordProfile(
-         browser, /*skip_tab_checking=*/false);
- 
 diff --git a/chrome/browser/ui/tabs/tab_style.cc b/chrome/browser/ui/tabs/tab_style.cc
 index aa9cd30374311..28091f8229b2b 100644
 --- a/chrome/browser/ui/tabs/tab_style.cc
@@ -6067,6 +6194,21 @@ index a3090da2ca8b4..21c73e4902f76 100644
    // Trusted pinned mode does not allow to escape. So do not show the bubble.
    bool is_trusted_pinned =
        platform_util::IsBrowserLockedFullscreen(browser_.get());
+diff --git a/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc b/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
+index 8a3f3e300bde5..5f2fa8826a9cb 100644
+--- a/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
++++ b/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
+@@ -77,7 +77,9 @@ void OpaqueBrowserFrameViewLayout::SetButtonOrdering(
+ gfx::Rect OpaqueBrowserFrameViewLayout::GetBoundsForTabStripRegion(
+     const gfx::Size& tabstrip_minimum_size,
+     int total_width) const {
+-  const int x = available_space_leading_x_;
++  int x = available_space_leading_x_;
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++      x = 8;
+   const int available_width = available_space_trailing_x_ - x;
+   return gfx::Rect(x, GetTabStripInsetsTop(false), std::max(0, available_width),
+                    tabstrip_minimum_size.height());
 diff --git a/chrome/browser/ui/views/frame/tab_strip_region_view.cc b/chrome/browser/ui/views/frame/tab_strip_region_view.cc
 index 1dd00552036cb..9e131e95d0982 100644
 --- a/chrome/browser/ui/views/frame/tab_strip_region_view.cc
@@ -6098,21 +6240,6 @@ index 1dd00552036cb..9e131e95d0982 100644
      tab_search_container = std::make_unique<TabSearchContainer>(
          tab_strip_->controller(), render_tab_search_before_tab_strip_, this);
      tab_search_container->SetProperty(views::kCrossAxisAlignmentKey,
-diff --git a/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc b/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
-index 8a3f3e300bde5..5f2fa8826a9cb 100644
---- a/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
-+++ b/chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.cc
-@@ -77,7 +77,9 @@ void OpaqueBrowserFrameViewLayout::SetButtonOrdering(
- gfx::Rect OpaqueBrowserFrameViewLayout::GetBoundsForTabStripRegion(
-     const gfx::Size& tabstrip_minimum_size,
-     int total_width) const {
--  const int x = available_space_leading_x_;
-+  int x = available_space_leading_x_;
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
-+      x = 8;
-   const int available_width = available_space_trailing_x_ - x;
-   return gfx::Rect(x, GetTabStripInsetsTop(false), std::max(0, available_width),
-                    tabstrip_minimum_size.height());
 diff --git a/chrome/browser/ui/views/fullscreen_control/fullscreen_control_host.cc b/chrome/browser/ui/views/fullscreen_control/fullscreen_control_host.cc
 index ccafa0c6ed945..8e003293c011b 100644
 --- a/chrome/browser/ui/views/fullscreen_control/fullscreen_control_host.cc
@@ -6918,10 +7045,15 @@ index f088a7071b1e0..3e829274cd26b 100644
 +  return base::win::GetVersion() >= base::win::Version::WIN11;
  }
 diff --git a/chrome/browser/win/titlebar_config.h b/chrome/browser/win/titlebar_config.h
-index 48f413792d5aa..9a828bd5a7773 100644
+index 48f413792d5aa..d87174bd1d78c 100644
 --- a/chrome/browser/win/titlebar_config.h
 +++ b/chrome/browser/win/titlebar_config.h
-@@ -10,10 +10,18 @@
+@@ -6,14 +6,23 @@
+ #define CHROME_BROWSER_WIN_TITLEBAR_CONFIG_H_
+ 
+ #include "base/feature_list.h"
++#include "chrome/browser/ui/views/chrome_views_export.h"
+ 
  class BrowserView;
  
  BASE_DECLARE_FEATURE(kWindows11MicaTitlebar);
@@ -6940,7 +7072,7 @@ index 48f413792d5aa..9a828bd5a7773 100644
  // Returns whether we should use the Mica titlebar in standard browser windows
  // using the default theme.
  bool ShouldDefaultThemeUseMicaTitlebar();
-@@ -22,4 +30,7 @@ bool ShouldDefaultThemeUseMicaTitlebar();
+@@ -22,4 +31,7 @@ bool ShouldDefaultThemeUseMicaTitlebar();
  // material.
  bool SystemTitlebarCanUseMicaMaterial();
  
@@ -7258,10 +7390,18 @@ index 03a38089b56a8..2a7fdd070d030 100644
  
  void InstallUtil::AddInstallerResultItems(bool system_install,
 diff --git a/chrome/installer/util/shell_util.cc b/chrome/installer/util/shell_util.cc
-index 1f9d3449c04ce..cc8e13047c4c3 100644
+index 1f9d3449c04ce..fcb97d425b960 100644
 --- a/chrome/installer/util/shell_util.cc
 +++ b/chrome/installer/util/shell_util.cc
-@@ -295,12 +295,13 @@ void GetProgIdEntries(const ShellUtil::ApplicationInfo& app_info,
+@@ -12,6 +12,7 @@
+ #include <objbase.h>
+ #include <shlobj.h>
+ #include <shobjidl.h>
++#include <windows.h>
+ #include <wrl/client.h>
+ 
+ #include <algorithm>
+@@ -295,12 +296,13 @@ void GetProgIdEntries(const ShellUtil::ApplicationInfo& app_info,
      entries->back()->set_removal_flag(RegistryEntry::RemovalFlag::VALUE);
    }
  
@@ -7281,7 +7421,7 @@ index 1f9d3449c04ce..cc8e13047c4c3 100644
  
    // Add \Software\Classes\<prog_id>\Application entries
    std::wstring application_path(prog_id_path + ShellUtil::kRegApplication);
-@@ -330,6 +331,7 @@ void GetProgIdEntries(const ShellUtil::ApplicationInfo& app_info,
+@@ -330,6 +332,7 @@ void GetProgIdEntries(const ShellUtil::ApplicationInfo& app_info,
          app_info.publisher_name));
    }
  }
@@ -7289,7 +7429,34 @@ index 1f9d3449c04ce..cc8e13047c4c3 100644
  
  // This method returns a list of all the registry entries that are needed to
  // register this installation's ProgIds and AppId.
-@@ -742,11 +744,12 @@ bool QuickIsChromeRegisteredForMode(
+@@ -708,6 +711,26 @@ bool ElevateAndRegisterChrome(
+   return false;
+ }
+ 
++// Launches the Windows 7 and Windows 8 dialog for picking the application to
++// handle the given protocol. Most importantly, this is used to set the default
++// handler for http (and, implicitly with it, https). In that case it is also
++// known as the 'how do you want to open webpages' dialog.
++// It is required that Chrome be already *registered* for the given protocol.
++bool LaunchSelectDefaultProtocolHandlerDialog(const wchar_t* protocol) {
++  DCHECK(protocol);
++  OPENASINFO open_as_info = {};
++  open_as_info.pcszFile = protocol;
++  open_as_info.oaifInFlags =
++      OAIF_URL_PROTOCOL | OAIF_FORCE_REGISTRATION | OAIF_REGISTER_EXT;
++  HRESULT hr = SHOpenWithDialog(nullptr, &open_as_info);
++  DLOG_IF(WARNING, FAILED(hr)) << "Failed to set as default " << protocol
++                               << " handler; hr=0x" << std::hex << hr;
++  if (FAILED(hr))
++    return false;
++  SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
++  return true;
++}
++
+ // Returns true if |chrome_exe| has been registered with |suffix| for |mode|.
+ // |confirmation_level| is the level of verification desired as described in
+ // the RegistrationConfirmationLevel enum above.
+@@ -742,11 +765,12 @@ bool QuickIsChromeRegisteredForMode(
    }
    reg_key += ShellUtil::kRegShellOpen;
  
@@ -7306,7 +7473,7 @@ index 1f9d3449c04ce..cc8e13047c4c3 100644
      const RegKey key_hkcu(HKEY_CURRENT_USER, reg_key.c_str(), KEY_QUERY_VALUE);
      std::wstring hkcu_value;
      // If |reg_key| is present in HKCU, assert that it points to |chrome_exe|.
-@@ -821,7 +824,9 @@ bool GetInstallationSpecificSuffix(const base::FilePath& chrome_exe,
+@@ -821,7 +845,9 @@ bool GetInstallationSpecificSuffix(const base::FilePath& chrome_exe,
  // be placed for this install. As of Windows 8 everything can go in HKCU for
  // per-user installs.
  HKEY DetermineRegistrationRoot(bool is_per_user) {
@@ -7317,7 +7484,7 @@ index 1f9d3449c04ce..cc8e13047c4c3 100644
  }
  
  // Associates Chrome with supported protocols and file associations. This should
-@@ -1040,6 +1045,7 @@ ShellUtil::DefaultState ProbeProtocolHandlers(const base::FilePath& chrome_exe,
+@@ -1040,6 +1066,7 @@ ShellUtil::DefaultState ProbeProtocolHandlers(const base::FilePath& chrome_exe,
  // Returns true on success.
  bool GetAppShortcutsFolder(ShellUtil::ShellChange level, base::FilePath* path) {
    DCHECK(path);
@@ -7325,7 +7492,7 @@ index 1f9d3449c04ce..cc8e13047c4c3 100644
  
    base::FilePath folder;
    if (!base::PathService::Get(base::DIR_APP_SHORTCUTS, &folder)) {
-@@ -1417,6 +1423,7 @@ bool RegisterChromeBrowserImpl(const base::FilePath& chrome_exe,
+@@ -1417,6 +1444,7 @@ bool RegisterChromeBrowserImpl(const base::FilePath& chrome_exe,
  bool RegisterApplicationForProtocols(const std::vector<std::wstring>& protocols,
                                       const std::wstring& prog_id,
                                       const base::FilePath& chrome_exe) {
@@ -7333,7 +7500,7 @@ index 1f9d3449c04ce..cc8e13047c4c3 100644
    std::vector<std::unique_ptr<RegistryEntry>> entries;
    ShellUtil::ApplicationInfo app_info =
        ShellUtil::GetApplicationInfoForProgId(prog_id);
-@@ -1569,10 +1576,12 @@ bool ShellUtil::ShortcutLocationIsSupported(ShortcutLocation location) {
+@@ -1569,10 +1597,12 @@ bool ShellUtil::ShortcutLocationIsSupported(ShortcutLocation location) {
      case SHORTCUT_LOCATION_START_MENU_ROOT:                   // Falls through.
      case SHORTCUT_LOCATION_START_MENU_CHROME_DIR_DEPRECATED:  // Falls through.
      case SHORTCUT_LOCATION_START_MENU_CHROME_APPS_DIR:        // Falls through.
@@ -7349,7 +7516,81 @@ index 1f9d3449c04ce..cc8e13047c4c3 100644
      default:
        NOTREACHED();
        return false;
-@@ -2518,16 +2527,19 @@ bool ShellUtil::AddAppProtocolAssociations(
+@@ -1984,6 +2014,17 @@ bool ShellUtil::CanMakeChromeDefaultUnattended() {
+   return base::win::GetVersion() < base::win::Version::WIN8;
+ }
+ 
++// static
++ShellUtil::InteractiveSetDefaultMode ShellUtil::GetInteractiveSetDefaultMode() {
++  DCHECK(!CanMakeChromeDefaultUnattended());
++  // TODO(crbug.com/1385856): Remove all code associated with INTENT_PICKER,
++  // including InteractiveSetDefaultMode and GetInteractiveSetDefaultMode().
++  if (base::win::GetVersion() >= base::win::Version::WIN10)
++    return InteractiveSetDefaultMode::SYSTEM_SETTINGS;
++
++  return InteractiveSetDefaultMode::INTENT_PICKER;
++}
++
+ bool ShellUtil::MakeChromeDefault(int shell_change,
+                                   const base::FilePath& chrome_exe,
+                                   bool elevate_if_not_admin) {
+@@ -2078,8 +2119,25 @@ bool ShellUtil::ShowMakeChromeDefaultSystemUI(
+   bool succeeded = true;
+   bool is_default = (GetChromeDefaultState() == IS_DEFAULT);
+   if (!is_default) {
+-    // Launch the Windows Apps Settings dialog.
+-    succeeded = base::win::LaunchDefaultAppsSettingsModernDialog(L"http");
++    switch (GetInteractiveSetDefaultMode()) {
++      case INTENT_PICKER: {
++        // On Windows 8, you can't set yourself as the default handler
++        // programmatically. In other words IApplicationAssociationRegistration
++        // has been rendered useless. What you can do is to launch
++        // "Set Program Associations" section of the "Default Programs"
++        // control panel, which is a mess, or pop the concise "How you want to
++        // open webpages?" dialog.  We choose the latter.
++        succeeded = LaunchSelectDefaultProtocolHandlerDialog(L"http");
++      } break;
++      case SYSTEM_SETTINGS:
++        // On Windows 10, you can't even launch the associations dialog.
++        // So we launch the settings dialog. Quoting from MSDN: "The Open With
++        // dialog box can no longer be used to change the default program used
++        // to open a file extension. You can only use SHOpenWithDialog to open
++        // a single file."
++        succeeded = base::win::LaunchDefaultAppsSettingsModernDialog(L"http");
++        break;
++    }
+     is_default = (succeeded && GetChromeDefaultState() == IS_DEFAULT);
+   }
+   if (succeeded && is_default)
+@@ -2151,9 +2209,24 @@ bool ShellUtil::ShowMakeChromeDefaultProtocolClientSystemUI(
+   bool is_default =
+       (GetChromeDefaultProtocolClientState(protocol) == IS_DEFAULT);
+   if (!is_default) {
+-    // Launch the Windows settings dialog.
+-    succeeded =
+-        base::win::LaunchDefaultAppsSettingsModernDialog(protocol.c_str());
++    switch (GetInteractiveSetDefaultMode()) {
++      case INTENT_PICKER: {
++        // On Windows 8, you can't set yourself as the default handler
++        // programmatically. In other words IApplicationAssociationRegistration
++        // has been rendered useless. What you can do is to launch
++        // "Set Program Associations" section of the "Default Programs"
++        // control panel, which is a mess, or pop the concise "How you want to
++        // open
++        // links of this type (protocol)?" dialog.  We choose the latter.
++        succeeded = LaunchSelectDefaultProtocolHandlerDialog(protocol.c_str());
++      } break;
++      case SYSTEM_SETTINGS:
++        // On Windows 10, you can't even launch the associations dialog.
++        // So we launch the settings dialog.
++        succeeded =
++            base::win::LaunchDefaultAppsSettingsModernDialog(protocol.c_str());
++        break;
++    }
+     is_default = (succeeded &&
+                   GetChromeDefaultProtocolClientState(protocol) == IS_DEFAULT);
+   }
+@@ -2518,16 +2591,19 @@ bool ShellUtil::AddAppProtocolAssociations(
      if (!AddRegistryEntries(HKEY_CURRENT_USER, entries))
        success = false;
  
@@ -7377,6 +7618,30 @@ index 1f9d3449c04ce..cc8e13047c4c3 100644
    return success;
  }
  
+diff --git a/chrome/installer/util/shell_util.h b/chrome/installer/util/shell_util.h
+index 2b61198e000fa..cc1edb326af3b 100644
+--- a/chrome/installer/util/shell_util.h
++++ b/chrome/installer/util/shell_util.h
+@@ -492,6 +492,19 @@ class ShellUtil {
+   // Windows prior to Windows 8.
+   static bool CanMakeChromeDefaultUnattended();
+ 
++  enum InteractiveSetDefaultMode {
++    // The intent picker is opened with the different choices available to the
++    // user.
++    INTENT_PICKER,
++    // The Windows default apps settings page is opened with the current default
++    // app focused.
++    SYSTEM_SETTINGS,
++  };
++
++  // Returns the interactive mode that should be used to set the default browser
++  // or default protocol client on Windows 8+.
++  static InteractiveSetDefaultMode GetInteractiveSetDefaultMode();
++
+   // Returns the DefaultState of Chrome for HTTP and HTTPS and updates the
+   // default browser beacons as appropriate.
+   static DefaultState GetChromeDefaultState();
 diff --git a/chrome/installer/util/taskbar_util.cc b/chrome/installer/util/taskbar_util.cc
 index 0329447fdd3ad..e247deca60ff5 100644
 --- a/chrome/installer/util/taskbar_util.cc
@@ -9328,6 +9593,19 @@ index 4b2270d10a86d..e97bde5ddf5d1 100644
      if (firmware_type == FirmwareTypeBios) {
        *bios_type = Motherboard::BiosType::kLegacy;
      } else if (firmware_type == FirmwareTypeUefi) {
+diff --git a/components/network_time/network_time_tracker.cc b/components/network_time/network_time_tracker.cc
+index b104ce71c069c..22a8f75fa69ca 100644
+--- a/components/network_time/network_time_tracker.cc
++++ b/components/network_time/network_time_tracker.cc
+@@ -271,7 +271,7 @@ void NetworkTimeTracker::UpdateNetworkTime(base::Time network_time,
+ }
+ 
+ bool NetworkTimeTracker::AreTimeFetchesEnabled() const {
+-  return base::FeatureList::IsEnabled(kNetworkTimeServiceQuerying);
++  return false;
+ }
+ 
+ NetworkTimeTracker::FetchBehavior NetworkTimeTracker::GetFetchBehavior() const {
 diff --git a/components/omnibox/browser/autocomplete_controller.cc b/components/omnibox/browser/autocomplete_controller.cc
 index bb091060cf93e..73210ab0662f4 100644
 --- a/components/omnibox/browser/autocomplete_controller.cc
@@ -9356,21 +9634,6 @@ index bb091060cf93e..73210ab0662f4 100644
    // Providers run in the order they're added. Async providers should run first
    // so their async requests can be kicked off before waiting a few milliseconds
    // for the other sync providers to complete.
-diff --git a/components/omnibox/browser/autocomplete_controller.cc.rej b/components/omnibox/browser/autocomplete_controller.cc.rej
-new file mode 100644
-index 0000000000000..8bbf0d4a1cf13
---- /dev/null
-+++ b/components/omnibox/browser/autocomplete_controller.cc.rej
-@@ -0,0 +1,9 @@
-+diff a/components/omnibox/browser/autocomplete_controller.cc b/components/omnibox/browser/autocomplete_controller.cc	(rejected hunks)
-+@@ -19,6 +19,7 @@
-+
-+ #include "base/barrier_callback.h"
-+ #include "base/check_op.h"
-++#include "base/command_line.h"
-+ #include "base/containers/contains.h"
-+ #include "base/feature_list.h"
-+ #include "base/format_macros.h"
 diff --git a/components/omnibox/browser/history_url_provider.cc b/components/omnibox/browser/history_url_provider.cc
 index 83f8b0fb22983..75eaea36b134a 100644
 --- a/components/omnibox/browser/history_url_provider.cc
@@ -11781,7 +12044,7 @@ index 3e0b86f6834c5..46e00b4581fbb 100644
  #include "base/containers/cxx20_erase.h"
  #include "base/containers/flat_set.h"
  #include "base/feature_list.h"
-@@ -467,6 +468,11 @@ std::string ShellContentBrowserClient::GetDefaultDownloadName() {
+@@ -468,6 +468,11 @@ std::string ShellContentBrowserClient::GetDefaultDownloadName() {
    return "download";
  }
  
@@ -12052,33 +12315,6 @@ index 0b7fcb2ffd5e1..cf2cc3ac104b2 100644
    // Try to reserve the maximum size of the pool at first, then keep halving
    // the size on failure until it succeeds.
    uintptr_t pool_base = 0;
-diff --git a/google_apis/google_api_keys.cc b/google_apis/google_api_keys.cc
-index 49c396d69d172..cf1b234fb616c 100644
---- a/google_apis/google_api_keys.cc
-+++ b/google_apis/google_api_keys.cc
-@@ -37,7 +37,7 @@
- #define DUMMY_API_TOKEN "dummytoken"
- 
- #if !defined(GOOGLE_API_KEY)
--#define GOOGLE_API_KEY DUMMY_API_TOKEN
-+#define GOOGLE_API_KEY "AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw"
- #endif
- 
- #if !defined(GOOGLE_METRICS_SIGNING_KEY)
-@@ -45,11 +45,11 @@
- #endif
- 
- #if !defined(GOOGLE_CLIENT_ID_MAIN)
--#define GOOGLE_CLIENT_ID_MAIN DUMMY_API_TOKEN
-+#define GOOGLE_CLIENT_ID_MAIN "77185425430.apps.googleusercontent.com"
- #endif
- 
- #if !defined(GOOGLE_CLIENT_SECRET_MAIN)
--#define GOOGLE_CLIENT_SECRET_MAIN DUMMY_API_TOKEN
-+#define GOOGLE_CLIENT_SECRET_MAIN "OTJgUOQcT7lO7GsGZq2G4IlT"
- #endif
- 
- #if !defined(GOOGLE_CLIENT_ID_REMOTING)
 diff --git a/gpu/command_buffer/service/shared_image/d3d_image_backing_factory.cc b/gpu/command_buffer/service/shared_image/d3d_image_backing_factory.cc
 index 473355dec4e12..3d875b994b69c 100644
 --- a/gpu/command_buffer/service/shared_image/d3d_image_backing_factory.cc
@@ -12666,10 +12902,10 @@ index d6f73a8424496..0c3eed8ce4e03 100644
  // If the device is a USB device, the format of the returned string is
 diff --git a/media/audio/win/wavein_input_win.cc b/media/audio/win/wavein_input_win.cc
 new file mode 100644
-index 0000000000000..3c42508274554
+index 0000000000000..dfd016042567a
 --- /dev/null
 +++ b/media/audio/win/wavein_input_win.cc
-@@ -0,0 +1,332 @@
+@@ -0,0 +1,333 @@
 +// Copyright (c) 2012 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -12701,12 +12937,12 @@ index 0000000000000..3c42508274554
 +    const std::string& device_id)
 +    : state_(kStateEmpty),
 +      manager_(manager),
-+      callback_(NULL),
++      callback_(nullptr),
 +      num_buffers_(num_buffers),
 +      channels_(params.channels()),
 +      device_id_(device_id),
-+      wavein_(NULL),
-+      buffer_(NULL),
++      wavein_(nullptr),
++      buffer_(nullptr),
 +      audio_bus_(media::AudioBus::Create(params)) {
 +  DCHECK_GT(num_buffers_, 0);
 +  format_.wFormatTag = WAVE_FORMAT_PCM;
@@ -12759,10 +12995,11 @@ index 0000000000000..3c42508274554
 +void PCMWaveInAudioInputStream::SetupBuffers() {
 +  WAVEHDR* last = NULL;
 +  WAVEHDR* first = NULL;
++  WAVEHDR* buffer_local = buffer_;
 +  for (int ix = 0; ix != num_buffers_; ++ix) {
 +    uint32_t sz = sizeof(WAVEHDR) + buffer_size_;
 +    buffer_ =  reinterpret_cast<WAVEHDR*>(new char[sz]);
-+    buffer_->lpData = reinterpret_cast<char*>(buffer_) + sizeof(WAVEHDR);
++    buffer_->lpData = reinterpret_cast<char*>(buffer_local) + sizeof(WAVEHDR);
 +    buffer_->dwBufferLength = buffer_size_;
 +    buffer_->dwBytesRecorded = 0;
 +    buffer_->dwUser = reinterpret_cast<DWORD_PTR>(last);
@@ -12786,7 +13023,7 @@ index 0000000000000..3c42508274554
 +    delete[] reinterpret_cast<char*>(current);
 +    current = next;
 +  }
-+  buffer_ = NULL;
++  buffer_ = nullptr;
 +}
 +
 +void PCMWaveInAudioInputStream::Start(AudioInputCallback* callback) {
@@ -12809,7 +13046,7 @@ index 0000000000000..3c42508274554
 +  if (result != MMSYSERR_NOERROR) {
 +    HandleError(result);
 +    state_ = kStateReady;
-+    callback_ = NULL;
++    callback_ = nullptr;
 +  }
 +}
 +
@@ -12828,8 +13065,8 @@ index 0000000000000..3c42508274554
 +    // Tell the callback that we're stopping.
 +    // As a result, |stopped_event_| will be signaled in callback method.
 +    base::AutoLock auto_lock(lock_);
-+    already_stopped = (callback_ == NULL);
-+    callback_ = NULL;
++    already_stopped = (callback_ == nullptr);
++    callback_ = nullptr;
 +  }
 +
 +  if (already_stopped)
@@ -13005,7 +13242,7 @@ index 0000000000000..3c42508274554
 \ No newline at end of file
 diff --git a/media/audio/win/wavein_input_win.h b/media/audio/win/wavein_input_win.h
 new file mode 100644
-index 0000000000000..8ec6aaad6725c
+index 0000000000000..2a38e16327599
 --- /dev/null
 +++ b/media/audio/win/wavein_input_win.h
 @@ -0,0 +1,141 @@
@@ -13108,10 +13345,10 @@ index 0000000000000..8ec6aaad6725c
 +
 +  // The audio manager that created this input stream. We notify it when
 +  // we close so it can release its own resources.
-+  AudioManagerWin* manager_;
++  raw_ptr<AudioManagerWin> manager_;
 +
 +  // We use the callback mostly to periodically give the recorded audio data.
-+  AudioInputCallback* callback_;
++  raw_ptr<AudioInputCallback> callback_;
 +
 +  // The number of buffers of size |buffer_size_| each to use.
 +  const int num_buffers_;
@@ -13134,7 +13371,7 @@ index 0000000000000..8ec6aaad6725c
 +  HWAVEIN wavein_;
 +
 +  // Pointer to the first allocated audio buffer. This object owns it.
-+  WAVEHDR* buffer_;
++  raw_ptr<WAVEHDR> buffer_;
 +
 +  // An event that is signaled when the callback thread is ready to stop.
 +  base::win::ScopedHandle stopped_event_;
@@ -13215,6 +13452,19 @@ index 28fbd5d233a83..963314b8c0452 100644
    // Get function pointer to the activation factory.
    using GetActivationFactoryFunc =
        HRESULT(WINAPI*)(_In_ HSTRING activatible_class_id,
+diff --git a/media/filters/passthrough_dts_audio_decoder.h b/media/filters/passthrough_dts_audio_decoder.h
+index 6cec47a26e3db..1b7595fb34164 100644
+--- a/media/filters/passthrough_dts_audio_decoder.h
++++ b/media/filters/passthrough_dts_audio_decoder.h
+@@ -60,7 +60,7 @@ class MEDIA_EXPORT PassthroughDTSAudioDecoder : public AudioDecoder {
+ 
+   AudioDecoderConfig config_;
+ 
+-  MediaLog* media_log_;
++  raw_ptr<MediaLog> media_log_;
+ 
+   scoped_refptr<AudioBufferMemoryPool> pool_;
+ };
 diff --git a/media/midi/midi_manager_winrt.cc b/media/midi/midi_manager_winrt.cc
 index d5ce6175bffbf..5ee947135e9ee 100644
 --- a/media/midi/midi_manager_winrt.cc
@@ -13316,6 +13566,19 @@ index eeb27239bb883..f00690af09775 100644
  
      // Deduplicate all certificates minted from the SSL_CTX in memory.
      SSL_CTX_set0_buffer_pool(ssl_ctx_.get(), x509_util::GetBufferPool());
+diff --git a/sandbox/policy/BUILD.gn b/sandbox/policy/BUILD.gn
+index fa0edf457b612..51d49af3aa46c 100644
+--- a/sandbox/policy/BUILD.gn
++++ b/sandbox/policy/BUILD.gn
+@@ -164,6 +164,8 @@ component("policy") {
+       "win/sandbox_win.h",
+     ]
+     deps += [ "//sandbox/win:sandbox" ]
++
++    public_deps += [ "//ui/gfx" ]
+   }
+   if (is_fuchsia) {
+     sources += [
 diff --git a/sandbox/policy/win/sandbox_warmup.cc b/sandbox/policy/win/sandbox_warmup.cc
 index 1c5142a49ceb7..fa36708b609a6 100644
 --- a/sandbox/policy/win/sandbox_warmup.cc
@@ -15759,9 +16022,26 @@ index a442dced19ad6..ca4d116a84863 100644
    // https://wicg.github.io/shape-detection-api/text.html#text-detection-api.
    // TODO(junwei.fu): https://crbug.com/794097 consider supporting other Latin
 diff --git a/skia/BUILD.gn b/skia/BUILD.gn
-index 7501833779338..a06504d375c4e 100644
+index 7501833779338..615da0791475d 100644
 --- a/skia/BUILD.gn
 +++ b/skia/BUILD.gn
+@@ -109,14 +109,14 @@ config("skia_config") {
+     defines += [ "SK_DISABLE_LEGACY_INIT_DECODERS" ]
+   }
+ 
+-  if (is_component_build) {
++ # if (is_component_build) {
+     defines += [ "SKIA_DLL" ]
+     if (is_win) {
+       defines += [ "SKCMS_API=__declspec(dllexport)" ]
+     } else {
+       defines += [ "SKCMS_API=__attribute__((visibility(\"default\")))" ]
+     }
+-  }
++ # }
+ 
+   if (is_android) {
+     defines += [
 @@ -437,6 +437,7 @@ component("skia") {
    if (is_win) {
      # See SK_TYPEFACE_FACTORY_DIRECTWRITE
@@ -16197,18 +16477,27 @@ index 1b7be19308566..3ea7a0003eac4 100644
        name.empty() ? nullptr : name.c_str(), font_description.SkiaFontStyle()));
  }
 diff --git a/third_party/blink/renderer/platform/fonts/web_font_typeface_factory.cc b/third_party/blink/renderer/platform/fonts/web_font_typeface_factory.cc
-index 747298f1903fb..e909fa02e6651 100644
+index 747298f1903fb..e4063b8916588 100644
 --- a/third_party/blink/renderer/platform/fonts/web_font_typeface_factory.cc
 +++ b/third_party/blink/renderer/platform/fonts/web_font_typeface_factory.cc
-@@ -145,6 +145,11 @@ bool WebFontTypefaceFactory::CreateTypeface(
+@@ -144,7 +144,19 @@ bool WebFontTypefaceFactory::CreateTypeface(
+     const FontFormatCheck& format_check,
      const FontInstantiator& instantiator) {
    CHECK(!typeface);
- 
+-
 +#if BUILDFLAG(IS_WIN)
-+  if(format_check.IsVariableFont() && !FontCache::useDirectWrite())
++  if(format_check.IsVariableFont() && !FontCache::useDirectWrite()) {
++    typeface = instantiator.make_system(data);
++    if (typeface) {
++      ReportInstantiationResult(
++          InstantiationResult::kSuccessConventionalWebFont);
++      return true;
++    }
++    // Not UMA reporting general decoding errors as these are already recorded
++    // as kPackageFormatUnknown in FontResource.cpp.
 +    return false;
++  }
 +#endif
-+
    if (!format_check.IsVariableFont() && !format_check.IsColorFont() &&
        !format_check.IsCff2OutlineFont()) {
      typeface = instantiator.make_system(data);
@@ -17038,23 +17327,38 @@ index 1147a6e268f64..cec02efe6a5d1 100644
          "ime/win/tsf_input_scope_unittest.cc",
          "ime/win/tsf_text_store_unittest.cc",
 diff --git a/ui/base/ime/init/input_method_factory.cc b/ui/base/ime/init/input_method_factory.cc
-index c99fd18826153..5d4a41a4d64c2 100644
+index c99fd18826153..deab646f928ad 100644
 --- a/ui/base/ime/init/input_method_factory.cc
 +++ b/ui/base/ime/init/input_method_factory.cc
-@@ -13,6 +13,7 @@
+@@ -13,6 +13,8 @@
  #include "ui/gfx/switches.h"
  
  #if BUILDFLAG(IS_WIN)
++#include "base/win/windows_version.h"
 +#include "ui/base/ime/win/input_method_win_imm32.h"
  #include "ui/base/ime/win/input_method_win_tsf.h"
  #elif BUILDFLAG(IS_APPLE)
  #include "ui/base/ime/mac/input_method_mac.h"
-@@ -53,7 +54,12 @@ std::unique_ptr<InputMethod> CreateInputMethod(
+@@ -33,7 +35,12 @@ bool g_create_input_method_called = false;
+ }  // namespace
+ 
+ namespace ui {
+-
++#if BUILDFLAG(IS_WIN)
++bool IsUsingTSFForIME() {
++    return base::win::GetVersion() >= base::win::Version::VISTA &&
++           base::FeatureList::IsEnabled(features::kTSFImeSupport);
++  }
++#endif
+ std::unique_ptr<InputMethod> CreateInputMethod(
+     ImeKeyEventDispatcher* ime_key_event_dispatcher,
+     gfx::AcceleratedWidget widget) {
+@@ -53,7 +60,12 @@ std::unique_ptr<InputMethod> CreateInputMethod(
      return base::WrapUnique(new MockInputMethod(ime_key_event_dispatcher));
  
  #if BUILDFLAG(IS_WIN)
 -  return std::make_unique<InputMethodWinTSF>(ime_key_event_dispatcher, widget);
-+  if (base::FeatureList::IsEnabled(features::kTSFImeSupport)) {
++  if (IsUsingTSFForIME()) {
 +    return std::make_unique<InputMethodWinTSF>(ime_key_event_dispatcher,
 +                                               widget);
 +  }
@@ -17063,22 +17367,6 @@ index c99fd18826153..5d4a41a4d64c2 100644
  #elif BUILDFLAG(IS_APPLE)
    return std::make_unique<InputMethodMac>(ime_key_event_dispatcher);
  #elif BUILDFLAG(IS_OZONE)
-diff --git a/ui/base/ime/init/input_method_factory.cc.rej b/ui/base/ime/init/input_method_factory.cc.rej
-new file mode 100644
-index 0000000000000..4f39721ff4fdd
---- /dev/null
-+++ b/ui/base/ime/init/input_method_factory.cc.rej
-@@ -0,0 +1,10 @@
-+diff a/ui/base/ime/init/input_method_factory.cc b/ui/base/ime/init/input_method_factory.cc	(rejected hunks)
-+@@ -54,7 +54,7 @@ std::unique_ptr<InputMethod> CreateInputMethod(
-+     return base::WrapUnique(new MockInputMethod(ime_key_event_dispatcher));
-+
-+ #if BUILDFLAG(IS_WIN)
-+-  if (base::FeatureList::IsEnabled(features::kTSFImeSupport)) {
-++  if (features::IsUsingTSFForIME()) {
-+     return std::make_unique<InputMethodWinTSF>(ime_key_event_dispatcher,
-+                                                widget);
-+   }
 diff --git a/ui/base/ime/win/BUILD.gn b/ui/base/ime/win/BUILD.gn
 index 61d1e9b662430..1a2a40db4dae5 100644
 --- a/ui/base/ime/win/BUILD.gn
@@ -18666,22 +18954,17 @@ index 152122c117cdd..a4ed4dcebce1e 100644
  #if BUILDFLAG(IS_ANDROID)
  #include "base/android/build_info.h"
  #endif
-@@ -78,6 +82,14 @@ bool IsNotificationsIgnoreRequireInteractionEnabled() {
+@@ -78,6 +82,9 @@ bool IsNotificationsIgnoreRequireInteractionEnabled() {
    return base::FeatureList::IsEnabled(kNotificationsIgnoreRequireInteraction);
  }
  
 +// Enables using TSF (over IMM32) for IME.
 +BASE_FEATURE(kTSFImeSupport, "TSFImeSupport", base::FEATURE_ENABLED_BY_DEFAULT);
 +
-+bool IsUsingTSFForIME() {
-+  return base::win::GetVersion() >= base::win::Version::VISTA &&
-+			base::FeatureList::IsEnabled(kTSFImeSupport);
-+}
-+
  BASE_FEATURE(kShortcutCustomizationApp,
               "ShortcutCustomizationApp",
               base::FEATURE_ENABLED_BY_DEFAULT);
-@@ -253,9 +265,12 @@ BASE_FEATURE(kInputPaneOnScreenKeyboard,
+@@ -253,9 +260,12 @@ BASE_FEATURE(kInputPaneOnScreenKeyboard,
  BASE_FEATURE(kPointerEventsForTouch,
               "PointerEventsForTouch",
               base::FEATURE_ENABLED_BY_DEFAULT);
@@ -18695,7 +18978,7 @@ index 152122c117cdd..a4ed4dcebce1e 100644
  }
  
  #endif  // BUILDFLAG(IS_WIN)
-@@ -592,6 +607,10 @@ BASE_FEATURE(kBubbleMetricsApi,
+@@ -592,6 +602,10 @@ BASE_FEATURE(kBubbleMetricsApi,
               "BubbleMetricsApi",
               base::FEATURE_DISABLED_BY_DEFAULT);
  
@@ -18710,15 +18993,7 @@ diff --git a/ui/base/ui_base_features.h b/ui/base/ui_base_features.h
 index 67f99842c04e5..a8aac0c1e041f 100644
 --- a/ui/base/ui_base_features.h
 +++ b/ui/base/ui_base_features.h
-@@ -27,6 +27,7 @@ COMPONENT_EXPORT(UI_BASE_FEATURES)
- BASE_DECLARE_FEATURE(kInputMethodSettingsUiUpdate);
- COMPONENT_EXPORT(UI_BASE_FEATURES)
- BASE_DECLARE_FEATURE(kWindowsScrollingPersonality);
-+COMPONENT_EXPORT(UI_BASE_FEATURES) bool IsUsingTSFForIME();
- COMPONENT_EXPORT(UI_BASE_FEATURES) bool IsPercentBasedScrollingEnabled();
- COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kSystemCaptionStyle);
- COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kSystemKeyboardLock);
-@@ -57,6 +58,7 @@ BASE_DECLARE_FEATURE(kInputPaneOnScreenKeyboard);
+@@ -57,6 +57,7 @@ BASE_DECLARE_FEATURE(kInputPaneOnScreenKeyboard);
  COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kPointerEventsForTouch);
  COMPONENT_EXPORT(UI_BASE_FEATURES)
  BASE_DECLARE_FEATURE(kScreenPowerListenerForNativeWinOcclusion);
@@ -18726,7 +19001,7 @@ index 67f99842c04e5..a8aac0c1e041f 100644
  
  // Returns true if the system should use WM_POINTER events for touch events.
  COMPONENT_EXPORT(UI_BASE_FEATURES) bool IsUsingWMPointerForTouch();
-@@ -286,6 +288,9 @@ ChromeRefresh2023Level GetChromeRefresh2023Level();
+@@ -286,6 +287,9 @@ ChromeRefresh2023Level GetChromeRefresh2023Level();
  COMPONENT_EXPORT(UI_BASE_FEATURES)
  BASE_DECLARE_FEATURE(kBubbleMetricsApi);
  
@@ -19193,9 +19468,18 @@ index cf0f70a55333a..24643275b66d5 100644
 +}  // namespace gfx
 \ No newline at end of file
 diff --git a/ui/gfx/win/direct_write.h b/ui/gfx/win/direct_write.h
-index 72022056d29c4..88839b7621ce2 100644
+index 72022056d29c4..7a7727665b4d7 100644
 --- a/ui/gfx/win/direct_write.h
 +++ b/ui/gfx/win/direct_write.h
+@@ -6,7 +6,7 @@
+ #define UI_GFX_WIN_DIRECT_WRITE_H_
+ 
+ #include <dwrite.h>
+-
++#include "base/component_export.h"
+ #include "base/strings/string_piece.h"
+ #include "third_party/abseil-cpp/absl/types/optional.h"
+ #include "ui/gfx/gfx_export.h"
 @@ -14,9 +14,15 @@
  namespace gfx {
  namespace win {
@@ -19723,7 +20007,7 @@ index 9361287ac3411..4148c1cab9403 100644
  // Prompt the user for location to save a file.
  // Callers should provide the filter string, and also a filter index.
  // The parameter |index| indicates the initial index of filter description and
-@@ -185,56 +404,151 @@ bool RunSaveFileDialog(HWND owner,
+@@ -185,56 +404,150 @@ bool RunSaveFileDialog(HWND owner,
                         int* filter_index,
                         base::FilePath* path) {
    Microsoft::WRL::ComPtr<IFileSaveDialog> file_save_dialog;
@@ -19867,7 +20151,6 @@ index 9361287ac3411..4148c1cab9403 100644
 +	  open_file_name.lpstrDefExt = &def_ext[0];
 +
 +	  BOOL success = ::GetSaveFileNameW((OPENFILENAMEW*)&open_file_name);
-+
 +	  BaseShellDialogImpl::DisableOwner(owner);
 +	  if (!success) {
 +		if(open_file_name.lpstrFilter) {
@@ -19919,7 +20202,7 @@ index 9361287ac3411..4148c1cab9403 100644
  }
  
  // Runs an Open file dialog box, with similar semantics for input parameters as
-@@ -248,10 +562,12 @@ bool RunOpenFileDialog(HWND owner,
+@@ -248,10 +561,12 @@ bool RunOpenFileDialog(HWND owner,
                         int* filter_index,
                         std::vector<base::FilePath>* paths) {
    Microsoft::WRL::ComPtr<IFileOpenDialog> file_open_dialog;
@@ -19933,7 +20216,7 @@ index 9361287ac3411..4148c1cab9403 100644
    }
  
    // The FOS_FORCEFILESYSTEM option ensures that if the user enters a URL in the
-@@ -260,64 +576,124 @@ bool RunOpenFileDialog(HWND owner,
+@@ -260,64 +575,124 @@ bool RunOpenFileDialog(HWND owner,
    // GetOpenFileName API.
    dialog_options |= FOS_FORCEFILESYSTEM;
  
@@ -20833,8 +21116,8 @@ index 5319192415a63..090fd4574c19a 100644
  
  int LayoutProvider::GetCornerRadiusMetric(ShapeContextTokens id,
                                            const gfx::Size& size) const {
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
-+      return 3;
++  // if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++      // return 3;
    if (!features::IsChromeRefresh2023()) {
      switch (id) {
        case ShapeContextTokens::kBadgeRadius:
