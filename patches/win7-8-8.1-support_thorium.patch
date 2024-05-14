@@ -5,7 +5,7 @@ index 590f4c94f2067..7091f956b88b7 100644
 @@ -1,21 +1,36 @@
 -# ![Logo](chrome/app/theme/chromium/product_logo_64.png) Chromium
 +# Supermium + Thorium
-+An up-to-date, compiler optimized Chromium-based web browser compatible with Windows 7, 8, and 8.1.
++An up-to-date, compiler optimized Chromium-based web browser compatible with Windows XP, Vista, 7, 8, and 8.1.
  
 -Chromium is an open-source browser project that aims to build a safer, faster,
 -and more stable way for all users to experience the web.
