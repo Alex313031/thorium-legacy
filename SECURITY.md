@@ -15,4 +15,6 @@
 
  &ndash; USB integer overflow bug [CVE-2023-5849](https://github.com/advisories/GHSA-pq78-6h8h-rcf4) - Fixed in M120
 
- &ndash; Use after free bug [CVE-2024-4671](https://nvd.nist.gov/vuln/detail/CVE-2024-4671) - Fixed in M122.
+ &ndash; Use after free bug [CVE-2024-4671](https://nvd.nist.gov/vuln/detail/CVE-2024-4671) - Fixed in M122.0.6261.171
+
+ &ndash; Type confusion bug [CVE-2024-4947](https://nvd.nist.gov/vuln/detail/CVE-2024-4947) - Fixed in M122.0.6261.171
