@@ -1889,6 +1889,32 @@ index f341687194878..a1da6be7a8e22 100644
        "shell32.lib",
        "shlwapi.lib",
        "user32.lib",
+diff --git a/cc/debug/layer_tree_debug_state.cc b/cc/debug/layer_tree_debug_state.cc
+index 96cde9aea0423..8e956639dd545 100644
+--- a/cc/debug/layer_tree_debug_state.cc
++++ b/cc/debug/layer_tree_debug_state.cc
+@@ -23,7 +23,7 @@ bool LayerTreeDebugState::RecordRenderingStats() const {
+ }
+ 
+ bool LayerTreeDebugState::ShouldCreateHudLayer() const {
+-  return ShowDebugRects() || ShouldDrawHudInfo();
++  return ShowDebugRects() || ShouldDrawHudInfo() || block_lazy_compositing;
+ }
+ 
+ bool LayerTreeDebugState::ShowDebugRects() const {
+diff --git a/cc/debug/layer_tree_debug_state.h b/cc/debug/layer_tree_debug_state.h
+index eadb04bd4cfda..2a02713b0f4f1 100644
+--- a/cc/debug/layer_tree_debug_state.h
++++ b/cc/debug/layer_tree_debug_state.h
+@@ -25,6 +25,8 @@ class CC_DEBUG_EXPORT LayerTreeDebugState {
+   LayerTreeDebugState(const LayerTreeDebugState& other);
+   ~LayerTreeDebugState();
+ 
++  bool block_lazy_compositing = true;
++
+   bool show_fps_counter = false;
+   DebugBorderTypes show_debug_borders = false;
+ 
 diff --git a/cc/tiles/software_image_decode_cache_utils.cc b/cc/tiles/software_image_decode_cache_utils.cc
 index 1a0a378f11b89..84857d3b82fcd 100644
 --- a/cc/tiles/software_image_decode_cache_utils.cc
@@ -4976,7 +5002,7 @@ index b2966b46fe9db..4826ca00bbd94 100644
    return false;
  #endif  // BUILDFLAG(IS_WIN)
 diff --git a/chrome/browser/ui/layout_constants.cc b/chrome/browser/ui/layout_constants.cc
-index 347b900c1dab8..87d6cc266381c 100644
+index 347b900c1dab8..5012194ca3773 100644
 --- a/chrome/browser/ui/layout_constants.cc
 +++ b/chrome/browser/ui/layout_constants.cc
 @@ -4,6 +4,7 @@
@@ -4995,7 +5021,16 @@ index 347b900c1dab8..87d6cc266381c 100644
    const bool touch_ui = ui::TouchUiController::Get()->touch_ui();
    switch (constant) {
      case APP_MENU_PROFILE_ROW_AVATAR_ICON_SIZE:
-@@ -46,14 +48,20 @@ int GetLayoutConstant(LayoutConstant constant) {
+@@ -34,6 +36,8 @@ int GetLayoutConstant(LayoutConstant constant) {
+              bookmark_bar_attached_vertical_margin;
+     }
+     case BOOKMARK_BAR_BUTTON_HEIGHT:
++      if (compact_ui)
++        return touch_ui ? 29 : 21;
+       return touch_ui ? 36 : 28;
+     case BOOKMARK_BAR_BUTTON_PADDING:
+       return GetLayoutConstant(TOOLBAR_ELEMENT_PADDING);
+@@ -46,14 +50,20 @@ int GetLayoutConstant(LayoutConstant constant) {
        // stretching the container view.
        return 16;
      case LOCATION_BAR_BUBBLE_FONT_VERTICAL_PADDING:
@@ -5016,7 +5051,7 @@ index 347b900c1dab8..87d6cc266381c 100644
        return touch_ui ? 3 : 2;
      case LOCATION_BAR_PAGE_INFO_ICON_VERTICAL_PADDING:
        return touch_ui ? 3 : 5;
-@@ -67,6 +75,8 @@ int GetLayoutConstant(LayoutConstant constant) {
+@@ -67,6 +77,8 @@ int GetLayoutConstant(LayoutConstant constant) {
      case LOCATION_BAR_TRAILING_DECORATION_EDGE_PADDING:
        return touch_ui ? 3 : 12;
      case LOCATION_BAR_HEIGHT:
@@ -5025,7 +5060,7 @@ index 347b900c1dab8..87d6cc266381c 100644
        if (base::FeatureList::IsEnabled(omnibox::kOmniboxSteadyStateHeight) ||
            features::GetChromeRefresh2023Level() ==
                features::ChromeRefresh2023Level::kLevel2) {
-@@ -93,6 +103,8 @@ int GetLayoutConstant(LayoutConstant constant) {
+@@ -93,6 +105,8 @@ int GetLayoutConstant(LayoutConstant constant) {
      case TAB_CLOSE_BUTTON_SIZE:
        return touch_ui ? 24 : 16;
      case TAB_HEIGHT: {
@@ -5034,6 +5069,33 @@ index 347b900c1dab8..87d6cc266381c 100644
        bool use_touch_padding = touch_ui && !features::IsChromeRefresh2023();
  #if BUILDFLAG(IS_CHROMEOS)
        use_touch_padding &= !chromeos::features::IsRoundedWindowsEnabled();
+@@ -130,6 +144,8 @@ int GetLayoutConstant(LayoutConstant constant) {
+         return touch_ui ? 48 : 28;
+       }
+     case TOOLBAR_DIVIDER_CORNER_RADIUS:
++      if (compact_ui)
++        return 0;
+       return 1;
+     case TOOLBAR_DIVIDER_HEIGHT:
+       return touch_ui ? 20 : 16;
+@@ -138,6 +154,8 @@ int GetLayoutConstant(LayoutConstant constant) {
+     case TOOLBAR_DIVIDER_WIDTH:
+       return 2;
+     case TOOLBAR_ELEMENT_PADDING:
++      if (compact_ui)
++        return 0;
+       return touch_ui ? 0 : 4;
+     case TOOLBAR_ICON_DEFAULT_MARGIN:
+       if (features::IsChromeRefresh2023()) {
+@@ -156,6 +174,8 @@ int GetLayoutConstant(LayoutConstant constant) {
+     case DOWNLOAD_ICON_SIZE:
+       return features::IsChromeRefresh2023() ? 20 : 16;
+     case TOOLBAR_CORNER_RADIUS:
++      if (compact_ui)
++        return 0;
+       return 8;
+     default:
+       break;
 diff --git a/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc b/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc
 index bd38b23f61c16..0f266a3b5496a 100644
 --- a/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc
@@ -6110,7 +6172,7 @@ index bd59ccd1b1784..ad3a40764aa36 100644
      const gfx::Size& tabstrip_minimum_size) const {
 -  const int x = CaptionButtonsOnLeadingEdge() ? CaptionButtonsRegionWidth() : 0;
 +  int x = CaptionButtonsOnLeadingEdge() ? CaptionButtonsRegionWidth() : 0;
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("old-tab-strip-bounds"))
 +      x = 8;
    int end_x = width();
    if (!CaptionButtonsOnLeadingEdge()) {
@@ -6204,7 +6266,7 @@ index 8a3f3e300bde5..5f2fa8826a9cb 100644
      int total_width) const {
 -  const int x = available_space_leading_x_;
 +  int x = available_space_leading_x_;
-+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox"))
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("old-tab-strip-bounds"))
 +      x = 8;
    const int available_width = available_space_trailing_x_ - x;
    return gfx::Rect(x, GetTabStripInsetsTop(false), std::max(0, available_width),
@@ -13076,10 +13138,10 @@ index 0000000000000..dfd016042567a
 +void PCMWaveInAudioInputStream::SetupBuffers() {
 +  WAVEHDR* last = NULL;
 +  WAVEHDR* first = NULL;
-+  WAVEHDR* buffer_local = buffer_;
 +  for (int ix = 0; ix != num_buffers_; ++ix) {
 +    uint32_t sz = sizeof(WAVEHDR) + buffer_size_;
 +    buffer_ =  reinterpret_cast<WAVEHDR*>(new char[sz]);
++    WAVEHDR* buffer_local = buffer_;
 +    buffer_->lpData = reinterpret_cast<char*>(buffer_local) + sizeof(WAVEHDR);
 +    buffer_->dwBufferLength = buffer_size_;
 +    buffer_->dwBytesRecorded = 0;
@@ -13546,6 +13608,21 @@ index 6cec47a26e3db..1b7595fb34164 100644
  
    scoped_refptr<AudioBufferMemoryPool> pool_;
  };
+diff --git a/media/gpu/windows/d3d11_video_decoder_wrapper.cc b/media/gpu/windows/d3d11_video_decoder_wrapper.cc
+index 79988d3ac38da..f754564e3ae53 100644
+--- a/media/gpu/windows/d3d11_video_decoder_wrapper.cc
++++ b/media/gpu/windows/d3d11_video_decoder_wrapper.cc
+@@ -68,6 +68,10 @@ class D3D11VideoDecoderWrapperImpl : public D3D11VideoDecoderWrapper {
+       return false;
+     }
+     ID3D11VideoDecoderOutputView* output_view = std::move(result).value();
++    // Supermium #573: extra verification of the video context interface due to some presumptive GPU driver issues.
++    if (!video_context_) {
++      return false;
++    }
+     HRESULT hr;
+     do {
+       hr = video_context_->DecoderBeginFrame(video_decoder_.Get(), output_view,
 diff --git a/media/midi/midi_manager_winrt.cc b/media/midi/midi_manager_winrt.cc
 index d5ce6175bffbf..5ee947135e9ee 100644
 --- a/media/midi/midi_manager_winrt.cc
@@ -19092,6 +19169,19 @@ index 67f99842c04e5..a8aac0c1e041f 100644
  #if BUILDFLAG(IS_MAC)
  COMPONENT_EXPORT(UI_BASE_FEATURES)
  BASE_DECLARE_FEATURE(kMacClipboardWriteImageWithPng);
+diff --git a/ui/compositor/compositor.cc b/ui/compositor/compositor.cc
+index 632b95912ff5c..bb52d3da907e0 100644
+--- a/ui/compositor/compositor.cc
++++ b/ui/compositor/compositor.cc
+@@ -159,6 +159,8 @@ Compositor::Compositor(const viz::FrameSinkId& frame_sink_id,
+       }
+     }
+   }
++  settings.initial_debug_state.block_lazy_compositing = 
++      !command_line->HasSwitch("force-lazy-compositor");
+   settings.initial_debug_state.show_fps_counter =
+       command_line->HasSwitch(cc::switches::kUIShowFPSCounter);
+   settings.initial_debug_state.show_layer_animation_bounds_rects =
 diff --git a/ui/display/win/screen_win.cc b/ui/display/win/screen_win.cc
 index 6b6189a124e3f..a587fc488cebc 100644
 --- a/ui/display/win/screen_win.cc

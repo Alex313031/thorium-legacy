@@ -34,6 +34,19 @@
      "Disables the custom DNS configuration used by default in Thorium. Useful when this config breaks something, "
      "due to external apps or a non-standard system DNS config setting.",
      kOsDesktop, SINGLE_VALUE_TYPE("disable-thorium-dns-config")},
+    {"side-panel-journeys",
+     "Side Panel Journeys",
+     "Enables Journeys within the Side Panel.",
+     kOsDesktop, FEATURE_VALUE_TYPE(history_clusters::kSidePanelJourneys)},
+
+#if !BUILDFLAG(IS_ANDROID)
+    {"show-component-extension-options",
+     "Show Component Extension Options",
+     "Shows internal Chromium component extensions on the `chrome://extensions`. These are normally hidden, "
+     "but this is an override for debugging or inspection.",
+     kOsDesktop, SINGLE_VALUE_TYPE(extensions::switches::kShowComponentExtensionOptions)},
+#endif // BUILDFLAG(IS_ANDROID)
+
     {"force-high-contrast",
      "Enable High Contrast Mode",
      "Enables high contrast mode for all Thorium instances.",
@@ -60,12 +73,12 @@
      "Switch to the left/right tab if a scroll wheel event happens over the tabstrip, or the empty space beside the tabstrip.",
      kOsDesktop, MULTI_VALUE_TYPE(kScrollEventChangesTab)},
 
-//#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
-//    {"middle-click-autoscroll",
-//    "Middle Click Autoscroll",
-//     "Enables autoscrolling when the middle mouse button is pressed.",
-//     kOsDesktop, SINGLE_VALUE_TYPE(blink::features::kMiddleClickAutoscroll)},
-//#endif // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+    {"middle-click-autoscroll",
+     "Middle Click Autoscroll",
+     "Enables autoscrolling when the middle mouse button is pressed.",
+     kOsDesktop, FEATURE_VALUE_TYPE(blink::features::kMiddleClickAutoscroll)},
+#endif // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
 
     {"autoplay-policy",
      "Disable/Enable AutoPlay",
@@ -221,6 +234,11 @@
      "Windows 7 WebRTC H.264 Hardware Decoding",
      "Enables H.264 hardware decode acceleration for WebRTC on Windows 7.",
      kOsWin, SINGLE_VALUE_TYPE(switches::kEnableWin7WebRtcHWH264Decoding)},
+    {"force-lazy-compositor",
+     "Force Enable Lazy Composition",
+     "Enables the lazy compositor even on platforms where it is normally disabled. Increases responsiveness at the cost of possible "
+     "graphical glitches on pre-Windows 8.1 OSes.",
+     kOsWin, SINGLE_VALUE_TYPE("force-lazy-compositor")},
     {"force-gdi",
      flag_descriptions::kForceGdiName,
      flag_descriptions::kForceGdiDescription,
@@ -247,6 +265,10 @@
      "Classic Omnibox Border",
      "Changes the omnibox outline to have dark borders, to more closely match the classic M49 appearance.",
      kOsDesktop, SINGLE_VALUE_TYPE("classic-omnibox-border")},
+    {"old-tab-strip-bounds",
+     "Enable Old Tab Strip Bounds",
+     "Enable the old tab strip bounds, specifically on the left (or right in an RTL configuration).",
+     kOsDesktop, SINGLE_VALUE_TYPE("old-tab-strip-bounds")},
     {"native-ui-style",
      "Enable Native User Interface Elements",
      "Enables native user interface elements on Windows. At this time, it only applies to elements outside the area of the web content itself.",
