@@ -1,3 +1,6 @@
+1.1.0.5012:
+-Power*Request functions implemented; registry-based supplement for screensaver blocking as SetThreadExecutionState is insufficient on XP
+
 1.1.0.5010:
 -A few function stubs added covering uxtheme and ole32, mostly for Windows 2000 targets
 -Condition variable implementation rewritten, handle leak eliminated
