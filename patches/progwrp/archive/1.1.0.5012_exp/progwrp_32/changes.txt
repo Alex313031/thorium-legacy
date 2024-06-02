@@ -1,0 +1,19 @@
+1.1.0.5012:
+-Power*Request functions implemented; registry-based supplement for screensaver blocking as SetThreadExecutionState is insufficient on XP
+
+1.1.0.5010:
+-A few function stubs added covering uxtheme and ole32, mostly for Windows 2000 targets
+-Condition variable implementation rewritten, handle leak eliminated
+
+
+1.1.0.5002:
+-GetDpiForMonitor and ProcessPrng added; this means that bcryptprimitives is now redirected to progwrp.dll in progwrp-native LoadLibrary if the former cannot be located
+-getaddrinfo and freeaddrinfo implementations added, enables DNS functionality on Windows 2000
+-Slight revision to dynamic TLS allocator in response to Supermium issue #468
+
+
+
+1.1.0.5000:
+-SRW lock implementation revised, handles no longer used, shared locks now functional
+-Slight issues in InitOnceExecuteOnce resolved
+-Locale API out-of-bounds checking improved
