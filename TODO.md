@@ -38,8 +38,6 @@ Aw, Snap! > Aw, #@%!, this tab's process has gone bye bye...
 
  - Add GPC patch
 
- - Restore JXL support on Android.
-
 ## Windows 7 Specific
 
  - git apply --reject --ignore-space-change --recount --ignore-whitespace win7-8-8.1-support_thorium.patch
@@ -51,8 +49,7 @@ Aw, Snap! > Aw, #@%!, this tab's process has gone bye bye...
 
  - Fix thorium_shell
 
- - https://github.com/win32ss/supermium/commit/eda9398979e06be019be585da04267025fbcb1fc#diff-1d869308b9cf99a717940a7206e087c34ec4cede65180dc8bd16a1b0a524be50
- - Restore Win7 WebRTC HW decoding flag (and disable by default) > https://source.chromium.org/chromium/chromium/src/+/3682d7432ea6d3a50661ca565759509a57fe3d4c
+ - https://source.chromium.org/chromium/chromium/src/+/3682d7432ea6d3a50661ca565759509a57fe3d4c
 
  - https://source.chromium.org/chromium/chromium/src/+/056a891186fbf7b5cd3f857c331ab3ad5a69019d
 
@@ -65,7 +62,7 @@ add feature flags for some thorium stuff maybe? add one for reload right click m
 
 Fix thorium_shell
 
-Try removing only progwrp.dll for vista, if fails, remove xp specific code, leaving ntdll and psapi, then try removing ntdll and only using psapi
+chrome://tab-search.top-chrome/
 
 fix session buddy and find out wqhen websql is removed and find out how to migrate to indexdb or other alternatives
 
