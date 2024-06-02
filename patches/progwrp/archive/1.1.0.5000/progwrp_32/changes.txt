@@ -1,0 +1,5 @@
+
+1.1.0.5000:
+-SRW lock implementation revised, handles no longer used, shared locks now functional
+-Slight issues in InitOnceExecuteOnce resolved
+-Locale API out-of-bounds checking improved
