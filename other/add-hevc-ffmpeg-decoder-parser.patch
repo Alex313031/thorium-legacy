@@ -146,7 +146,6 @@ profiles to have software HEVC decoding ability.
  .../Chromium/win/x64/config_components.h      |  4 +-
  .../Chromium/win/x64/libavcodec/codec_list.c  |  1 +
  .../Chromium/win/x64/libavcodec/parser_list.c |  1 +
- chromium/scripts/build_ffmpeg.py              |  4 +-
  ffmpeg_generated.gni                          | 65 +++++++++++++++++++
  ...ame_libavcodec_aarch64_hevcdsp_idct_neon.S |  2 +
  ...name_libavcodec_aarch64_hevcdsp_sao_neon.S |  2 +
@@ -3100,22 +3099,6 @@ index f81fbe8bbc..2d65b7d8ad 100644
      &ff_vp9_parser,
 +    &ff_hevc_parser,
      NULL };
-diff --git a/chromium/scripts/build_ffmpeg.py b/chromium/scripts/build_ffmpeg.py
-index f1ed4ce144..bd87ea065a 100755
---- a/chromium/scripts/build_ffmpeg.py
-+++ b/chromium/scripts/build_ffmpeg.py
-@@ -1013,9 +1013,9 @@ def ConfigureAndBuild(target_arch, target_os, host_os, host_arch, parallel_jobs,
- 
-   # Google Chrome & ChromeOS specific configuration.
-   configure_flags['Chrome'].extend([
--      '--enable-decoder=aac,h264',
-+      '--enable-decoder=aac,h264,hevc',
-       '--enable-demuxer=aac',
--      '--enable-parser=aac,h264',
-+      '--enable-parser=aac,h264,hevc',
-   ])
- 
-   # Google ChromeOS specific configuration.
 diff --git a/ffmpeg_generated.gni b/ffmpeg_generated.gni
 index ce648b73f8..dc9d3928fa 100644
 --- a/ffmpeg_generated.gni
