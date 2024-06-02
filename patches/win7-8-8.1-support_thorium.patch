@@ -6151,9 +6151,9 @@ index a3090da2ca8b4..21c73e4902f76 100644
      ExclusiveAccessBubbleHideCallback bubble_first_hide_callback,
      bool notify_download,
      bool force_update) {
-+	if (base::CommandLine::ForCurrentProcess()->HasSwitch(
-+          "hide-fullscreen-exit-ui"))
-+		return;
++    if (base::CommandLine::ForCurrentProcess()->HasSwitch(
++      "hide-fullscreen-exit-ui"))
++        return;
    // Trusted pinned mode does not allow to escape. So do not show the bubble.
    bool is_trusted_pinned =
        platform_util::IsBrowserLockedFullscreen(browser_.get());
@@ -6211,9 +6211,9 @@ index ccafa0c6ed945..8e003293c011b 100644
  constexpr base::TimeDelta kKeyPressPopupDelay = base::Seconds(1);
  
  bool IsExitUiEnabled() {
-+	if (base::CommandLine::ForCurrentProcess()->HasSwitch(
-+          "hide-fullscreen-exit-ui"))
-+		return false;
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
++    "hide-fullscreen-exit-ui"))
++      return false;
  #if BUILDFLAG(IS_MAC)
    // Exit UI is unnecessary, since Mac uses the OS fullscreen such that window
    // menu and controls reveal when the cursor is moved to the top.
@@ -6289,8 +6289,8 @@ index b4b2f01a846a7..5f12d63bcf7de 100644
    // correctly enable subpixel AA.
    omnibox_view_->SetBackgroundColor(background_color);
  
-+  if ((base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox") ||
-+    base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox-border")) &&
++
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox-border") &&
 +    base::CommandLine::ForCurrentProcess()->HasSwitch("compact-ui"))
 +    // When the location bar is shrunken, the border above is only drawn on the sides.
 +    // To resolve this, an extra border is drawn in that area on the top and bottom.

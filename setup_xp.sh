@@ -60,12 +60,18 @@ printf "\n" &&
 
 patchFFMPEG () {
 	cp -v other/add-hevc-ffmpeg-decoder-parser.patch ${CR_SRC_DIR}/third_party/ffmpeg/ &&
+	cp -v other/ffmpeg_hevc_ac3.patch ${CR_SRC_DIR}/third_party/ffmpeg/ &&
 	cp -v other/fix-policy-templates.patch ${CR_SRC_DIR}/ &&
 
 	printf "\n" &&
 	printf "${YEL}Patching FFMPEG for HEVC...${c0}\n" &&
 	cd ${CR_SRC_DIR}/third_party/ffmpeg &&
 	git apply --reject ./add-hevc-ffmpeg-decoder-parser.patch &&
+
+	printf "\n" &&
+	printf "${YEL}Patching FFMPEG for AC3/EAC3...${c0}\n" &&
+	cd ${CR_SRC_DIR}/third_party/ffmpeg &&
+	git apply --reject ./ffmpeg_hevc_ac3.patch &&
 
 	printf "\n" &&
 	printf "${YEL}Patching policy templates...${c0}\n" &&
