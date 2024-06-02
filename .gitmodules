@@ -2,5 +2,5 @@
 	path = thorium-libjxl
 	url = https://github.com/Alex313031/thorium-libjxl.git
 [submodule "thorium-legacy-installer"]
-	path = thorium-legacy-installer
+	path = thorium-installer
 	url = https://github.com/Alex313031/thorium-legacy-installer.git
