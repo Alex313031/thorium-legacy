@@ -21289,10 +21289,10 @@ index 5319192415a63..4245bf02d66f3 100644
  
  LayoutProvider::LayoutProvider() {
 +  // On creation of the LayoutProvider object, update the metrics with user preferences if applicable.
-+  // std::string corner_metrics;
-+  // auto env = base::Environment::Create();
-+  // if (env->GetVar("davenport_corner_metrics", &corner_metrics))
-+    // kMenuCornerRadius = std::stoi(corner_metrics);
++  std::string corner_metrics;
++  auto env = base::Environment::Create();
++  if (env->GetVar("davenport_corner_metrics", &corner_metrics))
++    kMenuCornerRadius = std::stoi(corner_metrics);
    g_layout_delegate = this;
  }
  
@@ -21302,14 +21302,14 @@ index 5319192415a63..4245bf02d66f3 100644
        case ShapeContextTokens::kOmniboxExpandedRadius:
 -        return 16;
 +        if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox")) {
-+          return 3;
++          return kMenuCornerRadius;
 +        } else {
 +          return 16;
 +        }
        case ShapeContextTokens::kTextfieldRadius:
 -        return FocusRing::kDefaultCornerRadiusDp;
 +        if (base::CommandLine::ForCurrentProcess()->HasSwitch("classic-omnibox")) {
-+          return 3;
++          return kMenuCornerRadius;
 +        } else {
 +          return FocusRing::kDefaultCornerRadiusDp;
 +        }
