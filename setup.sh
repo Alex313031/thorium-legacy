@@ -49,11 +49,9 @@ else
 fi
 
 printf "\n" &&
-printf "${YEL}Creating build output directory...\n" &&
-tput sgr0 &&
+printf "${YEL}Creating build output directory...${c0}\n" &&
 
 mkdir -v -p ${CR_SRC_DIR}/out/thorium/ &&
-printf "\n" &&
 
 printf "\n" &&
 printf "${YEL}Copying Thorium source files over the Chromium tree...${c0}\n" &&
@@ -102,7 +100,7 @@ patchFFMPEG () {
 	printf "\n" &&
 	printf "${YEL}Patching policy templates...${c0}\n" &&
 	cd ${CR_SRC_DIR} &&
-	git apply --reject ./fix-policy-templates.patch &&
+	git apply --reject ./fix-policy-templates.patch
 }
 [ -f ${CR_SRC_DIR}/third_party/ffmpeg/add-hevc-ffmpeg-decoder-parser.patch ] || patchFFMPEG;
 
