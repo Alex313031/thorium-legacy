@@ -1547,7 +1547,11 @@ void HistoryBackend::AddPagesWithDetails(const URLRows& urls,
 }
 
 bool HistoryBackend::IsExpiredVisitTime(const base::Time& time) const {
-  return time < expirer_.GetCurrentExpirationTime();
+  if (base::CommandLine::ForCurrentProcess()->HasSwitch("keep-all-history")) {
+    return false;
+  } else {
+    return time < expirer_.GetCurrentExpirationTime();
+  }
 }
 
 // static
