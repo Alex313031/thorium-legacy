@@ -1,3 +1,16 @@
+1.1.0.5018:
+-TLS code finalized, only iterates through DLLs loaded by this DLL
+1.1.0.5017:
+-TLS code also added to FlsSetValue wrapper to cover a few remaining TLS bugs that crashed the browser on some XP systems
+1.1.0.5016:
+-TLS code moved from dedicated functions to being called in InitializeCriticalSectionEx (CRT DllMain calls it on DLL_PROCESS_ATTACH) or LoadLibraryEx (in case CRT DllMain
+is not used) and FlsGetValue (CRT DllMain calls it on DLL_THREAD_ATTACH) as well as DLL_THREAD_ATTACH in progwrp's DllMain. This was done to allow third-party DLLs with
+TLS directories to be loaded dynamically
+-Multimedia Timer set to constant ~1.0 ms on NT 5.x and below due to issues with constant timer resolution switches
+1.1.0.5015:
+-SRW locks revised again, now passing winetests
+-WinRT functions introduced
+
 1.1.0.5012:
 -Power*Request functions implemented; registry-based supplement for screensaver blocking as SetThreadExecutionState is insufficient on XP
 

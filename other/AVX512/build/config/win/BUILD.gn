@@ -127,11 +127,47 @@ config("compiler") {
     # microarchitecture. MSVC only supports a subset of architectures, and the
     # next step after SSE2 will be AVX.
     # "/fp:fast", enables FMA.
+    # "/arch:AVX2", for AVX2
     if (current_cpu == "x86" || current_cpu == "x64") {
       cflags += [
+        "/arch:AVX2",
         "-msse3",
+        "-mssse3",
+        "-msse4.1",
+        "-msse4.2",
+        "-mpclmul",
+        "-maes",
+        "-mavx",
+        "-mavx2",
+        "-mavx512f",
+        "-mavx512cd",
+        "-mavx512vl",
+        "-mavx512bw",
+        "-mavx512dq",
+        "-mfma",
+        "-mf16c",
+        "-mlzcnt",
+        "-mbmi2",
         "/clang:-O3",
         "/clang:-msse3",
+        "/clang:-mssse3",
+        "/clang:-msse4.1",
+        "/clang:-msse4.2",
+        "/clang:-mpclmul",
+        "/clang:-maes",
+        "/clang:-mavx",
+        "/clang:-mavx2",
+        "/clang:-mavx512f",
+        "/clang:-mavx512cd",
+        "/clang:-mavx512vl",
+        "/clang:-mavx512bw",
+        "/clang:-mavx512dq",
+        "/clang:-mfma",
+        "/clang:-mf16c",
+        "/clang:-mlzcnt",
+        "/clang:-mbmi2",
+        "/clang:-ffp-contract=fast",
+        "/clang:-w",
         "-Xclang", "-O3",
       ]
     }
@@ -201,6 +237,7 @@ config("compiler") {
       "/INCREMENTAL:NO",
       "/FIXED:NO",
       "/OPT:lldlto=3",
+      "-mllvm:-march=skylake-avx512",
     ]
 
     if (use_lld) {
@@ -252,7 +289,7 @@ config("runtime_library") {
     "_ATL_NO_OPENGL",
     "_WINDOWS",
     "CERT_CHAIN_PARA_HAS_EXTRA_FIELDS",
-    "PSAPI_VERSION=1",
+    "PSAPI_VERSION=2",
     "WIN32",
     "_SECURE_ATL",
   ]
@@ -626,9 +663,7 @@ config("static_crt") {
 
 # This is appended to the subsystem to specify a minimum version.
 # The number after the comma is the minimum required OS version.
-# Set to NT 5.1 since this is for Windows XP/Vista
-# 5.01 = Windows XP.
-subsystem_version_suffix = ",5.01"
+subsystem_version_suffix = ",6.1"
 
 config("console") {
   ldflags = [ "/SUBSYSTEM:CONSOLE$subsystem_version_suffix" ]
