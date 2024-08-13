@@ -1,4 +1,4 @@
-// Copyright 2024 The Chromium Authors and Alex313031
+// Copyright 2024 The Chromium Authors, Alex313031, and midzer
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -335,8 +335,12 @@ bool IsDefaultSupportedVideoType(const VideoType& type) {
     case VideoCodec::kTheora:
       return IsBuiltInVideoCodec(type.codec);
     case VideoCodec::kH264:
-    case VideoCodec::kVP8:
       return true;
+    case VideoCodec::kVP8:
+      return IsBuiltInVideoCodec(type.codec)
+                 ? true
+                 : GetSupplementalProfileCache()->IsProfileSupported(
+                       type.profile);
     case VideoCodec::kAV1:
       return IsAV1Supported(type);
     case VideoCodec::kVP9:
@@ -397,19 +401,16 @@ bool IsDefaultSupportedAudioType(const AudioType& type) {
 }
 
 bool IsBuiltInVideoCodec(VideoCodec codec) {
-#if BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS)
-  if (codec == VideoCodec::kTheora)
-    return base::FeatureList::IsEnabled(kTheoraVideoCodec);
-  if (codec == VideoCodec::kVP8)
+#if BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS) && BUILDFLAG(USE_PROPRIETARY_CODECS)
+  if (codec == VideoCodec::kH264 || codec == VideoCodec::kHEVC) {
     return true;
-#if BUILDFLAG(USE_PROPRIETARY_CODECS)
-  if (codec == VideoCodec::kH264 || codec == VideoCodec::kHEVC)
-    return true;
-#endif  // BUILDFLAG(USE_PROPRIETARY_CODECS)
-#endif  // BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS)
+  }
+#endif  // BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS) &&
+        // BUILDFLAG(USE_PROPRIETARY_CODECS)
 #if BUILDFLAG(ENABLE_LIBVPX)
-  if (codec == VideoCodec::kVP8 || codec == VideoCodec::kVP9)
+  if (codec == VideoCodec::kVP8 || codec == VideoCodec::kVP9) {
     return true;
+  }
 #endif  // BUILDFLAG(ENABLE_LIBVPX)
 #if BUILDFLAG(ENABLE_AV1_DECODER)
   if (codec == VideoCodec::kAV1)
