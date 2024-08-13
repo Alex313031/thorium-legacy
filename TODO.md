@@ -35,8 +35,11 @@ ThoriumOS Flex > ThoriumOS
 made possible by Thorium > Chromium
 Experiments > Thorium Experiments
 Aw, Snap! > Aw, #@%!, this tab's process has gone bye bye...
+Dino strings in components/error_page_strings.grdp
 
  - Add GPC patch
+
+ - Re-add FILL_RULE_NONZERO, to bookmark_chrome_refresh.icon back_arrow_chrome_refresh.icon forward_arrow_chrome_refresh.icon
 
 ## Windows 7 Specific
 
@@ -60,9 +63,13 @@ look up how to add flag, feature flag, commandline, and gui, and multi option fl
 
 add feature flags for some thorium stuff maybe? add one for reload right click menu
 
-Fix thorium_shell
-
 chrome://tab-search.top-chrome/
 
 fix session buddy and find out wqhen websql is removed and find out how to migrate to indexdb or other alternatives
 
+Compare src difference between M122 and legacy, add to 124
+Compare non-src difference and update
+Update FTP, ffmpeg, and AC3 patches
+Update main patches
+Update skia-supermium and pdfium-supermium and patches
+Backport stuff from M126
