@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chrome/browser/ui/views/toolbar/chrome_labs_button.h"
+#include "chrome/browser/ui/views/toolbar/chrome_labs/chrome_labs_button.h"
 
 #include "base/command_line.h"
 #include "base/ranges/algorithm.h"
@@ -14,8 +14,8 @@
 #include "chrome/browser/ui/toolbar/chrome_labs/chrome_labs_prefs.h"
 #include "chrome/browser/ui/toolbar/chrome_labs/chrome_labs_utils.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
-#include "chrome/browser/ui/views/toolbar/chrome_labs_bubble_view.h"
-#include "chrome/browser/ui/views/toolbar/chrome_labs_coordinator.h"
+#include "chrome/browser/ui/views/toolbar/chrome_labs/chrome_labs_bubble_view.h"
+#include "chrome/browser/ui/views/toolbar/chrome_labs/chrome_labs_coordinator.h"
 #include "chrome/browser/ui/webui/flags/flags_ui.h"
 #include "chrome/grit/generated_resources.h"
 #include "ui/base/l10n/l10n_util.h"
@@ -35,7 +35,8 @@ ChromeLabsButton::ChromeLabsButton(BrowserView* browser_view,
   static const bool disable_thorium_icons =
       base::CommandLine::ForCurrentProcess()->HasSwitch("disable-thorium-icons");
   SetProperty(views::kElementIdentifierKey, kToolbarChromeLabsButtonElementId);
-  SetVectorIcons(features::IsChromeRefresh2023() ? kChromeLabsChromeRefreshIcon
+  SetVectorIcons(features::IsChromeRefresh2023() ? disable_thorium_icons ? kChromeLabsChromeRefreshIcon
+                                                 : kChromeLabsChromeRefreshThoriumIcon
                                                  : disable_thorium_icons ? kChromeLabsIcon
                                                  : kChromeLabsThoriumIcon,
                  kChromeLabsTouchIcon);
@@ -43,9 +44,10 @@ ChromeLabsButton::ChromeLabsButton(BrowserView* browser_view,
   SetTooltipText(l10n_util::GetStringUTF16(IDS_TOOLTIP_CHROMELABS_BUTTON));
   button_controller()->set_notify_action(
       views::ButtonController::NotifyAction::kOnPress);
-  GetViewAccessibility().OverrideRole(ax::mojom::Role::kPopUpButton);
-  GetViewAccessibility().OverrideHasPopup(ax::mojom::HasPopup::kDialog);
-  new_experiments_indicator_ = views::DotIndicator::Install(image());
+  GetViewAccessibility().SetRole(ax::mojom::Role::kPopUpButton);
+  GetViewAccessibility().SetHasPopup(ax::mojom::HasPopup::kDialog);
+  new_experiments_indicator_ =
+      views::DotIndicator::Install(image_container_view());
   UpdateDotIndicator();
 
   chrome_labs_coordinator_ = std::make_unique<ChromeLabsCoordinator>(
@@ -54,14 +56,14 @@ ChromeLabsButton::ChromeLabsButton(BrowserView* browser_view,
 
 ChromeLabsButton::~ChromeLabsButton() = default;
 
-void ChromeLabsButton::Layout() {
-  ToolbarButton::Layout();
+void ChromeLabsButton::Layout(PassKey) {
+  LayoutSuperclass<ToolbarButton>(this);
   gfx::Rect dot_rect(8, 8);
   if (ui::TouchUiController::Get()->touch_ui()) {
     dot_rect = ScaleToEnclosingRect(
         dot_rect, float{kDefaultTouchableIconSize} / kDefaultIconSize);
   }
-  dot_rect.set_origin(image()->GetImageBounds().bottom_right() -
+  dot_rect.set_origin(image_container_view()->GetLocalBounds().bottom_right() -
                       dot_rect.bottom_right().OffsetFromOrigin());
   new_experiments_indicator_->SetBoundsRect(dot_rect);
 }

@@ -5,11 +5,11 @@
 #include "chrome/browser/themes/theme_helper_win.h"
 
 #include "base/command_line.h"
+#include "base/win/windows_version.h"
 #include "chrome/browser/themes/custom_theme_supplier.h"
 #include "chrome/browser/themes/theme_properties.h"
 #include "chrome/browser/win/titlebar_config.h"
 #include "chrome/grit/theme_resources.h"
-#include "base/win/windows_version.h"
 
 BASE_FEATURE(kDisableAeroTheme,
              "DisableAeroTheme",

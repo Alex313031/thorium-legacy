@@ -243,6 +243,11 @@ class DnsClientImpl : public DnsClient {
     factory_ = std::move(factory);
   }
 
+  void SetAddressSorterForTesting(
+      std::unique_ptr<AddressSorter> address_sorter) override {
+    NOTIMPLEMENTED();
+  }
+
  private:
   std::optional<DnsConfig> BuildEffectiveConfig() const {
     DnsConfig config;

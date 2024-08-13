@@ -153,8 +153,6 @@
 
 #if BUILDFLAG(IS_CHROMEOS)
 #include "chromeos/dbus/constants/dbus_paths.h"
-#include "components/crash/core/app/breakpad_linux.h"
-#include "ui/gfx/linux/gbm_util.h"  // nogncheck
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
@@ -171,6 +169,7 @@
 #endif
 
 #if BUILDFLAG(IS_ANDROID)
+#include "base/android/input_hint_checker.h"
 #include "base/android/java_exception_reporter.h"
 #include "base/android/library_loader/library_loader_hooks.h"
 #include "chrome/browser/android/flags/chrome_cached_flags.h"
@@ -192,6 +191,10 @@
 
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
 #include "base/environment.h"
+#endif
+
+#if BUILDFLAG(IS_LINUX)
+#include "base/nix/scoped_xdg_activation_token_injector.h"
 #endif
 
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_ANDROID)
@@ -224,7 +227,6 @@
 #endif  // BUILDFLAG(ENABLE_PROCESS_SINGLETON)
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
-#include "base/scoped_add_feature_flags.h"
 #include "chrome/common/chrome_paths_lacros.h"
 #include "chromeos/crosapi/cpp/crosapi_constants.h"  // nogncheck
 #include "chromeos/crosapi/mojom/crosapi.mojom.h"    // nogncheck
@@ -240,9 +242,17 @@
 #include "media/base/media_switches.h"
 #include "ui/accessibility/accessibility_features.h"
 #include "ui/base/resource/data_pack_with_resource_sharing_lacros.h"
-#include "ui/base/ui_base_features.h"
 #include "ui/gfx/switches.h"
 #endif
+
+#if BUILDFLAG(IS_OZONE)
+#include "base/scoped_add_feature_flags.h"
+#include "ui/base/ui_base_features.h"
+#include "ui/ozone/public/ozone_platform.h"
+#if BUILDFLAG(IS_LINUX)
+#include "chrome/browser/chrome_browser_main_extra_parts_linux.h"
+#endif
+#endif  // BUILDFLAG(IS_OZONE)
 
 base::LazyInstance<ChromeContentGpuClient>::DestructorAtExit
     g_chrome_content_gpu_client = LAZY_INSTANCE_INITIALIZER;
@@ -468,19 +478,6 @@ void SetCrashpadUploadConsentPostLogin() {
   crash_reporter::SetUploadConsent(
       crash_reporter::GetClientCollectStatsConsent());
 }
-
-void AddFeatureFlagsToCommandLine(
-    const chromeos::BrowserParamsProxy& init_params) {
-  base::ScopedAddFeatureFlags flags(base::CommandLine::ForCurrentProcess());
-
-  if (init_params.IsVariableRefreshRateAlwaysOn()) {
-    flags.EnableIfNotSet(features::kEnableVariableRefreshRateAlwaysOn);
-  }
-
-  if (init_params.IsPdfOcrEnabled()) {
-    flags.EnableIfNotSet(features::kPdfOcr);
-  }
-}
 #endif  // BUILDFLAG(IS_CHROMEOS_LACROS)
 
 #if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_ANDROID)
@@ -565,6 +562,17 @@ std::optional<int> AcquireProcessSingleton(
   // process can be exited.
   ChromeProcessSingleton::CreateInstance(user_data_dir);
 
+#if BUILDFLAG(IS_LINUX)
+  // Read the xdg-activation token and set it in the command line for the
+  // duration of the notification in order to ensure this is propagated to an
+  // already running browser process if it exists.
+  // If this is the only browser process the global token will be available for
+  // use after this as well.
+  // The activation token received from the launching app is used later when
+  // activating an existing browser window.
+  base::nix::ScopedXdgActivationTokenInjector activation_token_injector(
+      *base::CommandLine::ForCurrentProcess(), *base::Environment::Create());
+#endif
   ProcessSingleton::NotifyResult notify_result =
       ChromeProcessSingleton::GetInstance()->NotifyOtherProcessOrCreate();
   UMA_HISTOGRAM_ENUMERATION("Chrome.ProcessSingleton.NotifyResult",
@@ -807,6 +815,22 @@ void OnResourceExhausted() {
 }
 #endif  // !BUILDFLAG(IS_WIN)
 
+#if BUILDFLAG(IS_CHROMEOS_LACROS)
+void AddFeatureFlagsToCommandLine() {
+  CHECK(!base::FeatureList::GetInstance());
+  base::ScopedAddFeatureFlags flags(base::CommandLine::ForCurrentProcess());
+
+  const auto& init_params = *chromeos::BrowserParamsProxy::Get();
+  if (init_params.IsVariableRefreshRateAlwaysOn()) {
+    flags.EnableIfNotSet(features::kEnableVariableRefreshRateAlwaysOn);
+  }
+
+  if (init_params.IsPdfOcrEnabled()) {
+    flags.EnableIfNotSet(features::kPdfOcr);
+  }
+}
+#endif  // BUILDFLAG(IS_CHROMEOS_LACROS)
+
 }  // namespace
 
 ChromeMainDelegate::ChromeMainDelegate()
@@ -839,15 +863,6 @@ std::optional<int> ChromeMainDelegate::PostEarlyInitialization(
   const auto* invoked_in_browser =
       absl::get_if<InvokedInBrowserProcess>(&invoked_in);
   if (!invoked_in_browser) {
-#if BUILDFLAG(IS_CHROMEOS)
-    // At this point, the base::FeatureList has been initialized and the process
-    // should still be single threaded. Additionally, minigbm shouldn't have
-    // been used yet by this process. Therefore, it's a good time to ensure the
-    // Intel media compression environment flag for minigbm is correctly set
-    // (it's possible this environment variable wasn't inherited from the
-    // browser process).
-    ui::EnsureIntelMediaCompressionEnvVarIsSet();
-#endif  // BUILDFLAG(IS_CHROMEOS)
     CommonEarlyInitialization(invoked_in);
     return std::nullopt;
   }
@@ -942,11 +957,11 @@ std::optional<int> ChromeMainDelegate::PostEarlyInitialization(
   // Set Lacros's default paths.
   const auto& init_params = *chromeos::BrowserParamsProxy::Get();
   chrome::SetLacrosDefaultPathsFromInitParams(init_params.DefaultPaths().get());
-
-  // Must be added before feature list is created otherwise the added flag won't
-  // be picked up.
-  AddFeatureFlagsToCommandLine(init_params);
 #endif  // BUILDFLAG(IS_CHROMEOS_LACROS)
+
+#if BUILDFLAG(IS_CHROMEOS_LACROS)
+  AddFeatureFlagsToCommandLine();
+#endif
 
   // The DBus initialization above is needed for FeatureList creation here;
   // features are needed for Mojo initialization; and Mojo initialization is
@@ -956,13 +971,22 @@ std::optional<int> ChromeMainDelegate::PostEarlyInitialization(
           ->chrome_feature_list_creator();
   chrome_feature_list_creator->CreateFeatureList();
 
-#if BUILDFLAG(IS_CHROMEOS)
-  // At this point, the base::FeatureList has been initialized and the process
-  // should still be single threaded. Additionally, minigbm shouldn't have been
-  // used yet by this process. Therefore, it's a good time to ensure the Intel
-  // media compression environment flag for minigbm is correctly set.
-  ui::EnsureIntelMediaCompressionEnvVarIsSet();
-#endif  // BUILDFLAG(IS_CHROMEOS)
+#if BUILDFLAG(IS_OZONE)
+  // Initialize Ozone platform and add required feature flags as per platform's
+  // properties.
+#if BUILDFLAG(IS_LINUX)
+  ChromeBrowserMainExtraPartsLinux::InitOzonePlatformHint();
+#endif
+  ui::OzonePlatform::PreEarlyInitialization();
+
+  // Disable currently unsupported web features per platform properties.
+  if (!ui::OzonePlatform::GetInstance()
+           ->GetPlatformProperties()
+           .supports_color_picker_dialog) {
+    base::CommandLine::ForCurrentProcess()->AppendSwitch(
+        features::kEyeDropperNotSupported);
+  }
+#endif  // BUILDFLAG(IS_OZONE)
 
   content::InitializeMojoCore();
 
@@ -1142,12 +1166,31 @@ void ChromeMainDelegate::CommonEarlyInitialization(InvokedIn invoked_in) {
                          return invoked_in_child.is_zygote_child;
                        }},
       invoked_in);
-  base::HangWatcher::InitializeOnMainThread(
-      hang_watcher_process_type, /*is_zygote_child=*/is_zygote_child);
+
+  const bool is_canary_dev =
+      chrome::GetChannel() == version_info::Channel::CANARY ||
+      chrome::GetChannel() == version_info::Channel::DEV;
+  const bool emit_crashes =
+#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_MAC) || \
+    BUILDFLAG(IS_WIN)
+      is_canary_dev;
+#else
+      false;
+#endif
+
+  base::HangWatcher::InitializeOnMainThread(hang_watcher_process_type,
+                                            /*is_zygote_child=*/is_zygote_child,
+                                            emit_crashes);
 
   base::InitializeCpuReductionExperiment();
   base::sequence_manager::internal::SequenceManagerImpl::InitializeFeatures();
-  base::sequence_manager::internal::ThreadController::InitializeFeatures();
+  // Set `record_sample_metadata` on dev and canary channels since these are the
+  // only channels where this metadata is expected to be useful for the
+  // foreseeable future. Please refer to
+  // https://source.chromium.org/chromium/chromium/src/+/main:chrome/common/profiler/
+  // for more context.
+  base::sequence_manager::internal::ThreadController::InitializeFeatures(
+      /*record_sample_metadata=*/is_canary_dev);
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_ANDROID)
   base::MessagePumpLibevent::InitializeFeatures();
 #elif BUILDFLAG(IS_MAC)
@@ -1155,6 +1198,9 @@ void ChromeMainDelegate::CommonEarlyInitialization(InvokedIn invoked_in) {
   base::MessagePumpCFRunLoopBase::InitializeFeatures();
   base::MessagePumpKqueue::InitializeFeatures();
   base::ConditionVariable::InitializeFeatures();
+#endif
+#if BUILDFLAG(IS_ANDROID)
+  base::android::InputHintChecker::InitializeFeatures();
 #endif
 }
 
@@ -1282,12 +1328,6 @@ std::optional<int> ChromeMainDelegate::BasicStartupComplete() {
 
 #if BUILDFLAG(IS_WIN)
   v8_crashpad_support::SetUp();
-#endif
-
-#if BUILDFLAG(IS_CHROMEOS)
-  if (!crash_reporter::IsCrashpadEnabled()) {
-    breakpad::SetFirstChanceExceptionHandler(v8::TryHandleWebAssemblyTrapPosix);
-  }
 #endif
 
 #if BUILDFLAG(IS_POSIX)
@@ -1745,14 +1785,6 @@ void ChromeMainDelegate::PreSandboxStartup() {
     } else {
       base::android::InitJavaExceptionReporterForChildProcess();
     }
-#elif BUILDFLAG(IS_CHROMEOS)
-    if (crash_reporter::IsCrashpadEnabled()) {
-      crash_reporter::InitializeCrashpad(process_type.empty(), process_type);
-      crash_reporter::SetFirstChanceExceptionHandler(
-          v8::TryHandleWebAssemblyTrapPosix);
-    } else {
-      breakpad::InitCrashReporter(process_type);
-    }
 #else
     crash_reporter::InitializeCrashpad(process_type.empty(), process_type);
     crash_reporter::SetFirstChanceExceptionHandler(
@@ -1901,19 +1933,9 @@ void ChromeMainDelegate::ZygoteForked() {
       base::CommandLine::ForCurrentProcess();
   std::string process_type =
       command_line->GetSwitchValueASCII(switches::kProcessType);
-#if BUILDFLAG(IS_CHROMEOS)
-  if (crash_reporter::IsCrashpadEnabled()) {
-    crash_reporter::InitializeCrashpad(false, process_type);
-    crash_reporter::SetFirstChanceExceptionHandler(
-        v8::TryHandleWebAssemblyTrapPosix);
-  } else {
-    breakpad::InitCrashReporter(process_type);
-  }
-#else
   crash_reporter::InitializeCrashpad(false, process_type);
   crash_reporter::SetFirstChanceExceptionHandler(
       v8::TryHandleWebAssemblyTrapPosix);
-#endif
 
   // Reset the command line for the newly spawned process.
   crash_keys::SetCrashKeysFromCommandLine(*command_line);

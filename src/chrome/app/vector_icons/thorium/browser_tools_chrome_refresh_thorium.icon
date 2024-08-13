@@ -1,0 +1,28 @@
+// Copyright 2024 The Brave Authors and Alex313031
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at http://mozilla.org/MPL/2.0/.
+// Modified, Originally from https://github.com/brave/brave-core/blob/master/vector_icons/chrome/app/vector_icons/browser_tools.icon
+
+CANVAS_DIMENSIONS, 24,
+PATH_COLOR_ARGB, 0xFF, 0x1A, 0x73, 0xE8,
+MOVE_TO, 2, 5,
+R_ARC_TO, 1, 1, 0, 0, 1, 1, -1,
+R_H_LINE_TO, 18,
+R_ARC_TO, 1, 1, 0, 1, 1, 0, 2,
+H_LINE_TO, 3,
+R_ARC_TO, 1, 1, 0, 0, 1, -1, -1,
+CLOSE,
+R_MOVE_TO, 0, 14,
+R_ARC_TO, 1, 1, 0, 0, 1, 1, -1,
+R_H_LINE_TO, 18,
+R_ARC_TO, 1, 1, 0, 1, 1, 0, 2,
+H_LINE_TO, 3,
+R_ARC_TO, 1, 1, 0, 0, 1, -1, -1,
+CLOSE,
+R_MOVE_TO, 1, -8,
+R_ARC_TO, 1, 1, 0, 1, 0, 0, 2,
+R_H_LINE_TO, 18,
+R_ARC_TO, 1, 1, 0, 1, 0, 0, -2,
+H_LINE_TO, 3,
+CLOSE

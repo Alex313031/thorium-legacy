@@ -335,7 +335,12 @@ bool IsDefaultSupportedVideoType(const VideoType& type) {
     case VideoCodec::kTheora:
       return IsBuiltInVideoCodec(type.codec);
     case VideoCodec::kH264:
+      return true;
     case VideoCodec::kVP8:
+      return IsBuiltInVideoCodec(type.codec)
+                 ? true
+                 : GetSupplementalProfileCache()->IsProfileSupported(
+                       type.profile);
     case VideoCodec::kMPEG2:
       return true;
     case VideoCodec::kAV1:
@@ -397,19 +402,16 @@ bool IsDefaultSupportedAudioType(const AudioType& type) {
 }
 
 bool IsBuiltInVideoCodec(VideoCodec codec) {
-#if BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS)
-  if (codec == VideoCodec::kTheora)
-    return base::FeatureList::IsEnabled(kTheoraVideoCodec);
-  if (codec == VideoCodec::kVP8)
+#if BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS) && BUILDFLAG(USE_PROPRIETARY_CODECS)
+  if (codec == VideoCodec::kH264 || codec == VideoCodec::kHEVC) {
     return true;
-#if BUILDFLAG(USE_PROPRIETARY_CODECS)
-  if (codec == VideoCodec::kH264 || codec == VideoCodec::kHEVC)
-    return true;
-#endif  // BUILDFLAG(USE_PROPRIETARY_CODECS)
-#endif  // BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS)
+  }
+#endif  // BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS) &&
+        // BUILDFLAG(USE_PROPRIETARY_CODECS)
 #if BUILDFLAG(ENABLE_LIBVPX)
-  if (codec == VideoCodec::kVP8 || codec == VideoCodec::kVP9)
+  if (codec == VideoCodec::kVP8 || codec == VideoCodec::kVP9) {
     return true;
+  }
 #endif  // BUILDFLAG(ENABLE_LIBVPX)
 #if BUILDFLAG(ENABLE_AV1_DECODER)
   if (codec == VideoCodec::kAV1)

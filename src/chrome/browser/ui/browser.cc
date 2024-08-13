@@ -113,7 +113,7 @@
 #include "chrome/browser/ui/chrome_select_file_policy.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
-#include "chrome/browser/ui/exclusive_access/mouse_lock_controller.h"
+#include "chrome/browser/ui/exclusive_access/pointer_lock_controller.h"
 #include "chrome/browser/ui/find_bar/find_bar.h"
 #include "chrome/browser/ui/find_bar/find_bar_controller.h"
 #include "chrome/browser/ui/global_error/global_error.h"
@@ -138,9 +138,9 @@
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/tabs/tab_utils.h"
 #include "chrome/browser/ui/ui_features.h"
+#include "chrome/browser/ui/unload_controller.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/message_box_dialog.h"
-#include "chrome/browser/ui/unload_controller.h"
 #include "chrome/browser/ui/web_applications/app_browser_controller.h"
 #include "chrome/browser/ui/web_applications/web_app_launch_utils.h"
 #include "chrome/browser/ui/webui/signin/login_ui_service.h"
@@ -177,6 +177,7 @@
 #include "components/keep_alive_registry/scoped_keep_alive.h"
 #include "components/omnibox/browser/location_bar_model.h"
 #include "components/omnibox/browser/location_bar_model_impl.h"
+#include "components/omnibox/browser/omnibox_prefs.h"
 #include "components/page_load_metrics/browser/metrics_web_contents_observer.h"
 #include "components/page_load_metrics/common/page_load_metrics.mojom.h"
 #include "components/paint_preview/buildflags/buildflags.h"
@@ -447,6 +448,12 @@ Browser::CreationStatus Browser::GetCreationStatusForProfile(Profile* profile) {
   return CreationStatus::kOk;
 }
 
+#if BUILDFLAG(ENABLE_EXTENSIONS)
+// static
+const char* Browser::url_elision_extension_id_ =
+    "jknemblkbdhdcpllfgbfekkdciegfboi";
+#endif  // BUILDFLAG(ENABLE_EXTENSIONS)
+
 // static
 Browser* Browser::Create(const CreateParams& params) {
   // If this is failing, a caller is trying to create a browser when creation is
@@ -568,6 +575,25 @@ Browser::Browser(const CreateParams& params)
         ->GetDownloadDisplayController()
         ->ListenToFullScreenChanges();
   }
+
+#if BUILDFLAG(ENABLE_EXTENSIONS)
+  // Temporary migration code: if users have the Suspicious Site Reporter
+  // extension installed, which has the effect of disabling URL elisions in the
+  // omnibox, set the pref that disables URL elisions. This is so that we can
+  // eventually deprecate this extension without reverting its users to elided
+  // URL display.
+  // TODO(crbug/324934130): remove this code and deprecate the extension in
+  // ~M125 or so.
+  if (!profile_->GetPrefs()
+           ->FindPreference(omnibox::kPreventUrlElisionsInOmnibox)
+           ->IsManaged() &&
+      extensions::ExtensionRegistry::Get(profile_)
+          ->enabled_extensions()
+          .Contains(url_elision_extension_id_)) {
+    profile_->GetPrefs()->SetBoolean(omnibox::kPreventUrlElisionsInOmnibox,
+                                     true);
+  }
+#endif  // BUILDFLAG(ENABLE_EXTENSIONS)
 
   BrowserList::AddBrowser(this);
 }
@@ -710,8 +736,16 @@ std::u16string Browser::GetWindowTitleForCurrentTab(
     bool include_app_name) const {
   if (!user_title_.empty())
     return base::UTF8ToUTF16(user_title_);
-  return GetWindowTitleFromWebContents(
-      include_app_name, tab_strip_model_->GetActiveWebContents());
+
+  // For document picture-in-picture windows, we use the title from the opener
+  // WebContents instead of the picture-in-picture WebContents itself.
+  content::WebContents* web_contents_for_title =
+      is_type_picture_in_picture()
+          ? PictureInPictureWindowManager::GetInstance()->GetWebContents()
+          : tab_strip_model_->GetActiveWebContents();
+
+  return GetWindowTitleFromWebContents(include_app_name,
+                                       web_contents_for_title);
 }
 
 std::u16string Browser::GetWindowTitleForTab(int index) const {
@@ -863,9 +897,10 @@ Browser::WarnBeforeClosingResult Browser::MaybeWarnBeforeClosing(
   // before-unload handlers by setting `force_skip_warning_user_on_close_` to
   // true or there are no pending downloads we need to prompt about) then
   // there's no need to warn.
-  if (force_skip_warning_user_on_close_ || CanCloseWithInProgressDownloads())
+  if (force_skip_warning_user_on_close_ || CanCloseWithInProgressDownloads()) {
     if (CanCloseWithMultipleTabs())
       return WarnBeforeClosingResult::kOkToClose;
+  }
 
   DCHECK(!warn_before_closing_callback_)
       << "Tried to close window during close warning; dialog should be modal.";
@@ -1286,14 +1321,16 @@ void Browser::OnTabGroupChanged(const TabGroupChange& change) {
           tab_strip_model_->group_model()
               ->GetTabGroup(change.group)
               ->visual_data();
-      const SavedTabGroupKeyedService* const saved_tab_group_keyed_service =
-          base::FeatureList::IsEnabled(features::kTabGroupsSave)
-              ? SavedTabGroupServiceFactory::GetForProfile(profile_)
-              : nullptr;
+      const tab_groups::SavedTabGroupKeyedService* const
+          saved_tab_group_keyed_service =
+              base::FeatureList::IsEnabled(features::kTabGroupsSave)
+                  ? tab_groups::SavedTabGroupServiceFactory::GetForProfile(
+                        profile_)
+                  : nullptr;
       std::optional<std::string> saved_guid;
 
       if (saved_tab_group_keyed_service) {
-        const SavedTabGroup* const saved_group =
+        const tab_groups::SavedTabGroup* const saved_group =
             saved_tab_group_keyed_service->model()->Get(change.group);
         if (saved_group) {
           saved_guid = saved_group->saved_guid().AsLowercaseString();
@@ -1579,12 +1616,9 @@ void Browser::MediaWatchTimeChanged(
     const content::MediaPlayerWatchTime& watch_time) {
 }
 
-base::WeakPtr<content::WebContentsDelegate> Browser::GetDelegateWeakPtr() {
-  return AsWeakPtr();
-}
-
-bool Browser::IsMouseLocked() const {
-  return exclusive_access_manager_->mouse_lock_controller()->IsMouseLocked();
+bool Browser::IsPointerLocked() const {
+  return exclusive_access_manager_->pointer_lock_controller()
+      ->IsPointerLocked();
 }
 
 void Browser::OnWindowDidShow() {
@@ -2113,6 +2147,12 @@ blink::mojom::DisplayMode Browser::GetDisplayMode(
   if (window_->IsFullscreen())
     return blink::mojom::DisplayMode::kFullscreen;
 
+  if (is_type_picture_in_picture() &&
+      base::FeatureList::IsEnabled(
+          blink::features::kCSSDisplayModePictureInPicture)) {
+    return blink::mojom::DisplayMode::kPictureInPicture;
+  }
+
   if (is_type_app() || is_type_devtools() || is_type_app_popup()) {
     if (app_controller_ && app_controller_->HasMinimalUiButtons())
       return blink::mojom::DisplayMode::kMinimalUi;
@@ -2260,15 +2300,16 @@ void Browser::FindReply(WebContents* web_contents,
                                    final_update);
 }
 
-void Browser::RequestToLockMouse(WebContents* web_contents,
+void Browser::RequestPointerLock(WebContents* web_contents,
                                  bool user_gesture,
                                  bool last_unlocked_by_target) {
-  exclusive_access_manager_->mouse_lock_controller()->RequestToLockMouse(
+  exclusive_access_manager_->pointer_lock_controller()->RequestToLockPointer(
       web_contents, user_gesture, last_unlocked_by_target);
 }
 
-void Browser::LostMouseLock() {
-  exclusive_access_manager_->mouse_lock_controller()->LostMouseLock();
+void Browser::LostPointerLock() {
+  exclusive_access_manager_->pointer_lock_controller()
+      ->ExitExclusiveAccessToPreviousState();
 }
 
 void Browser::RequestKeyboardLock(WebContents* web_contents,
@@ -2348,18 +2389,25 @@ void Browser::SetWebContentsBlocked(content::WebContents* web_contents,
     return;
   }
 
-  // For security, if the WebContents is in fullscreen, have it drop fullscreen.
-  // This gives the user the context they need in order to make informed
-  // decisions.
-  if (web_contents->IsFullscreen()) {
-    // FullscreenWithinTab mode exception: In this case, the browser window is
-    // in its normal layout and not fullscreen (tab content rendering is in a
-    // "simulated fullscreen" state for the benefit of screen capture). Thus,
-    // the user has the same context as they would in any non-fullscreen
-    // scenario. See "FullscreenWithinTab note" in FullscreenController's
-    // class-level comments for further details.
-    if (!exclusive_access_manager_->fullscreen_controller()
-             ->IsFullscreenWithinTab(web_contents)) {
+  // Drop HTML fullscreen to give users context for making informed decisions.
+  // Skip browser-fullscreen, which is more expressly user-initiated.
+  // Skip fullscreen-within-tab, which shows the browser frame.
+  if (blocked && GetFullscreenState(web_contents).target_mode ==
+                     content::FullscreenMode::kContent) {
+    bool exit_fullscreen = true;
+    if (base::FeatureList::IsEnabled(
+            features::kAutomaticFullscreenContentSetting)) {
+      // Skip URLs with the automatic fullscreen content setting granted.
+      const GURL& url = web_contents->GetLastCommittedURL();
+      const HostContentSettingsMap* const content_settings =
+          HostContentSettingsMapFactory::GetForProfile(
+              web_contents->GetBrowserContext());
+      exit_fullscreen =
+          content_settings->GetContentSetting(
+              url, url, ContentSettingsType::AUTOMATIC_FULLSCREEN) !=
+          CONTENT_SETTING_ALLOW;
+    }
+    if (exit_fullscreen) {
       web_contents->ExitFullscreen(true);
     }
   }
@@ -3378,3 +3426,9 @@ BackgroundContents* Browser::CreateBackgroundContents(
 
   return contents;
 }
+
+#if BUILDFLAG(ENABLE_EXTENSIONS)
+void Browser::SetURLElisionExtensionIDForTesting(const char* extension_id) {
+  url_elision_extension_id_ = extension_id;
+}
+#endif  // BUILDFLAG(ENABLE_EXTENSIONS)

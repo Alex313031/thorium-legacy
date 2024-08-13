@@ -4,10 +4,10 @@
 
 #include "chrome/browser/ui/views/toolbar/home_button.h"
 
+#include "base/command_line.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ptr.h"
-#include "base/command_line.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "chrome/app/vector_icons/vector_icons.h"
@@ -36,8 +36,9 @@
 namespace {
 
 class HomePageUndoBubble : public views::BubbleDialogDelegateView {
+  METADATA_HEADER(HomePageUndoBubble, views::BubbleDialogDelegateView)
+
  public:
-  METADATA_HEADER(HomePageUndoBubble);
   HomePageUndoBubble(views::View* anchor_view,
                      PrefService* prefs,
                      const GURL& undo_url,
@@ -101,7 +102,7 @@ void HomePageUndoBubble::UndoClicked() {
   GetWidget()->Close();
 }
 
-BEGIN_METADATA(HomePageUndoBubble, views::BubbleDialogDelegateView)
+BEGIN_METADATA(HomePageUndoBubble)
 END_METADATA
 
 }  // namespace
@@ -138,7 +139,8 @@ HomeButton::HomeButton(PressedCallback callback, PrefService* prefs)
   SetTriggerableEventFlags(ui::EF_LEFT_MOUSE_BUTTON |
                            ui::EF_MIDDLE_MOUSE_BUTTON);
   SetVectorIcons(features::IsChromeRefresh2023()
-                     ? kNavigateHomeChromeRefreshIcon
+                     ? disable_thorium_icons ? kNavigateHomeChromeRefreshIcon
+                     : kNavigateHomeChromeRefreshThoriumIcon
                      : disable_thorium_icons ? kNavigateHomeIcon
                      : kNavigateHomeThoriumIcon,
                  kNavigateHomeTouchIcon);
@@ -175,15 +177,13 @@ void HomeButton::UpdateHomePage(
     const ui::DropTargetEvent& event,
     ui::mojom::DragOperation& output_drag_op,
     std::unique_ptr<ui::LayerTreeOwner> drag_image_layer_owner) {
-  GURL new_homepage_url;
-  std::u16string title;
-  if (event.data().GetURLAndTitle(ui::FilenameToURLPolicy::CONVERT_FILENAMES,
-                                  &new_homepage_url, &title) &&
-      new_homepage_url.is_valid() && prefs_) {
+  std::optional<ui::OSExchangeData::UrlInfo> url_info =
+      event.data().GetURLAndTitle(ui::FilenameToURLPolicy::CONVERT_FILENAMES);
+  if (url_info.has_value() && url_info->url.is_valid() && prefs_) {
     GURL old_homepage(prefs_->GetString(prefs::kHomePage));
     bool old_is_ntp = prefs_->GetBoolean(prefs::kHomePageIsNewTabPage);
 
-    prefs_->SetString(prefs::kHomePage, new_homepage_url.spec());
+    prefs_->SetString(prefs::kHomePage, url_info->url.spec());
     prefs_->SetBoolean(prefs::kHomePageIsNewTabPage, false);
 
     coordinator_.Show(old_homepage, old_is_ntp);

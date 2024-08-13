@@ -72,4 +72,4 @@ Compare non-src difference and update
 Update FTP, ffmpeg, and AC3 patches
 Update main patches
 Update skia-supermium and pdfium-supermium and patches
-Backport stuff from M126
+Backport stuff from M126 including MIDI and privacy snadbox patches

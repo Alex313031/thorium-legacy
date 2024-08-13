@@ -38,6 +38,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/time/time.h"
 #include "base/timer/elapsed_timer.h"
+#include "base/types/to_address.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/defaults.h"
@@ -750,14 +751,15 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
     ~ResetDraggingStateDelegate() override = default;
 
     void AnimationProgressed(const gfx::Animation* animation) override {
-      tab_container_->OnTabSlotAnimationProgressed(std::to_address(slot_view_));
+      tab_container_->OnTabSlotAnimationProgressed(
+          base::to_address(slot_view_));
     }
 
     void AnimationEnded(const gfx::Animation* animation) override {
       AnimationProgressed(animation);
       slot_view_->set_animating(false);
       slot_view_->set_dragging(false);
-      tab_container_->ReturnTabSlotView(std::to_address(slot_view_));
+      tab_container_->ReturnTabSlotView(base::to_address(slot_view_));
     }
 
     void AnimationCanceled(const gfx::Animation* animation) override {
@@ -950,7 +952,7 @@ class TabStrip::TabDragContextImpl : public TabDragContext,
   base::WeakPtrFactory<TabDragContext> weak_factory_{this};
 };
 
-BEGIN_METADATA(TabStrip, TabDragContextImpl, views::View);
+BEGIN_METADATA(TabStrip, TabDragContextImpl);
 END_METADATA
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -963,7 +965,7 @@ TabStrip::TabStrip(std::unique_ptr<TabStripController> controller)
       tab_container_(
           *AddChildViewAt(MakeTabContainer(this,
                                            hover_card_controller_.get(),
-                                           std::to_address(drag_context_)),
+                                           base::to_address(drag_context_)),
                           0)),
       style_(TabStyle::Get()) {
   // TODO(pbos): This is probably incorrect, the background of individual tabs
@@ -992,8 +994,8 @@ TabStrip::~TabStrip() {
   // |tab_container_|'s tabs may call back to us or to |drag_context_| from
   // their destructors. Delete them first so that if they call back we aren't in
   // a weird state.
-  RemoveChildViewT(std::to_address(tab_container_));
-  RemoveChildViewT(std::to_address(drag_context_));
+  RemoveChildViewT(base::to_address(tab_container_));
+  RemoveChildViewT(base::to_address(drag_context_));
 
   CHECK(!IsInObserverList());
 }
@@ -1257,8 +1259,9 @@ bool TabStrip::ShouldDrawStrokes() const {
       controller_->GetFrameColor(BrowserFrameActiveState::kActive);
   const float contrast_ratio =
       color_utils::GetContrastRatio(background_color, frame_color);
-  if (contrast_ratio < kMinimumContrastRatioForOutlines)
+  if (contrast_ratio < kMinimumContrastRatioForOutlines) {
     return true;
+  }
 
   // Don't want to have to run a full feature query every time this function is
   // called.
@@ -1384,7 +1387,7 @@ int TabStrip::GetModelPinnedTabCount() const {
 }
 
 TabDragContext* TabStrip::GetDragContext() {
-  return std::to_address(drag_context_);
+  return base::to_address(drag_context_);
 }
 
 bool TabStrip::IsAnimating() const {
@@ -1895,7 +1898,7 @@ const Browser* TabStrip::GetBrowser() const {
 views::SizeBounds TabStrip::GetAvailableSize(const views::View* child) const {
   // We can only reach here if SetAvailableWidthCallback() was never called,
   // e.g. if tab scrolling is disabled. Defer to our parent.
-  DCHECK(child == std::to_address(tab_container_));
+  DCHECK(child == base::to_address(tab_container_));
   return parent()->GetAvailableSize(this);
 }
 
@@ -1917,7 +1920,7 @@ gfx::Size TabStrip::CalculatePreferredSize() const {
   return preferred_size;
 }
 
-void TabStrip::Layout() {
+void TabStrip::Layout(PassKey) {
   if (base::FeatureList::IsEnabled(features::kScrollableTabStrip)) {
     // With tab scrolling, the TabStrip is the contents view of a ScrollView and
     // as such is expected to set its own bounds during layout.
@@ -1943,7 +1946,7 @@ void TabStrip::Layout() {
     // visibility). See https://crbug.com/1370459.
     // TODO(crbug.com/1371301): TabContainer should observe available width
     // changes and invalidate its layout when needed.
-    tab_container_->Layout();
+    tab_container_->DeprecatedLayoutImmediately();
   }
   drag_context_->SetBoundsRect(GetLocalBounds());
 }
@@ -1952,8 +1955,9 @@ void TabStrip::ChildPreferredSizeChanged(views::View* child) {
   PreferredSizeChanged();
 }
 
-BrowserRootView::DropIndex TabStrip::GetDropIndex(
-    const ui::DropTargetEvent& event) {
+std::optional<BrowserRootView::DropIndex> TabStrip::GetDropIndex(
+    const ui::DropTargetEvent& event,
+    bool allow_replacement) {
   // BrowserView should talk directly to |tab_container_| instead of asking us.
   NOTREACHED_NORETURN();
 }
@@ -2026,14 +2030,7 @@ void TabStrip::NewTabButtonPressed(const ui::Event& event) {
       return;
     }
   }
-  const int tab_count = GetTabCount();
   controller_->CreateNewTab();
-
-  if (GetTabCount() != tab_count + 1) {
-    UMA_HISTOGRAM_ENUMERATION("TabStrip.Failures.Action",
-                              TabFailureContext::kNewTabOpen,
-                              TabFailureContext::kMaxValue);
-  }
 }
 
 bool TabStrip::ShouldHighlightCloseButtonAfterRemove() {
@@ -2225,34 +2222,31 @@ void TabStrip::ShiftGroupRelative(const tab_groups::TabGroupId& group,
   gfx::Range tabs_in_group = controller_->ListTabsInGroup(group);
 
   const int start_index = tabs_in_group.start();
-  int target_index = start_index + offset;
+  const int index_of_skipped_over_tab =
+      offset == 1 ? start_index + tabs_in_group.length() : start_index - 1;
 
-  if (offset > 0) {
-    target_index += tabs_in_group.length() - 1;
+  if (!IsValidModelIndex(start_index) ||
+      !IsValidModelIndex(index_of_skipped_over_tab)) {
+    return;
   }
 
-  if (!IsValidModelIndex(start_index) || !IsValidModelIndex(target_index)) {
+  if (controller_->IsTabPinned(index_of_skipped_over_tab)) {
     return;
   }
 
   // Avoid moving into the middle of another group by accounting for its size.
   std::optional<tab_groups::TabGroupId> target_group =
-      tab_at(target_index)->group();
+      tab_at(index_of_skipped_over_tab)->group();
   if (target_group.has_value()) {
-    target_index +=
-        offset *
-        (controller_->ListTabsInGroup(target_group.value()).length() - 1);
+    CHECK_NE(target_group.value(), group);
   }
 
-  if (!IsValidModelIndex(target_index)) {
-    return;
-  }
+  const int num_skipped_tabs =
+      target_group.has_value()
+          ? controller_->ListTabsInGroup(target_group.value()).length()
+          : 1;
 
-  if (controller_->IsTabPinned(start_index) !=
-      controller_->IsTabPinned(target_index)) {
-    return;
-  }
-
+  const int target_index = start_index + offset * num_skipped_tabs;
   controller_->MoveGroup(group, target_index);
 }
 

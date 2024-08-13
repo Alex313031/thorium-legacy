@@ -304,7 +304,7 @@ bool Tab::GetHitTestMask(SkPath* mask) const {
   return true;
 }
 
-void Tab::Layout() {
+void Tab::Layout(PassKey) {
   const gfx::Rect contents_rect = GetContentsBounds();
 
   const bool was_showing_icon = showing_icon_;
@@ -326,7 +326,10 @@ void Tab::Layout() {
     // Height should go to the bottom of the tab for the crashed tab animation
     // to pop out of the bottom.
     favicon_bounds.set_y(contents_rect.y() +
-                         Center(contents_rect.height(), gfx::kFaviconSize));
+                         Center(features::IsChromeRefresh2023()
+                                    ? gfx::kFaviconSize
+                                    : contents_rect.height(),
+                                gfx::kFaviconSize));
     if (center_icon_) {
       // When centering the favicon, the favicon is allowed to escape the normal
       // contents rect.
@@ -448,7 +451,7 @@ void Tab::Layout() {
   title_->SetVisible(show_title);
 
   if (auto* focus_ring = views::FocusRing::Get(this); focus_ring) {
-    focus_ring->Layout();
+    focus_ring->DeprecatedLayoutImmediately();
   }
 }
 
@@ -590,7 +593,8 @@ void Tab::OnMouseReleased(const ui::MouseEvent& event) {
   if (event.IsOnlyMiddleMouseButton() ||
     // Close tab on double click, mirror of IsOnlyMiddleMouseButton
     // Based on gz83's work.
-    ((event.IsOnlyLeftMouseButton() && event.GetClickCount() == 2) && base::CommandLine::ForCurrentProcess()->HasSwitch("double-click-close-tab"))) {
+    ((event.IsOnlyLeftMouseButton() && event.GetClickCount() == 2) && 
+      base::CommandLine::ForCurrentProcess()->HasSwitch("double-click-close-tab"))) {
     if (HitTestPoint(event.location())) {
       controller_->CloseTab(this, CLOSE_TAB_FROM_MOUSE);
     } else if (closing_) {
@@ -657,7 +661,7 @@ void Tab::MaybeUpdateHoverStatus(const ui::MouseEvent& event) {
   mouse_hovered_ = true;
   tab_style_views()->ShowHover(TabStyle::ShowHoverStyle::kSubtle);
   UpdateForegroundColors();
-  Layout();
+  DeprecatedLayoutImmediately();
   if (g_show_hover_card_on_mouse_hover) {
     controller_->UpdateHoverCard(
         this, TabSlotController::HoverCardUpdateType::kHover);
@@ -671,7 +675,7 @@ void Tab::OnMouseExited(const ui::MouseEvent& event) {
   mouse_hovered_ = false;
   tab_style_views()->HideHover(TabStyle::HideHoverStyle::kGradual);
   UpdateForegroundColors();
-  Layout();
+  DeprecatedLayoutImmediately();
 }
 
 void Tab::OnGestureEvent(ui::GestureEvent* event) {
@@ -886,7 +890,7 @@ void Tab::ActiveStateChanged() {
   icon_->SetActiveState(IsActive());
   alert_indicator_button_->OnParentTabButtonColorChanged();
   title_->SetFontList(tab_style_views_->GetFontList());
-  Layout();
+  DeprecatedLayoutImmediately();
 }
 
 void Tab::AlertStateChanged() {
@@ -894,7 +898,7 @@ void Tab::AlertStateChanged() {
     controller_->UpdateHoverCard(
         this, TabSlotController::HoverCardUpdateType::kTabDataChanged);
   }
-  Layout();
+  DeprecatedLayoutImmediately();
 }
 
 void Tab::SelectedStateChanged() {
@@ -957,7 +961,7 @@ void Tab::SetData(TabRendererData data) {
     TooltipTextChanged();
   }
 
-  Layout();
+  DeprecatedLayoutImmediately();
   SchedulePaint();
 }
 
@@ -1122,8 +1126,9 @@ void Tab::UpdateIconVisibility() {
     }
 
     showing_close_button_ = large_enough_for_close_button;
-    if (base::CommandLine::ForCurrentProcess()->HasSwitch("hide-tab-close-buttons"))
+    if (base::CommandLine::ForCurrentProcess()->HasSwitch("hide-tab-close-buttons")) {
       showing_close_button_ = false;
+    }
     if (showing_close_button_) {
       available_width -= close_button_width;
     }

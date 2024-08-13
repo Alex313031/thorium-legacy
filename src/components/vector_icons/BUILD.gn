@@ -88,7 +88,6 @@ aggregate_vector_icons("components_vector_icons") {
     "extension_off.icon",
     "extension_on.icon",
     "family_link.icon",
-    "feed.icon",
     "file_download.icon",
     "file_download_chrome_refresh.icon",
     "file_download_off.icon",
@@ -196,6 +195,7 @@ aggregate_vector_icons("components_vector_icons") {
     "select_window.icon",
     "select_window_chrome_refresh.icon",
     "select_window_off_chrome_refresh.icon",
+    "send.icon",
     "sensors.icon",
     "sensors_chrome_refresh.icon",
     "sensors_off_chrome_refresh.icon",
@@ -248,6 +248,7 @@ aggregate_vector_icons("components_vector_icons") {
 
   if (is_thorium_build) {
     sources += [ "thorium/reload_thorium.icon" ]
+    sources += [ "thorium/reload_chrome_refresh_thorium.icon" ]
   }
 
   if (is_chromeos_ash) {
