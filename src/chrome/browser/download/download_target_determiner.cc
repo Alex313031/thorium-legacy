@@ -960,11 +960,6 @@ DownloadTargetDeterminer::Result
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   next_state_ = STATE_DETERMINE_INTERMEDIATE_PATH;
 
-  // Allow all downloads with this Thorium flag
-  if (base::CommandLine::ForCurrentProcess()->HasSwitch("allow-insecure-downloads")) {
-    return CONTINUE;
-  }
-
   // Checking if there are prior visits to the referrer is only necessary if the
   // danger level of the download depends on the file type.
   if (danger_type_ != download::DOWNLOAD_DANGER_TYPE_NOT_DANGEROUS &&
@@ -980,6 +975,13 @@ DownloadTargetDeterminer::Result
   // there were prior requests and determine the danger level again once the
   // result is available.
   danger_level_ = GetDangerLevel(NO_VISITS_TO_REFERRER);
+
+  static const bool allow_insecure_downloads_ =
+    base::CommandLine::ForCurrentProcess()->HasSwitch("allow-insecure-downloads");
+  // Continue with this Thorium flag
+  if (allow_insecure_downloads_) {
+    return CONTINUE;
+  }
 
   if (danger_level_ == DownloadFileType::NOT_DANGEROUS)
     return CONTINUE;
@@ -1272,6 +1274,13 @@ bool DownloadTargetDeterminer::HasPromptedForPath() const {
 DownloadFileType::DangerLevel DownloadTargetDeterminer::GetDangerLevel(
     PriorVisitsToReferrer visits) const {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
+
+  static const bool allow_insecure_downloads_ =
+    base::CommandLine::ForCurrentProcess()->HasSwitch("allow-insecure-downloads");
+  // Allow all downloads with this Thorium flag
+  if (allow_insecure_downloads_) {
+    return DownloadFileType::NOT_DANGEROUS;
+  }
 
   // If the user has has been prompted or will be, assume that the user has
   // approved the download. A programmatic download is considered safe unless it

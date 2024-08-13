@@ -168,6 +168,8 @@ namespace {
 // there is no user interaction).
 constexpr base::TimeDelta kEphemeralWarningLifetimeBeforeCancel =
     base::Hours(1);
+#else
+const char kPdfDirName[] = "pdfs";
 #endif
 
 // Used with GetPlatformDownloadPath() to indicate which platform path to

@@ -51,9 +51,10 @@ const base::FeatureParam<int> kAdAuctionSignalsMaxSizeBytes{
 // See https://github.com/WICG/turtledove/blob/main/FLEDGE.md
 // Changes default Permissions Policy for features join-ad-interest-group and
 // run-ad-auction to a more restricted EnableForSelf.
+// Enabled by Alex313031
 BASE_FEATURE(kAdInterestGroupAPIRestrictedPolicyByDefault,
              "AdInterestGroupAPIRestrictedPolicyByDefault",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Make MediaDevicesDispatcherHost and ended MediaStreamTrack not block BFCache.
 // See https://chrbug.com/1502395 for more details.
@@ -68,6 +69,7 @@ BASE_FEATURE(kAlwaysAllowFledgeDeprecatedRenderURLReplacements,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Block all MIDI access with the MIDI_SYSEX permission
+// Allow MIDI for Thorium Legacy
 BASE_FEATURE(kBlockMidiByDefault,
              "BlockMidiByDefault",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -392,6 +394,7 @@ BASE_FEATURE(kBoostNonRenderBlockingStyleLoadingTaskPriority,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // https://github.com/patcg-individual-drafts/topics
+// Kill switch for the Topics API.
 // Disabled by Alex313031
 BASE_FEATURE(kBrowsingTopics,
              "BrowsingTopics",
@@ -409,15 +412,17 @@ BASE_FEATURE(kBrowsingTopicsBypassIPIsPubliclyRoutableCheck,
 // feature has to be enabled first (i.e. `kBrowsingTopics` is enabled, and,
 // either a valid Origin Trial token exists or `kPrivacySandboxAdsAPIsOverride`
 // is enabled.)
+// Disabled by Alex313031
 BASE_FEATURE(kBrowsingTopicsDocumentAPI,
              "BrowsingTopicsDocumentAPI",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Decoupled with the main `kBrowsingTopics` feature, so it allows us to
 // decouple the server side configs.
+// Disabled by Alex313031
 BASE_FEATURE(kBrowsingTopicsParameters,
              "BrowsingTopicsParameters",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 // The number of epochs from where to calculate the topics to give to a
 // requesting contexts.
 const base::FeatureParam<int> kBrowsingTopicsNumberOfEpochsToExpose{
@@ -522,10 +527,14 @@ const base::FeatureParam<std::string> kCacheStorageCodeCacheHintHeaderName{
     &kCacheStorageCodeCacheHintHeader, "name", "x-CacheStorageCodeCacheHint"};
 
 // Enabled 03/2024 on macOS (and much earlier elsewhere).
+// Temporarily disabled due to issues:
+// - PDF blank previews
+// - Canvas corruption on ARM64 macOS
+// See https://g-issues.chromium.org/issues/328755781
 // Keeping the feature to perform a holdback experiment.
 BASE_FEATURE(kCanvas2DHibernation,
              "Canvas2DHibernation",
-             base::FeatureState::FEATURE_ENABLED_BY_DEFAULT);
+             base::FeatureState::FEATURE_DISABLED_BY_DEFAULT);
 
 #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_FUCHSIA)
 // Enables camera preview in permission bubble and site settings.
@@ -877,7 +886,7 @@ const base::FeatureParam<std::string> kDeprecateUnloadAllowlist{
 // against MojoJS bindings being enabled via a data-only attack.
 BASE_FEATURE(kEnableMojoJSProtectedMemory,
              "EnableMojoJSProtectedMemory",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enable reporting the modal dialog start time as an alternative end time for
 // duration measurement in performance event timing.
@@ -1732,6 +1741,7 @@ BASE_FEATURE(kPrefetchFontLookupTables,
 
 // Prefetch request properties are updated to be privacy-preserving. See
 // crbug.com/988956.
+// Enabled by Alex313031
 BASE_FEATURE(kPrefetchPrivacyChanges,
              "PrefetchPrivacyChanges",
              base::FEATURE_ENABLED_BY_DEFAULT);

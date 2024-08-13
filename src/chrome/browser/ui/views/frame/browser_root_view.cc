@@ -198,7 +198,7 @@ BrowserRootView::DropInfo::~DropInfo() {
 BrowserRootView::BrowserRootView(BrowserView* browser_view,
                                  views::Widget* widget)
     : views::internal::RootView(widget), browser_view_(browser_view) {
-  scroll_event_changes_tab_ = ShouldScrollChangesTab();
+      scroll_event_changes_tab_ = ShouldScrollChangesTab();
 }
 
 BrowserRootView::~BrowserRootView() {

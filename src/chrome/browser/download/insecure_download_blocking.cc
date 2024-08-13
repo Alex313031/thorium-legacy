@@ -327,6 +327,8 @@ struct InsecureDownloadData {
     // similar to MIX-DL above, it intentionally blocks more user-initiated
     // downloads. For example, downloads are blocked even if they're initiated
     // from the omnibox.
+    static const bool allow_insecure_downloads_ =
+      base::CommandLine::ForCurrentProcess()->HasSwitch("allow-insecure-downloads");
     if (download_source == DownloadSource::RETRY ||
         (transition_type & ui::PAGE_TRANSITION_RELOAD) ||
         (transition_type & ui::PAGE_TRANSITION_FROM_API) ||
@@ -334,7 +336,7 @@ struct InsecureDownloadData {
         download_source == DownloadSource::INTERNAL_API ||
         download_source == DownloadSource::EXTENSION_API ||
         download_source == DownloadSource::EXTENSION_INSTALLER ||
-        base::CommandLine::ForCurrentProcess()->HasSwitch("allow-insecure-downloads")) {
+        allow_insecure_downloads_) {
       is_insecure_download_ = false;
     } else {  // Not ignorable download.
       // TODO(crbug.com/1352598): Add blocking metrics.
@@ -453,8 +455,10 @@ InsecureDownloadStatus GetInsecureDownloadStatusForDownload(
     const download::DownloadItem* item) {
   InsecureDownloadData data(path, item);
 
-  // If the download is fully secure, early abort.
-  if (!data.is_insecure_download_ || base::CommandLine::ForCurrentProcess()->HasSwitch("allow-insecure-downloads")) {
+  static const bool allow_insecure_downloads_ =
+    base::CommandLine::ForCurrentProcess()->HasSwitch("allow-insecure-downloads");
+  // If the download is fully secure, early abort. Don't nag
+  if (!data.is_insecure_download_ || allow_insecure_downloads_) {
     return InsecureDownloadStatus::SAFE;
   }
 

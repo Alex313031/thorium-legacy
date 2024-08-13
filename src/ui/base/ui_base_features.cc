@@ -499,7 +499,7 @@ BASE_FEATURE(kCustomizeChromeSidePanel,
 
 BASE_FEATURE(kCustomizeChromeSidePanelNoChromeRefresh2023,
              "CustomizeChromeSidePanelNoChromeRefresh2023",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 bool CustomizeChromeSupportsChromeRefresh2023() {
   return base::FeatureList::IsEnabled(kCustomizeChromeSidePanel) &&

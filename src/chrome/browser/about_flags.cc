@@ -136,6 +136,8 @@
 #include "components/paint_preview/buildflags/buildflags.h"
 #include "components/paint_preview/features/features.h"
 #include "components/password_manager/core/browser/features/password_features.h"
+// Needed for Thorium password-store flag
+#include "components/password_manager/core/browser/password_manager_switches.h"
 #include "components/password_manager/core/common/password_manager_features.h"
 #include "components/payments/core/features.h"
 #include "components/performance_manager/public/features.h"
@@ -3816,11 +3818,11 @@ const FeatureEntry::FeatureVariation kDefaultBrowserPromptRefreshVariations[] =
 // Include Thorium Flags
 #include "chrome/browser/thorium_flag_choices.h"
 const FeatureEntry kFeatureEntries[] = {
-#include "chrome/browser/thorium_flag_entries.h"
 // Include generated flags for flag unexpiry; see //docs/flag_expiry.md and
 // //tools/flags/generate_unexpire_flags.py.
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/unexpire_flags_gen.inc"
+#include "chrome/browser/thorium_flag_entries.h"
     {variations::switches::kEnableBenchmarking,
      flag_descriptions::kEnableBenchmarkingName,
      flag_descriptions::kEnableBenchmarkingDescription, kOsAll,

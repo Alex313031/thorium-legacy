@@ -1170,7 +1170,7 @@ BASE_FEATURE(kAllowNonSecureOverlays,
 // Enables support for playback of encrypted AV1 content.
 BASE_FEATURE(kEnableEncryptedAV1,
              "EnableEncryptedAV1",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Allow FrameInfoHelper to guess coded size information for MediaCodec frames.
 BASE_FEATURE(kMediaCodecCodedSizeGuessing,
@@ -1255,7 +1255,7 @@ BASE_FEATURE(kBuiltInHlsPlayer,
              base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kBuiltInHlsMP4,
-             "kBuiltInHlsMP4",
+             "BuiltInHlsMP4",
              base::FEATURE_ENABLED_BY_DEFAULT);
 #endif  // BUILDFLAG(ENABLE_HLS_DEMUXER)
 
@@ -1659,7 +1659,7 @@ BASE_FEATURE(kAudioFocusLossSuspendMediaSession,
 // session.
 BASE_FEATURE(kHideIncognitoMediaMetadata,
              "HideIncognitoMediaMetadata",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables the internal Media Session logic without enabling the Media Session
 // service.

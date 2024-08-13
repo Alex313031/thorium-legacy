@@ -1233,10 +1233,15 @@ bool TabStrip::ShouldDrawStrokes() const {
         theme_service->UsingSystemTheme();
   }
 
+  // Don't want to have to run a full feature query every time this function is
+  // called.
+  static const bool force_enable_tab_outlines =
+      base::CommandLine::ForCurrentProcess()->HasSwitch("force-enable-tab-outlines");
+
   // The Tabstrip in the refreshed style does not meet the contrast ratio
   // requirements listed below but does not have strokes for Tabs or the bottom
   // border.
-  if (features::IsChromeRefresh2023() && !using_system_theme) {
+  if (!using_system_theme && !force_enable_tab_outlines) {
     return false;
   }
 
@@ -1263,10 +1268,6 @@ bool TabStrip::ShouldDrawStrokes() const {
     return true;
   }
 
-  // Don't want to have to run a full feature query every time this function is
-  // called.
-  static const bool force_enable_tab_outlines =
-      base::CommandLine::ForCurrentProcess()->HasSwitch("force-enable-tab-outlines");
   if (force_enable_tab_outlines) {
       return true;
   }

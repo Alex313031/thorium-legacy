@@ -480,13 +480,14 @@ void ToolbarView::Init() {
 
   const std::string sab_value = base::CommandLine::ForCurrentProcess()->
                                 GetSwitchValueASCII("show-avatar-button");
-  if (sab_value == "always")
+  if (sab_value == "always") {
     show_avatar_toolbar_button = true;
-  else if (sab_value == "incognito-and-guest")
+  } else if (sab_value == "incognito-and-guest") {
     show_avatar_toolbar_button = browser_->profile()->IsIncognitoProfile() ||
                                  browser_->profile()->IsGuestSession();
-  else if (sab_value == "never")
+  } else if (sab_value == "never") {
     show_avatar_toolbar_button = false;
+  }
 
   avatar_->SetVisible(show_avatar_toolbar_button);
 

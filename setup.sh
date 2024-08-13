@@ -22,6 +22,7 @@ displayHelp () {
 	printf "${bold}${YEL}Use the --mac flag for MacOS builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --raspi flag for Raspberry Pi builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --woa flag for Windows on ARM builds.${c0}\n" &&
+	printf "${bold}${YEL}Use the --avx512 flag for AVX-512 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --avx2 flag for AVX2 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse4 flag for SSE4.1 Builds.${c0}\n" &&
 	printf "${bold}${YEL}Use the --sse3 flag for SSE3 Builds.${c0}\n" &&
@@ -162,6 +163,19 @@ copyWOA () {
 }
 case $1 in
 	--woa) copyWOA;
+esac
+
+# Copy AVX512 files
+copyAVX512 () {
+	printf "\n" &&
+	printf "${YEL}Copying AVX-512 build files...${c0}\n" &&
+	cp -r -v other/AVX512/build/config/* ${CR_SRC_DIR}/build/config/ &&
+	cp -r -v other/AVX512/third_party/* ${CR_SRC_DIR}/third_party/ &&
+	cp -v other/AVX512/thor_ver ${CR_SRC_DIR}/out/thorium/ &&
+	printf "\n"
+}
+case $1 in
+	--avx512) copyAVX512;
 esac
 
 # Copy AVX2 files

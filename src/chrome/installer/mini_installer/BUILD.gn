@@ -36,7 +36,7 @@ declare_args() {
 
 config("mini_installer_compiler_flags") {
   # Disable buffer security checking.
-  cflags = [ "/GS-" ]
+  cflags = [ "/GS-", "/clang:-O3" ]
 }
 
 source_set("lib") {
@@ -183,7 +183,7 @@ action("mini_installer_archive") {
     #'--diff_algorithm=COURGETTE',
 
     # Optional argument for verbose archiving output.
-    #"--verbose",
+    "--verbose",
   ]
 
   deps = [
