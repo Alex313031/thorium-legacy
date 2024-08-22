@@ -67,7 +67,7 @@ chrome://tab-search.top-chrome/
 
 fix session buddy and find out wqhen websql is removed and find out how to migrate to indexdb or other alternatives
 
-Compare src difference between M122 and legacy, add to 124
+Compare src difference between M122 and thorium-legacy, add to 124
 Compare non-src difference and update
 Update FTP, ffmpeg, and AC3 patches
 Update main patches
