@@ -72,6 +72,8 @@ Compare non-src difference and update
 Update FTP, ffmpeg, and AC3 patches
 Update main patches
 Update skia-supermium and pdfium-supermium and patches
-Backport stuff from M126 including MIDI and privacy snadbox patches
+Backport stuff from M126 including MIDI and privacy sandbox patches
 
 Make hover over link always show full url without delay
+
+GPU Accel for XP - https://github.com/win32ss/supermium/discussions/696
