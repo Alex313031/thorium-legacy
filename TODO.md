@@ -63,8 +63,6 @@ look up how to add flag, feature flag, commandline, and gui, and multi option fl
 
 add feature flags for some thorium stuff maybe? add one for reload right click menu
 
-chrome://tab-search.top-chrome/
-
 fix session buddy and find out wqhen websql is removed and find out how to migrate to indexdb or other alternatives
 
 Compare src difference between M122 and thorium-legacy, add to 124
@@ -77,3 +75,5 @@ Backport stuff from M126 including MIDI and privacy sandbox patches
 Make hover over link always show full url without delay
 
 GPU Accel for XP - https://github.com/win32ss/supermium/discussions/696
+
+chrome://tab-search.top-chrome/ > why not on XP despite working without aero on win7 (test vista too)
